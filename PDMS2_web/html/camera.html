@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>拍照存證｜魔法王國</title>
+  <link rel="stylesheet" href="/css/styles.css?v=1" />
+  <style>
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main.playground-inner {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      gap: 6px;
+      padding-bottom: 80px;
+      overflow: hidden;
+    }
+
+    .cam-wrap {
+      flex: 1;
+      min-height: 0;
+      border: 4px solid #e7f3ff;
+      border-radius: 18px;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cam-view {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+    }
+
+    .camera-stream {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .tip {
+      font-size: 14px;
+      color: #61707f;
+      text-align: center;
+      margin-top: 8px
+    }
+
+    .status-info {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .status-success {
+      background: #e8f5e8;
+      color: #2d5a2d
+    }
+
+    .status-error {
+      background: #fdeaea;
+      color: #5a2d2d
+    }
+
+    .status-info.loading::after {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-left: 8px;
+      border: 2px solid #666;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="playground playground-inner">
+    <div id="statusInfo" class="status-info">準備開始...</div>
+
+    <section class="cam-wrap">
+      <div class="cam-view">
+        <img id="cameraStream" class="camera-stream" src="" alt="相機畫面" style="display:none;" />
+        <div id="placeholderText" style="color:#666; text-align:center; line-height:400px;">
+          等等相機畫面會顯示在這裡 ~
+        </div>
+        <div id="gameInfo"
+          style="display: none; margin-top: 30px; text-align: center; font-size: 32px; font-weight: bold;">
+          <p>豆豆數量：<span id="beanCount" style="color: #ff6b6b; font-size: 56px;">0</span> / <span id="targetBeanCount"
+              style="color: #4c6ef5; font-size: 56px;">10</span></p>
+          <p>剩餘時間：<span id="timeRemaining" style="color: #ffa94d; font-size: 56px;">60</span> 秒</p>
+        </div>
+      </div>
+      <p class="tip">
+        使用 OpenCV 控制電腦相機，照片將直接儲存到對應的任務資料夾中。
+      </p>
+    </section>
+  </main>
+
+  <div class="bottom-bar">
+    <button id="shotBtn" class="btn secondary fat pill" disabled>🎞️ 拍照、存檔並回主頁</button>
+    <button id="stopBtn" class="btn btn-danger fat pill" style="display:none;">🔴 停止錄影</button>
+    <a id="backLink" href="/html/index.html" class="btn ghost pill">← 先回主頁</a>
+  </div>
+
+  <script src="/js/camera.js?v=1" defer></script>
+</body>
+
+</html>

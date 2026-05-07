@@ -1,0 +1,64 @@
+# --- PDMS2 專案特定忽略檔案 ---
+# 忽略日誌與紀錄檔
+PDMS2_web/console.txt
+web.log
+/PDMS2_web/console.txt
+
+# 忽略大型模型檔案 (.h5, .pth, .onnx)
+*.h5
+*.pth
+*.onnx
+best_model.pth
+PDMS2_web/ch2-t1/model/
+PDMS2_web/ch2-t2/model/
+PDMS2_web/ch2-t3/model/
+
+# --- 媒體檔案處理 (預設忽略，特定追蹤) ---
+*.mp4
+*.jpg
+*.png
+*.jpeg
+*.gif
+*.zip
+
+# 特例：追蹤特定的海報或必要圖片
+!picture/poster.png
+
+# 追蹤 PDMS2_web/images 內的素材
+!PDMS2_web/images/
+!PDMS2_web/images/*.jpg
+!PDMS2_web/images/*.png
+!PDMS2_web/images/icons/
+!PDMS2_web/images/icons/*.png
+!PDMS2_web/images/icons/*.jpg
+
+
+# --- 開發環境與系統檔案 ---
+# macOS Finder metadata
+.DS_Store
+
+# IDE 設定 (VS Code)
+.vscode/
+PDMS2_web/.vscode/
+
+# Python 快取與環境
+__pycache__/
+*.pyc
+.venv/
+.env/
+.venv39/
+.env39/
+.env
+
+# Claude AI 設定
+CLAUDE.md
+.claude
+
+# 舊版本與暫存資料庫
+old_version/
+.vscode/
+PDMS2_web/.vscode/
+testPDMS.sql
+
+#sam
+sam/

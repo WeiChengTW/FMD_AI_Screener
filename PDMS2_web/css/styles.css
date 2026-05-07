@@ -1,0 +1,541 @@
+@font-face {
+  font-family: "BpmfGenYoGothic";
+  src: url("BpmfGenYoGothic-R.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --font: "Nunito", "M PLUS Rounded 1c", "Microsoft JhengHei UI", "PingFang TC", sans-serif;
+  --ink:  #2C2C3E;
+  --white:#FFFFFF;
+  --sh:   0 4px 16px rgba(0,0,0,0.09);
+  --sh-lg:0 8px 28px rgba(0,0,0,0.14);
+  --r:    22px;
+  --r-sm: 14px;
+  --focus:0 0 0 4px rgba(168,130,255,.35);
+
+  --ch1:#FF8C42; --ch1b:#FFF0E0;
+  --ch2:#E8478B; --ch2b:#FFE0F0;
+  --ch3:#2ECC9A; --ch3b:#D4F7EC;
+  --ch4:#3B9BF4; --ch4b:#D4EEFF;
+  --ch5:#A855F7; --ch5b:#EDE0FF;
+  --accent: var(--ch1);     /* 當前關卡主色，由 JS 動態更新 */
+  --accent-bg: var(--ch1b); /* 當前關卡淡色 */
+}
+
+* { box-sizing: border-box; font-family: var(--font); }
+
+html, body {
+  min-height: 100vh;
+  overflow: auto;
+  margin: 0;
+  color: var(--ink);
+  background: linear-gradient(135deg,#FEF0FF 0%,#F0F4FF 55%,#EDFFF8 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════ 頂欄 ══════════ */
+.kidbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  height: 68px;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  position: relative;
+  z-index: 50;
+}
+.kidbar::after {
+  content:"";
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:3px;
+  background:linear-gradient(90deg,#FF8C42,#E8478B,#2ECC9A,#3B9BF4,#A855F7);
+}
+
+.kidbar-left  { display:flex; align-items:center; gap:10px; }
+.kidbar-right { display:flex; align-items:center; gap:10px; }
+
+/* 換人玩按鈕：低調灰邊，無底色，允許 ruby rt 撐高行距 */
+.switch-btn {
+  background: transparent !important;
+  border: 1.5px solid #CCCCCC !important;
+  color: #999 !important;
+  font-size: 13px !important;
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  line-height: 1.4 !important;
+  min-height: unset !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.switch-btn ruby { display:inline; }
+.switch-btn rt   { font-size: 9px; color: #BBB; }
+
+/* 小老師模式按鈕：實線邊框，輕圓角，不用虛線 */
+#toggleAdmin {
+  border: 2px solid #BBBBBB !important;
+  border-radius: 10px !important;
+  border-style: solid !important;
+}
+
+.logo { font-size:36px; display:inline-block; animation:wiggle 2.5s ease-in-out infinite; }
+@keyframes wiggle { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+
+.app-title {
+  font-size:26px; font-weight:900; margin:0; line-height:1.1;
+  background:linear-gradient(135deg,#FF8C42,#E8478B,#A855F7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.subtitle { font-size:14px; color:#999; font-weight:700; margin:0; }
+
+.stars span { font-size:26px; color:#DDD; transition:color .25s,transform .25s; display:inline-block; }
+.stars .lit  { color:#FFD700; text-shadow:0 0 8px rgba(255,215,0,.7); transform:scale(1.25); }
+
+/* ══════════ 主容器 ══════════ */
+.playground {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 18px 10px;
+  gap: 10px;
+}
+
+/* ══════════ 章節貼紙列 ══════════ */
+.sticker-rail {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 8px;
+}
+
+.sticker {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  border-radius: 16px;
+  background: var(--white);
+  border: 3px solid #E8E8E8;
+  box-shadow: var(--sh);
+  cursor: pointer;
+  user-select: none;
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, background .2s, border-color .2s;
+}
+.sticker:nth-child(1){ border-color:var(--ch1); }
+.sticker:nth-child(2){ border-color:var(--ch2); }
+.sticker:nth-child(3){ border-color:var(--ch3); }
+.sticker:nth-child(4){ border-color:var(--ch4); }
+.sticker:nth-child(5){ border-color:var(--ch5); }
+
+.sticker:nth-child(1).active{ background:var(--ch1b); }
+.sticker:nth-child(2).active{ background:var(--ch2b); }
+.sticker:nth-child(3).active{ background:var(--ch3b); }
+.sticker:nth-child(4).active{ background:var(--ch4b); }
+.sticker:nth-child(5).active{ background:var(--ch5b); }
+
+.sticker:hover,.sticker.active { transform:translateY(-3px); box-shadow:var(--sh-lg); }
+.sticker:focus-visible { outline:none; box-shadow:var(--focus); }
+
+.sticker .emoji {
+  width:66px; height:66px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.sticker .caption { font-weight:900; font-size:14px; text-align:left; line-height:1.35; min-width:0; }
+.sticker .cap-num { font-size:18px; font-weight:900; }
+.sticker .cap-sub { font-size:14px; font-weight:700; color:#888; }
+
+/* ══════════ 故事卡（單排） ══════════ */
+.story-card {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #FFFDF5 0%, #FFF8FF 100%);
+  border-radius: var(--r);
+  box-shadow: var(--sh-lg);
+  padding: 20px 26px;
+  border-left: 7px solid var(--accent);
+  transition: border-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+#storyEmoji {
+  flex: 0 0 76px;
+  width: 76px; height: 76px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg,#FFF9E6,#FFF0FF);
+  border-radius: 14px;
+  border: 2.5px solid var(--accent);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.story-text { flex:1; min-width:0; }
+.story-title {
+  margin:0 0 5px; font-size:26px; font-weight:900;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+.story-intro {
+  margin:0; font-size:18px; color:#666; font-weight:700;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+
+.kid-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.kid-actions .btn { font-size:17px; padding:12px 22px; min-height:50px; }
+
+/* ══════════ 任務卡格（欄數由 JS 動態設定） ══════════ */
+.tasks-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);  /* JS 會根據任務數覆寫 */
+  grid-auto-rows: minmax(min-content, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* 橫排卡片：圖在左，文字在右 */
+.task-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;      /* body 相對圖片垂直置中 */
+  background: var(--white);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  border: 2.5px solid #EBEBEB;
+  overflow: hidden;
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s;
+}
+.task-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: var(--sh-lg); }
+.task-icon { align-self: stretch; }   /* icon 彩色背景仍填滿卡片全高 */
+
+/* icon 區域：左側彩色背景 */
+.task-icon {
+  flex: 0 0 38%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  overflow: hidden;
+}
+
+/* 每張卡片 icon 區用不同底色（nth-child 循環） */
+.tasks-grid .task-card:nth-child(6n+1) .task-icon { background:linear-gradient(150deg,#FFF3E8,#FFDAB9); }
+.tasks-grid .task-card:nth-child(6n+2) .task-icon { background:linear-gradient(150deg,#FFE8F2,#FFBCD9); }
+.tasks-grid .task-card:nth-child(6n+3) .task-icon { background:linear-gradient(150deg,#E8FFF5,#A8EDCA); }
+.tasks-grid .task-card:nth-child(6n+4) .task-icon { background:linear-gradient(150deg,#E8F4FF,#AACED9); }
+.tasks-grid .task-card:nth-child(6n+5) .task-icon { background:linear-gradient(150deg,#F3E8FF,#CEB0FA); }
+.tasks-grid .task-card:nth-child(6n+6) .task-icon { background:linear-gradient(150deg,#FFFAE8,#FFE97A); }
+
+/* 文字+按鈕區：右側 */
+.task-body {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  border-left: 2px solid #F4F4F4;
+}
+
+.task-title {
+  margin: 0;
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-family: "Nunito", "Microsoft JhengHei UI", "PingFang TC", sans-serif;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.task-note {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #777;
+  font-weight: 700;
+  line-height: 1.8;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.task-ops {
+  display: flex;
+  flex-direction: column;   /* 垂直堆疊，每個按鈕全寬 */
+  gap: 12px;
+  margin-top: 16px;
+}
+.task-ops .btn {
+  width: 100%;
+  font-size: 2rem;
+  padding: 32px 16px;
+  border-radius: 28px;
+  min-height: 100px;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.task-ops .btn:active { transform: scale(0.95) !important; }
+.task-ops .start-btn  { background:linear-gradient(135deg,#3B9BF4,#5BC8F5); color:#fff; box-shadow:0 4px 14px rgba(59,155,244,.40); }
+.task-ops .done-btn   { background:#F2F2F2; color:#999; border:2px solid #E0E0E0; }
+
+/* 完成狀態 */
+.task-card.is-done { border-color:#2ECC9A; }
+.task-card.is-done .task-ops .done-btn {
+  background:linear-gradient(135deg,#2ECC71,#1ABC9C);
+  color:#fff; border:none; box-shadow:0 3px 10px rgba(46,204,113,.35);
+}
+
+/* ══════════ 小老師側欄 ══════════ */
+.admin {
+  position:fixed; right:14px; bottom:14px; width:270px;
+  background:var(--white); border-radius:var(--r); box-shadow:var(--sh-lg);
+  border:3px solid var(--ch5b); padding:14px; z-index:100;
+}
+.admin-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.admin-head h3 { margin:0; font-size:16px; font-weight:900; }
+.admin-block+.admin-block { margin-top:10px; }
+.label { font-size:12px; color:#888; margin-bottom:4px; display:block; font-weight:700; }
+.input {
+  width:100%; padding:8px 12px; border-radius:var(--r-sm);
+  border:2px solid #DDD; outline:none; font-size:15px; font-weight:700;
+  font-family:var(--font); transition:border-color .2s, box-shadow .2s;
+}
+.input:focus { border-color:var(--ch5); box-shadow:var(--focus); }
+.admin-list { display:flex; flex-direction:column; gap:6px; max-height:200px; overflow:auto; }
+.admin-item {
+  display:flex; align-items:center; justify-content:space-between;
+  border:2px solid #EEE; border-radius:var(--r-sm); padding:6px 10px;
+  font-weight:700; font-size:13px;
+}
+.admin-item .mini { font-size:11px; color:#888; }
+
+/* ══════════ 按鈕系統 ══════════ */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  border:none; border-radius:var(--r-sm); padding:10px 16px;
+  cursor:pointer; font-weight:900; font-size:15px; font-family:var(--font);
+  text-decoration:none;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .15s, filter .15s;
+  white-space:nowrap;
+}
+.btn:hover  { transform:translateY(-3px); filter:brightness(1.07); }
+.btn:active { transform:translateY(1px);  filter:brightness(.95); }
+.btn:focus-visible { outline:none; box-shadow:var(--focus); }
+.btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+.btn.pill { border-radius:999px; }
+.btn.big  { font-size:16px; }
+.btn.fat  { font-size:17px; padding:12px 24px; min-height:50px; }
+.btn.full { width:100%; }
+
+.btn.primary {
+  background:linear-gradient(135deg,#FF6BA8,#FF8C42);
+  color:#fff; box-shadow:0 4px 14px rgba(255,107,168,.40);
+}
+.btn.primary:hover { box-shadow:0 6px 20px rgba(255,107,168,.52); }
+
+.btn.secondary {
+  background:linear-gradient(135deg,#3B9BF4,#5BC8F5);
+  color:#fff; box-shadow:0 4px 14px rgba(59,155,244,.35);
+}
+.btn.secondary:hover { box-shadow:0 6px 20px rgba(59,155,244,.48); }
+
+.btn.ghost {
+  background:var(--white); border:2px dashed #CCC;
+  color:var(--ink); box-shadow:var(--sh);
+}
+.btn.ghost:hover { border-color:#AAA; }
+
+.btn.danger {
+  background:linear-gradient(135deg,#FF5C5C,#FF8C42);
+  color:#fff; box-shadow:0 4px 14px rgba(255,92,92,.30);
+}
+
+
+/* ══════════ task.html 頁：左右分割 100vh 無捲軸佈局 ══════════ */
+
+/* 固定 100vh，禁止全頁捲動 */
+body.task-page {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 左右分割主區，撐滿剩餘高度 */
+.task-split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* ── 左側：影片/圖片（60%） ── */
+.task-left {
+  flex: 0 0 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: linear-gradient(135deg,#F0F4FF,#F8F0FF);
+}
+
+.task-illustration {
+  width: 100%; height: 100%; margin: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--white); border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  border: 2.5px solid #E8F4FF; overflow: hidden;
+}
+
+.task-illustration video,
+.task-illustration img {
+  width: 100%; height: 100%; object-fit: contain;
+}
+
+/* ── 右側：標題 + 步驟 + 按鈕（40%） ── */
+.task-right {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 24px;
+  gap: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 標題框 */
+.task-head {
+  background: var(--white); border-radius: var(--r); box-shadow: var(--sh-lg);
+  padding: 16px 20px; flex-shrink: 0; min-height: 90px;
+  display: flex; align-items: center; gap: 14px;
+  border-left: 7px solid #FFD700;
+}
+
+.task-emoji {
+  flex: 0 0 64px; width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+  background: linear-gradient(135deg,#FFF9E6,#F0F9FF);
+  border-radius: 14px; border: 2px solid #FFE8A0;
+}
+
+body.task-page .task-title { margin: 0 0 4px; font-size: 22px; font-weight: 900; line-height: 1.2; }
+body.task-page .task-desc  { margin: 0; color: #555; font-size: 14px; font-weight: 700; }
+
+/* desc 行高覆蓋：BpmfGenYoGothic 的 #desc 規則有最高優先權，需用更高優先度蓋掉 */
+body.task-page #desc { line-height: 1.6; }
+
+/* 步驟區：佔剩餘空間，內部可微幅捲動 */
+.task-steps {
+  flex: 1; min-height: 0; overflow-y: auto;
+  background: var(--white); border-radius: var(--r); box-shadow: var(--sh);
+  padding: 16px 20px; border: 2.5px solid #EEE9FF;
+}
+
+.task-steps h3 { margin: 0 0 12px; font-size: 16px; font-weight: 900; }
+.task-steps ol {
+  margin: 0; padding: 0; list-style: none;
+  counter-reset: step-counter;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.task-steps ol li {
+  counter-increment: step-counter;
+  position: relative;
+  padding: 14px 16px 14px 56px;
+  font-size: 1.4rem; font-weight: 700; color: #444;
+  background: #F8F6FF; border-radius: 14px;
+}
+/* 步驟行高：比全域的 2.2 更緊湊，確保塞得下 */
+body.task-page .task-steps ol li { line-height: 1.8; }
+
+.task-steps ol li::before {
+  content: counter(step-counter);
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border-radius: 50%;
+  color: #fff; font-size: 14px; font-weight: 900;
+  font-family: var(--font);
+  display: flex; align-items: center; justify-content: center;
+}
+.task-steps ol li:nth-child(3n+1)::before { background: linear-gradient(135deg,#FF8C42,#E8478B); }
+.task-steps ol li:nth-child(3n+2)::before { background: linear-gradient(135deg,#2ECC9A,#3B9BF4); }
+.task-steps ol li:nth-child(3n+3)::before { background: linear-gradient(135deg,#A855F7,#7C3AED); }
+
+/* 按鈕列：底部固定，不壓縮，按鈕更大更圓潤 */
+.task-actions {
+  flex-shrink: 0;
+  display: flex; gap: 14px; justify-content: space-between;
+}
+body.task-page .task-actions .btn {
+  flex: 1;
+  padding: 20px 24px;
+  min-height: 64px;
+  font-size: 18px;
+  border-radius: 20px;
+}
+
+.hint { font-size: 12px; color: #AAA; margin-top: 6px; font-weight: 700; }
+
+/* task header 按鈕：讀指示 / 停止 等寬，停止改柔和粉橘色 */
+#readBtn, #stopBtn { min-width: 100px; }
+#stopBtn {
+  background: linear-gradient(135deg,#FF9EBB,#FFB86C) !important;
+  box-shadow: 0 4px 14px rgba(255,158,187,.40) !important;
+}
+
+/* ══════════ icon 圖示通用 ══════════ */
+#storyEmoji,.sticker .emoji,.task-icon {
+  display:flex; align-items:center; justify-content:center;
+}
+/* task-icon 橫排容器中：填滿整個彩色區塊 */
+.task-icon .icon-img { display:block; width:100%; height:100%; object-fit:contain; }
+/* sticker / story 其他地方 */
+.icon-img { display:block; max-width:100%; max-height:100%; object-fit:contain; }
+
+/* ══════════ 注音字體：只套用在孩子要讀的文字 ══════════ */
+/* UI 元素（按鈕、標題、標籤）維持 Nunito，不顯示注音 */
+/* 以下閱讀內容才顯示注音，幫助孩子讀出來 */
+.story-intro,
+.task-note,
+.task-desc,
+.task-steps ol li,
+#desc {
+  font-family: "BpmfGenYoGothic", "Microsoft JhengHei UI", "PingFang TC", sans-serif;
+  font-weight: normal;
+  line-height: 2.2;
+}
+
+/* ══════════ TTS 播放中狀態 ══════════ */
+.btn.is-playing {
+  background: linear-gradient(135deg, #A855F7, #7C3AED) !important;
+  color: #fff !important;
+  animation: tts-pulse 1.6s ease-in-out infinite;
+}
+@keyframes tts-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(168,85,247,0.55); }
+  50%       { box-shadow: 0 0 0 10px rgba(168,85,247,0); }
+}
+
+/* ══════════ confetti ══════════ */
+.confetti { position:fixed; inset:0; pointer-events:none; display:none; z-index:999; }
+.confetti.active { display:block; }
+.confetti span { position:absolute; font-size:26px; animation:fall 900ms ease-out forwards; }
+@keyframes fall { to { transform:translateY(100vh) rotate(360deg); opacity:0; } }
+.confetti-piece { position:absolute; width:10px; height:18px; border-radius:4px; opacity:.9; }
