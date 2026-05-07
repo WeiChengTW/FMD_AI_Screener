@@ -6,6 +6,13 @@ import json
 import numpy as np
 from ultralytics import YOLO
 from pathlib import Path
+import socket
+import uuid
+
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
 
 # --- 設定區 ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -83,10 +90,10 @@ def main():
         print(f"❌ 找不到圖片檔案：{input_image}")
         return_score(0)
 
-    print("⏳ 正在載入 YOLO 模型...")
+    print("⏳ 正在載入 YOLO 模镸...")
     try:
         yolo = YOLO(YOLO_PATH)
-        px2cm = _read_env_float("PDMS2_PX2CM", 16.70) # 載入比例尺
+        px2cm = _read_db_config("PDMS2_PX2CM", 16.70) # 載入比例尺
     except Exception as e:
         print(f"❌ 載入失敗: {e}")
         return_score(0)

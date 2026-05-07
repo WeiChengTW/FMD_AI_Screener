@@ -2,12 +2,106 @@ import cv2
 import numpy as np
 import os
 import sys
+import socket
+import uuid
 from pathlib import Path
 from paper_contour_model import detect_paper_contour_by_model
+
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
 
 
 def return_score(score):
     sys.exit(int(score))
+
+
+def _get_machine_id() -> str:
+    """取得或生成本機識別碼"""
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        try:
+            for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if line.startswith("MACHINE_ID="):
+                    machine_id = line.split("=", 1)[1].strip()
+                    if machine_id:
+                        return machine_id
+        except Exception:
+            pass
+    
+    # 回退：根據 hostname 產生 uuid
+    hostname = socket.gethostname()
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, hostname))
+
+
+def _read_db_config(key: str, default: int) -> int:
+    """優先從資料庫讀取本機配置，失敗時回退到 .env"""
+    if pymysql is None:
+        return _read_env_value(key, default)
+    
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if not env_path.exists():
+        return default
+    
+    # 讀取 DB 連接資訊
+    db_config = {}
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in raw_line:
+                continue
+            k, v = raw_line.split("=", 1)
+            k = k.strip()
+            v = v.strip().strip('"').strip("'")
+            if k in {"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"}:
+                db_config[k] = v
+    except Exception:
+        return _read_env_value(key, default)
+    
+    if not all(k in db_config for k in ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]):
+        return _read_env_value(key, default)
+    
+    # 嘗試從資料庫查詢
+    try:
+        machine_id = _get_machine_id()
+        conn = pymysql.connect(
+            host=db_config["DB_HOST"],
+            port=int(db_config["DB_PORT"]),
+            user=db_config["DB_USER"],
+            password=db_config["DB_PASSWORD"],
+            database=db_config["DB_NAME"],
+            charset="utf8mb4",
+            autocommit=True,
+        )
+        with conn.cursor(pymysql.cursors.DictCursor) as cur:
+            sql_map = {
+                "PDMS2_CH3_T4_STANDARD_AREA": "standard_area",
+                "PDMS2_PX2CM": "px2cm",
+            }
+            if key not in sql_map:
+                conn.close()
+                return _read_env_value(key, default)
+            
+            col_name = sql_map[key]
+            cur.execute(
+                f"SELECT {col_name} FROM machine_configs WHERE machine_id=%s LIMIT 1",
+                (machine_id,)
+            )
+            row = cur.fetchone()
+            conn.close()
+            
+            if row and col_name in row:
+                parsed = int(float(row[col_name]))
+                return parsed if parsed > 0 else default
+    except Exception as e:
+        print(f"[DB] 查詢遠端配置失敗: {e}，回退到本機 .env")
+    
+    # 查詢失敗或異常，回退到 .env
+    return _read_env_value(key, default)
 
 
 def _read_env_value(key, default):
@@ -166,8 +260,8 @@ def show_result(result_data):
     return final_view
 
 
-# 1. 設定基準面積 (可由設定頁寫入 .env)
-STANDARD_AREA = _read_env_value("PDMS2_CH3_T4_STANDARD_AREA", 34769)
+# 1. 設定基準面積 (優先從遠端資料庫讀，失敗則讀 .env)
+STANDARD_AREA = _read_db_config("PDMS2_CH3_T4_STANDARD_AREA", 34769)
 
 if __name__ == "__main__":
     # 使用方式範例: python main.py 1125 ch3-t3
