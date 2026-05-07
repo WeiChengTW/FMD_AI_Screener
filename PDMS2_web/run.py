@@ -14,6 +14,7 @@ import tempfile
 import threading
 import webbrowser
 import unicodedata
+import socket
 from pathlib import Path
 from datetime import datetime, date
 from typing import Optional
@@ -268,6 +269,158 @@ def _write_env_file(updates: dict) -> None:
     ENV_PATH.write_text("\n".join(rewritten).rstrip("\n") + "\n", encoding="utf-8")
 
 
+def _env_flag(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _remote_config_sync_enabled() -> bool:
+    env = _read_env_file()
+    return _env_flag(env.get("REMOTE_CONFIG_SYNC"), True)
+
+
+def _get_machine_id() -> str:
+    env = _read_env_file()
+    machine_id = str(env.get("MACHINE_ID") or "").strip()
+
+    if machine_id:
+        try:
+            return str(uuid.UUID(machine_id))
+        except Exception:
+            pass
+
+    machine_id = str(uuid.uuid4())
+    _write_env_file({"MACHINE_ID": machine_id})
+    return machine_id
+
+
+def _get_machine_identity_payload() -> dict:
+    hostname = socket.gethostname().strip() or "unknown-host"
+    mac_value = uuid.getnode()
+    mac_address = ":".join(
+        f"{(mac_value >> offset) & 0xFF:02x}" for offset in range(40, -1, -8)
+    )
+    return {
+        "machine_id": _get_machine_id(),
+        "hostname": hostname,
+        "mac_address": mac_address,
+        "location_code": "",
+    }
+
+
+def _settings_to_remote_row(settings: dict) -> dict:
+    payload = _get_machine_identity_payload()
+    payload.update(
+        {
+            "top_camera_index": int(settings.get("top", 0)),
+            "side_camera_index": int(settings.get("side", 0)),
+            "roi_x": int(settings.get("roi_x", 0)),
+            "roi_y": int(settings.get("roi_y", 0)),
+            "roi_w": int(settings.get("roi_w", 0)),
+            "roi_h": int(settings.get("roi_h", 0)),
+            "px2cm": float(settings.get("px2cm", 0) or 0),
+            "standard_area": float(settings.get("standard_area", 0) or 0),
+        }
+    )
+    return payload
+
+
+def _sync_machine_config_to_remote(settings: dict) -> dict:
+    if not _remote_config_sync_enabled():
+        return {"synced": False, "disabled": True}
+
+    payload = _settings_to_remote_row(settings)
+
+    machine_sql = """
+        INSERT INTO machine_configs (
+            machine_id,
+            hostname,
+            top_camera_index,
+            side_camera_index,
+            roi_x,
+            roi_y,
+            roi_w,
+            roi_h,
+            px2cm,
+            standard_area,
+            updated_at,
+            created_at
+        ) VALUES (
+            %(machine_id)s,
+            %(hostname)s,
+            %(top_camera_index)s,
+            %(side_camera_index)s,
+            %(roi_x)s,
+            %(roi_y)s,
+            %(roi_w)s,
+            %(roi_h)s,
+            %(px2cm)s,
+            %(standard_area)s,
+            NOW(),
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            hostname = VALUES(hostname),
+            top_camera_index = VALUES(top_camera_index),
+            side_camera_index = VALUES(side_camera_index),
+            roi_x = VALUES(roi_x),
+            roi_y = VALUES(roi_y),
+            roi_w = VALUES(roi_w),
+            roi_h = VALUES(roi_h),
+            px2cm = VALUES(px2cm),
+            standard_area = VALUES(standard_area),
+            updated_at = NOW()
+    """
+
+    identity_sql = """
+        INSERT INTO machine_identities (
+            machine_id,
+            hostname,
+            mac_address,
+            location_code,
+            last_seen_at,
+            created_at
+        ) VALUES (
+            %(machine_id)s,
+            %(hostname)s,
+            %(mac_address)s,
+            %(location_code)s,
+            NOW(),
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            hostname = VALUES(hostname),
+            mac_address = VALUES(mac_address),
+            location_code = VALUES(location_code),
+            last_seen_at = NOW()
+    """
+
+    conn = None
+    try:
+        conn = pymysql.connect(**DB)
+        with conn.cursor() as cur:
+            cur.execute(machine_sql, payload)
+            cur.execute(identity_sql, payload)
+        conn.commit()
+        return {"synced": True, "machine_id": payload["machine_id"]}
+    except Exception as exc:
+        write_to_console(f"[SYNC] 遠端配置同步失敗: {exc}", "WARN")
+        return {"synced": False, "error": str(exc), "machine_id": payload.get("machine_id")}
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
 def _camera_index_from_env(value, default):
     try:
         return int(str(value).strip())
@@ -381,6 +534,8 @@ def save_app_settings(
     if updates:
         _write_env_file(updates)
 
+    remote_sync = _sync_machine_config_to_remote(settings)
+
     TOP = int(settings["top"])
     SIDE = int(settings["side"])
     PX2CM = float(settings["px2cm"])
@@ -389,6 +544,7 @@ def save_app_settings(
     ROI_Y = int(settings["roi_y"])
     ROI_W = int(settings["roi_w"])
     ROI_H = int(settings["roi_h"])
+    settings["remote_sync"] = remote_sync
     return settings
 
 
@@ -480,10 +636,10 @@ current_camera_index = TOP  # 追蹤目前啟動的相機
 _env = _read_env_file()
 
 DB = dict(
-    host=_env.get("DB_HOST", "100.117.109.112"),
+    host=_env.get("DB_HOST", "127.0.0.1"),
     port=int(_env.get("DB_PORT", 3306)),
-    user=_env.get("DB_USER", "yplab"),
-    password=_env.get("DB_PASSWORD", "brain0918"),
+    user=_env.get("DB_USER", ""),
+    password=_env.get("DB_PASSWORD", ""),
     database=_env.get("DB_NAME", "testPDMS"),
     charset="utf8mb4",
     cursorclass=pymysql.cursors.DictCursor,
@@ -491,13 +647,13 @@ DB = dict(
 )
 
 # ====== MAC 上傳設定（從 .env 讀取） ======
-MAC_UPLOAD_HOST = _env.get("MAC_UPLOAD_HOST", "100.117.109.112")
+MAC_UPLOAD_HOST = _env.get("MAC_UPLOAD_HOST", "127.0.0.1")
 MAC_UPLOAD_PORT = int(_env.get("MAC_UPLOAD_PORT", 22))
-MAC_UPLOAD_USER = _env.get("MAC_UPLOAD_USER", "YPLAB")
-MAC_UPLOAD_PASSWORD = _env.get("MAC_UPLOAD_PASSWORD", "brain0918")
+MAC_UPLOAD_USER = _env.get("MAC_UPLOAD_USER", "")
+MAC_UPLOAD_PASSWORD = _env.get("MAC_UPLOAD_PASSWORD", "")
 MAC_UPLOAD_KEY_PATH = _env.get("MAC_UPLOAD_KEY_PATH", "")
 MAC_UPLOAD_REMOTE_BASE = _env.get("MAC_UPLOAD_REMOTE_BASE", "Desktop/PDMS")
-MACWEB_BASE_URL = _env.get("MACWEB_BASE_URL", "http://100.117.109.112:3000")
+MACWEB_BASE_URL = _env.get("MACWEB_BASE_URL", "http://127.0.0.1:3000")
 # =====================================================
 
 DEMO_MODE = _env.get("DEMO_MODE", "false").strip().lower() == "true"
@@ -781,7 +937,13 @@ def update_camera_settings():
             f"[ENV] 更新設定: top={top_index}, side={side_index}, px2cm={px2cm_value}, standard_area={standard_area_value}",
             "INFO",
         )
-        return jsonify({"success": True, "settings": settings})
+        return jsonify(
+            {
+                "success": True,
+                "settings": settings,
+                "remote_sync": settings.get("remote_sync", {}),
+            }
+        )
     except Exception as e:
         write_to_console(f"[ENV] 更新攝影機設定失敗: {e}", "ERROR")
         return jsonify({"success": False, "error": str(e)}), 500

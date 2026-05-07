@@ -333,7 +333,7 @@
             <div class="hero-badge">⚙️</div>
             <div class="hero-copy">
                 <h1>攝影機設定</h1>
-                <p>在這裡指定哪一台實體攝影機是上方鏡頭，哪一台是旁邊鏡頭。設定會寫入伺服器的 .env，回到拍照頁面就會自動套用。</p>
+                <p>在這裡指定哪一台實體攝影機是上方鏡頭，哪一台是旁邊鏡頭。設定會同步到本機與遠端資料庫，回到拍照頁面就會自動套用。</p>
             </div>
         </section>
 
@@ -405,7 +405,7 @@
                 <div class="calibration-head">
                     <div>
                         <h2 class="device-title">比例尺與標準面積</h2>
-                        <p class="device-note">這兩個值會一起寫入 .env，供 ch4-t1 與 ch3-t4 使用。</p>
+                        <p class="device-note">這兩個值會一起同步保存，供 ch4-t1 與 ch3-t4 使用。</p>
                     </div>
                 </div>
 
@@ -447,7 +447,7 @@
                 <ul class="hint-list">
                     <li>建議先把上方與旁邊設定成不同的編號，避免拍照流程用到同一台攝影機。</li>
                     <li>如果你的電腦只有一台攝影機，也可以先保留預設值 0 / 1，再依實際硬體調整。</li>
-                    <li>設定會寫進 [0429/PDMS2_web/.env](0429/PDMS2_web/.env)，重開頁面或重啟服務後都會保留。</li>
+                    <li>設定會同步保存到本機與遠端資料庫，重開頁面或重啟服務後都會保留。</li>
                 </ul>
             </div>
         </section>
@@ -693,7 +693,7 @@
                 throw new Error(result.error || "ROI 儲存失敗");
             }
 
-            return result.roi;
+            return result;
         }
 
         async function writeSetting(setting) {
@@ -723,7 +723,7 @@
                 throw new Error(result.error || "儲存設定失敗");
             }
 
-            return result.settings;
+            return result;
         }
 
         function renderOptions(selectEl, selectedValue) {
@@ -845,7 +845,7 @@
 
                 px2cmInput.value = String(measureResult.px2cm.toFixed(4));
                 updateSummary(getFormSetting());
-                statusText.textContent = `已量測比例尺 px2cm：${measureResult.px2cm.toFixed(4)}。按下儲存即可寫入 .env。`;
+                statusText.textContent = `已量測比例尺 px2cm：${measureResult.px2cm.toFixed(4)}。按下儲存即可同步保存。`;
                 statusText.className = "status ok";
             } catch (error) {
                 statusText.textContent = `比例尺量測失敗：${error.message}`;
@@ -883,7 +883,7 @@
 
                 standardAreaInput.value = String(measureResult.area);
                 updateSummary(getFormSetting());
-                statusText.textContent = `已量測標準面積：${measureResult.area}。按下儲存即可寫入 .env。`;
+                statusText.textContent = `已量測標準面積：${measureResult.area}。按下儲存即可同步保存。`;
                 statusText.className = "status ok";
             } catch (error) {
                 statusText.textContent = `標準面積量測失敗：${error.message}`;
@@ -922,8 +922,12 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    statusText.textContent = `ROI 設定成功：x=${result.roi.x}, y=${result.roi.y}, w=${result.roi.w}, h=${result.roi.h}。已存入 .env。`;
-                    statusText.className = "status ok";
+                    const remoteSynced = result.remote_sync?.synced !== false;
+                    const remoteError = result.remote_sync?.error;
+                    statusText.textContent = remoteSynced
+                        ? `ROI 設定成功：x=${result.roi.x}, y=${result.roi.y}, w=${result.roi.w}, h=${result.roi.h}。已同步保存。`
+                        : `ROI 已儲存到本機，但遠端同步失敗：${remoteError || "請稍後再試"}`;
+                    statusText.className = remoteSynced ? "status ok" : "status warn";
 
                     const updatedSetting = await readSetting();
                     updateSummary(updatedSetting);
@@ -949,9 +953,14 @@
                 }
 
                 const [x, y, w, h] = parts;
-                const savedRoi = await saveManualRoi({ x, y, w, h });
-                statusText.textContent = `ROI 已手動儲存：x=${savedRoi.x}, y=${savedRoi.y}, w=${savedRoi.w}, h=${savedRoi.h}。已存入 .env。`;
-                statusText.className = "status ok";
+                const savedRoiResult = await saveManualRoi({ x, y, w, h });
+                const savedRoi = savedRoiResult.roi;
+                const remoteSynced = savedRoiResult.remote_sync?.synced !== false;
+                const remoteError = savedRoiResult.remote_sync?.error;
+                statusText.textContent = remoteSynced
+                    ? `ROI 已手動儲存：x=${savedRoi.x}, y=${savedRoi.y}, w=${savedRoi.w}, h=${savedRoi.h}。已同步保存。`
+                    : `ROI 已儲存到本機，但遠端同步失敗：${remoteError || "請稍後再試"}`;
+                statusText.className = remoteSynced ? "status ok" : "status warn";
 
                 const updatedSetting = await readSetting();
                 updateSummary(updatedSetting);
@@ -974,14 +983,18 @@
 
             try {
                 const saved = await writeSetting(setting);
+                const remoteSynced = saved.remote_sync?.synced !== false;
+                const remoteError = saved.remote_sync?.error;
                 applyForm({
-                    top: saved?.top ?? setting.top,
-                    side: saved?.side ?? setting.side,
-                    px2cm: saved?.px2cm ?? setting.px2cm,
-                    standardArea: saved?.standardArea ?? saved?.standard_area ?? setting.standardArea,
+                    top: saved?.settings?.top ?? setting.top,
+                    side: saved?.settings?.side ?? setting.side,
+                    px2cm: saved?.settings?.px2cm ?? setting.px2cm,
+                    standardArea: saved?.settings?.standardArea ?? saved?.settings?.standard_area ?? setting.standardArea,
                 });
-                statusText.textContent = "設定已儲存到 .env，回到拍照頁面後會自動套用。";
-                statusText.className = "status ok";
+                statusText.textContent = remoteSynced
+                    ? "設定已儲存並同步到遠端，回到拍照頁面後會自動套用。"
+                    : `設定已儲存到本機，但遠端同步失敗：${remoteError || "請稍後再試"}`;
+                statusText.className = remoteSynced ? "status ok" : "status warn";
             } catch (error) {
                 statusText.textContent = `儲存失敗：${error.message}`;
                 statusText.className = "status err";
