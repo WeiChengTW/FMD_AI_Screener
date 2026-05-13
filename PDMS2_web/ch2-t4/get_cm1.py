@@ -79,7 +79,6 @@ def perform_crop(in_path, out_path):
 
     M = cv2.getPerspectiveTransform(rect, dst)
     warped = cv2.warpPerspective(img, M, (width, height))
-
     cv2.imwrite(out_path, warped)
     return True
 
