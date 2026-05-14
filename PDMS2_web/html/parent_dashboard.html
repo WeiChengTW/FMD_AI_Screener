@@ -699,6 +699,10 @@
     }
 
     // ── AI 建議輔助函式 ────────────────────────────────────────────────────────
+    const AI_ADVICE_DISCLAIMER_HTML = `
+      <div style="margin-bottom:16px; padding:12px 14px; border-radius:12px; border:1px solid #F9D7A5; background:#FFF8EB; color:#8A5A00; font-size:14px; line-height:1.7;">
+        ⚠️ 此為 AI 生成內容，可能有誤；詳細判讀請以醫師專業評估為準。若有疑慮，請轉介至大型醫院進一步檢測。請不用過度擔心，本系統提供的是篩檢建議。
+      </div>`;
 
     function setAiLoading(msg) {
       document.getElementById('ai-advice-inline-content').innerHTML = `
@@ -719,7 +723,7 @@
       }
       const dateNote = generatedAt ? `<div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">建議生成時間：${generatedAt.slice(0,16).replace('T',' ')}</div>` : '';
       document.getElementById('ai-advice-inline-content').innerHTML =
-        dateNote + `<div class="markdown-body">${marked.parse(adviceText)}</div>`;
+        dateNote + AI_ADVICE_DISCLAIMER_HTML + `<div class="markdown-body">${marked.parse(adviceText)}</div>`;
     }
 
     function setAiError(msg) {

@@ -68,6 +68,10 @@
 
   const PAGE_SIZE = 15;
   const state = { rows: [], users: [], sortKey: 'test_date', sortAsc: false, selUserId: '', selLevel: '', historyDate: '', currentPage: 1 };
+  const AI_ADVICE_DISCLAIMER_HTML = `
+    <div style="margin-bottom:16px; padding:12px 14px; border-radius:12px; border:1px solid #F9D7A5; background:#FFF8EB; color:#8A5A00; font-size:14px; line-height:1.7;">
+      ⚠️ 此為 AI 生成內容，可能有誤；詳細判讀請以醫師專業評估為準。若有疑慮，請轉介至大型醫院進一步檢測。請不用過度擔心，本系統提供的是篩檢建議。
+    </div>`;
   const $tbody = document.querySelector('[data-role="tbody"]');
   const $selName = document.querySelector('[data-role="sel-name"]');
   const $selLvl = document.querySelector('[data-role="sel-level"]');
@@ -479,7 +483,7 @@
       if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
       const js = await r.json();
       if (js.ok) {
-        content.innerHTML = `<div class="markdown-body">${marked.parse(js.advice)}</div>`;
+        content.innerHTML = `${AI_ADVICE_DISCLAIMER_HTML}<div class="markdown-body">${marked.parse(js.advice)}</div>`;
       } else {
         content.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 40px;">❌ 產生建議失敗：${js.msg || '未知錯誤'}</div>`;
       }

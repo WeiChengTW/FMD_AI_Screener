@@ -25,6 +25,13 @@ DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "testPDMS")
+AI_UNWANTED_SENTENCE_KEYWORDS = [
+    "如果您需要，我也可以幫您把這份內容整理成",
+    "如果您願意，我也可以幫您把以上內容整理成",
+    "一頁式衛教單",
+    "衛教單",
+]
+AI_DISCLAIMER_KEYWORD = "此為 AI 生成內容，可能有誤"
 
 class PDMS2Advisor:
     def __init__(self):
@@ -211,6 +218,15 @@ class PDMS2Advisor:
             conn.close()
         return performance
 
+    def _normalize_advice_text(self, advice_text: str) -> str:
+        lines = advice_text.strip().splitlines()
+        filtered_lines = [
+            line for line in lines
+            if not any(keyword in line for keyword in AI_UNWANTED_SENTENCE_KEYWORDS)
+            and AI_DISCLAIMER_KEYWORD not in line
+        ]
+        return "\n".join(filtered_lines).strip()
+
     def generate_advice(self, uid: str, force: bool = False) -> str:
         if not self._initialized:
             self.initialize()
@@ -240,7 +256,7 @@ class PDMS2Advisor:
                     cache = cur.fetchone()
                     if cache and cache['score_signature'] == score_sig:
                         print(f"[RAG] Using cached advice for {uid}")
-                        return cache['advice']
+                        return self._normalize_advice_text(cache['advice'])
             except Exception as e:
                 print(f"[RAG] Cache check failed: {e}")
             finally:
@@ -279,10 +295,12 @@ UID: {uid}
 3. 給予家長正向的鼓勵。
 
 請使用繁體中文撰寫，並使用 Markdown 格式（例如標題、列表）。
+請不要在結尾加入任何「可再幫忙整理成衛教單／一頁式版本／若您願意或需要我可以再整理」等延伸服務或推銷句。
+請直接輸出完整建議內容並結束，不要附加下一步邀請。
 """
         try:
             response = self.model.invoke(prompt)
-            advice_text = response.content
+            advice_text = self._normalize_advice_text(response.content)
             
             # 5. 儲存至歷史紀錄
             conn = self.get_db_connection()
