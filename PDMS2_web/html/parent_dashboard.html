@@ -266,6 +266,34 @@
       padding: 80px 40px;
       font-size: 18px;
     }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 40px;
+      background: #fff;
+      border: 2px dashed #FFD9A8;
+      border-radius: 24px;
+      margin-bottom: 48px;
+    }
+    .empty-state .empty-icon {
+      font-size: 56px;
+      line-height: 1;
+      margin-bottom: 20px;
+      color: #FFD9A8;
+      font-weight: 900;
+    }
+    .empty-state h2 {
+      font-size: clamp(20px, 2.2vw, 28px);
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+    .empty-state p {
+      font-size: clamp(15px, 1.6vw, 18px);
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin: 0;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
     .last-test-date {
       font-size: clamp(13px, 1.3vw, 15px);
@@ -306,6 +334,7 @@
   <div class="header">
     <div class="brand">兒童發展測驗平台</div>
     <div class="user-info">
+      <a href="/html/admin.html" class="text-link">查看完整測驗紀錄明細</a>
       <span id="user-info-text">讀取中...</span>
       <button class="text-link" id="btn-change-pwd">修改密碼</button>
       <button class="text-link" id="btn-logout">登出系統</button>
@@ -319,6 +348,15 @@
     </div>
 
     <div id="loading-msg" class="loading-msg">資料載入中，請稍候...</div>
+
+    <div id="empty-state" style="display:none;" class="empty-state">
+      <div class="empty-icon">&#9711;</div>
+      <h2>目前尚未有任何測驗紀錄</h2>
+      <p>
+        <span id="empty-child-name"></span> 還沒有完成任何測驗項目。<br>
+        請聯絡負責的醫療人員，安排測驗時間後再回來查看結果。
+      </p>
+    </div>
 
     <div id="dashboard" style="display:none;">
 
@@ -391,8 +429,6 @@
         </div>
       </div>
 
-      <a href="/html/admin.html" class="detail-btn">查看完整測驗紀錄明細</a>
-      
       <!-- AI 居家訓練建議卡片 -->
       <div id="ai-advice-section" class="card" style="margin-bottom: 48px;">
         <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
@@ -588,11 +624,18 @@
       document.getElementById('verdict-title').textContent = title;
       document.getElementById('verdict-sub').textContent = sub;
 
+      document.getElementById('loading-msg').style.display = 'none';
+
+      if (globalValid === 0) {
+        document.getElementById('empty-child-name').textContent = firstName;
+        document.getElementById('empty-state').style.display = '';
+        return;
+      }
+
       renderRadar(chapterData);
       renderChapterRows(chapterData);
       renderTaskDetail(chapterData);
 
-      document.getElementById('loading-msg').style.display = 'none';
       document.getElementById('dashboard').style.display = '';
 
       // ── AI 建議：自動載入 ──────────────────────────────────────────────────
@@ -885,6 +928,5 @@
     init();
   })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>
