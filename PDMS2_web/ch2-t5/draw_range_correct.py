@@ -42,27 +42,35 @@ def analyze_paint(image, y_top, y_bot, show_windows=False):
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
     mask = cv2.dilate(mask, np.ones((3,3), np.uint8))
 
-    # 2. 定義塗色區域 (y_top ~ y_bot)
-    # 內縮一點避免碰到黑線
+    # 2. 偵測黑線的水平範圍 (x_left, x_right)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    band_top = gray[max(0, y_top - 8):min(h, y_top + 8), :]
+    band_bot = gray[max(0, y_bot - 8):min(h, y_bot + 8), :]
+    col_dark_top = np.where(np.min(band_top, axis=0) < 80)[0]
+    col_dark_bot = np.where(np.min(band_bot, axis=0) < 80)[0]
+    if len(col_dark_top) > 10 and len(col_dark_bot) > 10:
+        x_left = max(int(np.percentile(col_dark_top, 5)), int(np.percentile(col_dark_bot, 5)))
+        x_right = min(int(np.percentile(col_dark_top, 95)), int(np.percentile(col_dark_bot, 95)))
+    else:
+        x_left, x_right = 0, w
+
+    # 3. 定義塗色區域 (y_top ~ y_bot, x_left ~ x_right)
     y_start = max(0, y_top + 5)
     y_end = min(h, y_bot - 5)
-    
-    # 計算該區域總面積與塗色面積
-    roi = mask[y_start:y_end, :]
+
+    roi = mask[y_start:y_end, x_left:x_right]
     total_pixels = roi.shape[0] * roi.shape[1]
     painted_pixels = cv2.countNonZero(roi)
-    
+
     ratio = 0
     if total_pixels > 0:
         ratio = painted_pixels / total_pixels
 
-    # 3. 計算超出區域
-    # 超出上界
-    mask_top = mask[0:y_top, :]
+    # 4. 計算超出區域 (限制在黑線水平範圍內)
+    mask_top = mask[0:y_top, x_left:x_right]
     out_top = cv2.countNonZero(mask_top)
-    
-    # 超出下界
-    mask_bot = mask[y_bot:h, :]
+
+    mask_bot = mask[y_bot:h, x_left:x_right]
     out_bot = cv2.countNonZero(mask_bot)
     
     protrude_count = 0
@@ -74,13 +82,13 @@ def analyze_paint(image, y_top, y_bot, show_windows=False):
     msg = ""
     if ratio > 0.5:
         if protrude_count == 0:
-            score = 3
-            msg = "塗色完整且未出界"
-        elif protrude_count <= 2:
             score = 2
+            msg = "塗色完整且未出界"
+        elif protrude_count == 1:
+            score = 1
             msg = "塗色完整但稍有出界"
         else:
-            score = 1
+            score = 0
             msg = "塗色完整但出界嚴重"
     elif ratio > 0.2:
         score = 1
@@ -91,9 +99,8 @@ def analyze_paint(image, y_top, y_bot, show_windows=False):
 
     # 5. 繪製結果圖
     result_img = img.copy()
-    # 畫出目標範圍
-    cv2.line(result_img, (0, y_top), (w, y_top), (255, 0, 0), 2)
-    cv2.line(result_img, (0, y_bot), (w, y_bot), (255, 0, 0), 2)
+    cv2.line(result_img, (x_left, y_top), (x_right, y_top), (255, 0, 0), 2)
+    cv2.line(result_img, (x_left, y_bot), (x_right, y_bot), (255, 0, 0), 2)
     
     # 標示超出部分
     if out_top > 50:

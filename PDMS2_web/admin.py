@@ -16,6 +16,8 @@ import pymysql
 from urllib.parse import urlencode, urlparse
 import re
 
+from utils.rag_advisor import advisor
+
 print("====== CURRENT ADMIN SERVER IS RUNNING (PORT 8001) ======")
 
 ROOT = Path(__file__).parent.resolve()
@@ -51,6 +53,7 @@ DB = dict(
     charset="utf8mb4",
     cursorclass=pymysql.cursors.DictCursor,
     autocommit=True,
+    connect_timeout=30,
 )
 
 
@@ -132,6 +135,34 @@ IMAGE_SIGN_SECRET = _env.get("IMAGE_SIGN_SECRET", "")
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 CORS(app, supports_credentials=True)
+
+
+# ── AI 顧問 API ──────────────────────────────────────────────────────────────
+@app.route("/api/ai_advice/<uid>")
+def api_get_ai_advice(uid):
+    user = current_user()
+    if not user:
+        return jsonify({"ok": False, "msg": "未登入"}), 401
+    if not can_access_uid(uid):
+        return jsonify({"ok": False, "msg": "無存取權限"}), 403
+
+    check_only = request.args.get("check_only") == "1"
+    force = request.args.get("force") == "1"
+
+    try:
+        if check_only:
+            write_to_console(f"[AI] Status check for UID: {uid}", "INFO")
+            status = advisor.check_advice_status(uid)
+            return jsonify({"ok": True, **status})
+
+        write_to_console(f"[AI] Generate request for UID: {uid}, force={force}", "INFO")
+        advice = advisor.generate_advice(uid, force=force)
+        write_to_console(f"[AI] Completed for UID: {uid}", "INFO")
+        return jsonify({"ok": True, "advice": advice})
+    except Exception as e:
+        write_to_console(f"[AI] Failed for {uid}: {e}", "ERROR")
+        traceback.print_exc()
+        return jsonify({"ok": False, "msg": str(e)}), 500
 
 
 def current_user() -> dict:
@@ -219,7 +250,7 @@ def extract_uid_filename(path_or_url: str):
 
 
 def write_to_console(message, level="INFO"):
-    console_path = ROOT / "console.txt"
+    console_path = ROOT / "admin_console.txt"
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         with open(console_path, "a", encoding="utf-8") as f:
@@ -720,6 +751,93 @@ def internal_score_updated():
         return jsonify({"ok": False}), 403
     _broadcast_score_updated()
     return jsonify({"ok": True})
+
+
+# ── 醫療人員帳號管理（Level 3 專用）────────────────────────────────────────────
+def _require_superadmin():
+    user = session.get("user")
+    if not user:
+        return jsonify({"ok": False, "msg": "未登入"}), 401
+    if int(user.get("level") or 0) < 3:
+        return jsonify({"ok": False, "msg": "權限不足，需要主管等級"}), 403
+    return None
+
+
+@app.get("/api/admin/list")
+def api_admin_list():
+    err = _require_superadmin()
+    if err:
+        return err
+    rows = db_exec(
+        "SELECT account, email, level FROM admin_users WHERE level = 2 ORDER BY account",
+        fetch="all",
+    ) or []
+    admins = [{"account": r["account"], "name": r.get("email") or r["account"], "level": r["level"]} for r in rows]
+    return jsonify({"ok": True, "admins": admins})
+
+
+@app.post("/api/admin/add")
+def api_admin_add():
+    err = _require_superadmin()
+    if err:
+        return err
+    data = request.get_json() or {}
+    account = (data.get("account") or "").strip()
+    password = (data.get("password") or "123456").strip()
+    email = (data.get("email") or "").strip()
+    if not account:
+        return jsonify({"ok": False, "msg": "帳號不可為空"}), 400
+    existing = db_exec("SELECT account FROM admin_users WHERE account=%s", (account,), fetch="one")
+    if existing:
+        return jsonify({"ok": False, "msg": "帳號已存在"}), 409
+    db_exec(
+        "INSERT INTO admin_users (account, password, email, level) VALUES (%s, %s, %s, 2)",
+        (account, password, email),
+    )
+    return jsonify({"ok": True, "msg": "醫療人員帳號已建立"})
+
+
+@app.put("/api/admin/update/<account_id>")
+def api_admin_update(account_id):
+    err = _require_superadmin()
+    if err:
+        return err
+    data = request.get_json() or {}
+    new_account = (data.get("account") or "").strip()
+    new_email = (data.get("email") or "").strip()
+    new_password = (data.get("password") or "").strip()
+    if not new_account:
+        return jsonify({"ok": False, "msg": "帳號不可為空"}), 400
+    row = db_exec("SELECT account, level FROM admin_users WHERE account=%s", (account_id,), fetch="one")
+    if not row:
+        return jsonify({"ok": False, "msg": "帳號不存在"}), 404
+    if int(row.get("level") or 0) != 2:
+        return jsonify({"ok": False, "msg": "只能修改醫療人員帳號"}), 403
+    fields, params = [], []
+    if new_account != account_id:
+        fields.append("account=%s"); params.append(new_account)
+    if new_email:
+        fields.append("email=%s"); params.append(new_email)
+    if new_password:
+        fields.append("password=%s"); params.append(new_password)
+    if fields:
+        params.append(account_id)
+        db_exec(f"UPDATE admin_users SET {', '.join(fields)} WHERE account=%s", tuple(params))
+    return jsonify({"ok": True, "msg": "帳號已更新"})
+
+
+@app.delete("/api/admin/delete/<account_id>")
+def api_admin_delete(account_id):
+    err = _require_superadmin()
+    if err:
+        return err
+    row = db_exec("SELECT account, level FROM admin_users WHERE account=%s", (account_id,), fetch="one")
+    if not row:
+        return jsonify({"ok": False, "msg": "帳號不存在"}), 404
+    if int(row.get("level") or 0) != 2:
+        return jsonify({"ok": False, "msg": "只能刪除醫療人員帳號"}), 403
+    db_exec("DELETE FROM admin_users WHERE account=%s", (account_id,))
+    return jsonify({"ok": True, "msg": "帳號已刪除"})
 
 
 def _open_browser():
