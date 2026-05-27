@@ -1100,8 +1100,8 @@ erDiagram
         varchar task_name
     }
     score_list {
-        varchar uid PK-FK
-        varchar task_id PK-FK
+        varchar uid PK
+        varchar task_id PK
         date test_date PK
         time time PK
     }
@@ -1140,7 +1140,7 @@ erDiagram
         timestamp created_at
     }
     string_blocks {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1148,7 +1148,7 @@ erDiagram
         text data1
     }
     pyramid {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1156,7 +1156,7 @@ erDiagram
         text data1
     }
     stair {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1164,7 +1164,7 @@ erDiagram
         text data1
     }
     build_wall {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1172,7 +1172,7 @@ erDiagram
         text data1
     }
     draw_circle {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1180,7 +1180,7 @@ erDiagram
         text data1
     }
     draw_square {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1188,7 +1188,7 @@ erDiagram
         text data1
     }
     draw_cross {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1196,7 +1196,7 @@ erDiagram
         text data1
     }
     draw_line {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1204,7 +1204,7 @@ erDiagram
         text data1
     }
     color {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1212,7 +1212,7 @@ erDiagram
         text data1
     }
     connect_dots {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1220,7 +1220,7 @@ erDiagram
         text data1
     }
     cut_circle {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1228,7 +1228,7 @@ erDiagram
         text data1
     }
     cut_square {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1236,7 +1236,7 @@ erDiagram
         text data1
     }
     cut_paper {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1244,7 +1244,7 @@ erDiagram
         text data1
     }
     cut_line {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1252,7 +1252,7 @@ erDiagram
         text data1
     }
     one_fold {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1260,7 +1260,7 @@ erDiagram
         text data1
     }
     two_fold {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
@@ -1268,7 +1268,7 @@ erDiagram
         text data1
     }
     collect_raisins {
-        varchar uid PK-FK
+        varchar uid PK
         date test_date PK
         time time PK
         int score
