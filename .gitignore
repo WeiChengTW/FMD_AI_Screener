@@ -28,9 +28,11 @@ var/
 
 # Virtual environments
 venv/
+.venv/
+.venv39/
 ENV/
 .env/
-.venv/
+PDMS2_web/
 
 # Installer logs
 pip-log.txt
