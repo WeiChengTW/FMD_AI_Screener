@@ -74,7 +74,198 @@
 
 ### 2.2 系統範圍
 
-![§2.2 系統範圍](imgs/diagram_1.png)
+```mermaid
+classDiagram
+    class FlaskApp {
+        <<abstract>>
+        +String host
+        +int port
+        +run() void
+    }
+
+    class TestingApp {
+        +String current_uid
+        +setUID(uid) bool
+        +getUID() String
+        +clearUID() bool
+        +startCamera(camera_index, task_id) bool
+        +stopCamera() bool
+        +getFrame() String
+        +captureImage(task_id, uid) String
+        +submitAnalysis(task_id, uid) String
+        +checkTask(task_id) Dict
+        +getAIAdvice(uid) String
+        +getCameraSettings() Dict
+        +saveCameraSettings(settings) Dict
+        +selectROI(camera_index, role) Dict
+    }
+
+    class AdminApp {
+        +addUser(uid, name, birthday) bool
+        +getUsers() List
+        +upsertScore(uid, task_id, score, date, time) bool
+        +deleteScore(uid, task_id, date) bool
+        +getScores() List
+        +getAdminList() List
+        +addAdmin(account, password, email, level) bool
+        +updateAdmin(account, email, level) bool
+        +deleteAdmin(account) bool
+        +login(account, password) Dict
+        +logout() bool
+    }
+
+    class ServerApp {
+        +submitAnalysis(images, uid, img_id) Dict
+        +getAIAdvice(uid) String
+        +login(account, password) Dict
+        +getUIDs() List
+        +getImages(uid) List
+    }
+
+    class CameraController {
+        +int top_index
+        +int side_index
+        +bool is_running
+        +start(camera_index, task_id) bool
+        +stop() bool
+        +getFrame() String
+        +capture(task_id, uid) String
+        +selectROI(camera_index, role) Dict
+        +scanDevices() List
+    }
+
+    class AIAnalyzer {
+        <<abstract>>
+        +String task_id
+        +analyze(image_path, uid) Dict
+    }
+
+    class BlockAnalyzer {
+        +analyze(image_path, uid) Dict
+        +detectWithYOLO(image) List
+        +segmentWithSAM(masks) List
+        +groupByLayer(masks) Dict
+        +checkCompliance(layers) int
+    }
+
+    class DrawingAnalyzer {
+        +analyze(image_path, uid) Dict
+        +correctPerspective(image) Mat
+        +classifyWithTF(image) String
+        +geometricScore(contour) int
+        +calibrateArUco(image) float
+    }
+
+    class CuttingAnalyzer {
+        +analyze(image_path, uid) Dict
+        +detectPaperYOLO(image) BBox
+        +calibrateArUco(image) float
+        +calcDistanceRatio(paper, cut) float
+    }
+
+    class FoldingAnalyzer {
+        +analyze(image_path, uid) Dict
+        +detectEdges(image) List
+        +findMaxQuad(edges) List
+        +measureAccuracy(quad) float
+    }
+
+    class InstrumentAnalyzer {
+        +String arduino_port
+        +int baud_rate
+        +analyze(uid) Dict
+        +sendStart() void
+        +readSerial() String
+        +updateStateFile(state) void
+    }
+
+    class PDMS2Advisor {
+        +String model_name
+        +generate_advice(uid) String
+        +getWeakItems(uid) List
+        +calcScoreSignature(scores) String
+        +checkCache(uid, sig) String
+        +vectorSearch(task_id, top_k) List
+        +buildPrompt(weak_items, contexts) String
+        +saveCache(uid, advice, sig) void
+    }
+
+    class User {
+        +String uid
+        +String name
+        +Date birthday
+        +getAgeInMonths() int
+    }
+
+    class AdminUser {
+        +String account
+        +String password_hash
+        +String email
+        +int level
+        +verify(password) bool
+    }
+
+    class Task {
+        +String task_id
+        +String task_name
+    }
+
+    class ScoreRecord {
+        +String uid
+        +String task_id
+        +Date test_date
+        +Time time
+        +int score
+        +String result_img_path
+        +String data1
+    }
+
+    class AIAdviceHistory {
+        +int id
+        +String uid
+        +String advice
+        +String score_signature
+        +DateTime updated_at
+    }
+
+    class MachineConfig {
+        +String machine_id
+        +String machine_name
+        +String hostname
+        +int top_camera_index
+        +int side_camera_index
+        +int roi_x
+        +int roi_y
+        +int roi_w
+        +int roi_h
+        +double px2cm
+        +double standard_area
+        +sync() bool
+    }
+
+    FlaskApp <|-- TestingApp
+    FlaskApp <|-- AdminApp
+    FlaskApp <|-- ServerApp
+
+    AIAnalyzer <|-- BlockAnalyzer
+    AIAnalyzer <|-- DrawingAnalyzer
+    AIAnalyzer <|-- CuttingAnalyzer
+    AIAnalyzer <|-- FoldingAnalyzer
+    AIAnalyzer <|-- InstrumentAnalyzer
+
+    TestingApp --> CameraController : uses
+    TestingApp --> PDMS2Advisor : requests
+    ServerApp --> AIAnalyzer : delegates
+    ServerApp --> PDMS2Advisor : requests
+    AdminApp --> User : manages
+    AdminApp --> AdminUser : manages
+    AdminApp --> ScoreRecord : manages
+    MachineConfig --> CameraController : configures
+
+    User "1" --> "0..*" ScoreRecord : has
+    Task "1" --> "0..*" ScoreRecord : referenced by
+    User "1" --> "0..1" AIAdviceHistory : cached in
+```
 
 **系統邊界內：**
 - 前端 Web 介面（觸控螢幕）
@@ -93,7 +284,21 @@
 
 本系統採用**三層式架構（Three-Tier Architecture）**，搭配 Tailscale VPN 實現遠端安全通訊：
 
-![§2.3 三層式架構](imgs/diagram_2.png)
+```mermaid
+flowchart LR
+    管理者((管理者))
+
+    subgraph 兒童帳號管理子系統
+        direction TB
+        UC01a([新增兒童帳號])
+        UC01b([查詢兒童資料])
+        UC01c([刪除兒童帳號])
+    end
+
+    管理者 --> UC01a
+    管理者 --> UC01b
+    管理者 --> UC01c
+```
 
 ### 2.4 軟/硬體建構項目需求概述
 
@@ -207,7 +412,27 @@ FMD_AI_Screener/
 
 #### 3.1.2 部署架構圖
 
-![§3.1.2 部署架構](imgs/diagram_3.png)
+```mermaid
+flowchart LR
+    施測者((施測者))
+    兒童((兒童))
+
+    subgraph 施測流程子系統
+        direction TB
+        UC02a([輸入兒童 UID])
+        UC02b([選擇測驗關卡])
+        UC02c([啟動攝影機])
+        UC02d([執行任務與拍照])
+        UC02e([提交影像分析])
+    end
+
+    施測者 --> UC02a
+    施測者 --> UC02b
+    施測者 --> UC02c
+    施測者 --> UC02d
+    施測者 --> UC02e
+    兒童  --> UC02d
+```
 
 ---
 
@@ -215,7 +440,25 @@ FMD_AI_Screener/
 
 #### 3.2.1 主要類別設計（Class Diagram）
 
-![§3.2.1 類別圖](imgs/diagram_4.png)
+```mermaid
+flowchart LR
+    施測者((施測者))
+    伺服器((Mac Mini\n伺服器))
+
+    subgraph AI 分析子系統
+        direction TB
+        UC03a([提交影像至伺服器])
+        UC03b([執行 AI 模型推論])
+        UC03c([計算並儲存分數])
+        UC03d([查詢分析狀態])
+    end
+
+    施測者 --> UC03a
+    施測者 --> UC03d
+    伺服器 --> UC03b
+    伺服器 --> UC03c
+    UC03a --> UC03b
+```
 
 #### 3.2.2 任務對照表（TASK_MAP）
 
@@ -458,17 +701,72 @@ FMD_AI_Screener/
 
 #### 3.4.1 使用案例圖（Use Case Diagram）
 
-![§3.4.1 使用案例圖](imgs/diagram_5.png)
+```mermaid
+flowchart LR
+    管理者((管理者))
+    家長教師(("家長／教師"))
+
+    subgraph 成績管理子系統
+        direction TB
+        UC04a([查詢兒童歷史成績])
+        UC04b([新增或修改成績])
+        UC04c([刪除成績記錄])
+    end
+
+    管理者  --> UC04a
+    管理者  --> UC04b
+    管理者  --> UC04c
+    家長教師 --> UC04a
+```
 
 #### 3.4.2 主要流程循序圖（Sequence Diagram）
 
 **施測完整流程（以 Ch1-t2 堆金字塔為例）：**
 
-![§3.4.2 循序圖](imgs/diagram_6.png)
+```mermaid
+flowchart LR
+    家長教師(("家長／教師"))
+
+    subgraph AI 建議子系統
+        direction TB
+        UC05a([開啟家長報告])
+        UC05b([查看成績總覽])
+        UC05c([生成 AI 居家建議])
+        UC05d([查看建議快取])
+    end
+
+    家長教師 --> UC05a
+    家長教師 --> UC05b
+    家長教師 --> UC05c
+    家長教師 --> UC05d
+    UC05a --> UC05b
+    UC05a --> UC05c
+```
 
 #### 3.4.3 活動圖（Activity Diagram）—— 整體篩檢流程
 
-![§3.4.3 活動圖](imgs/diagram_7.png)
+```mermaid
+flowchart LR
+    超級管理者((超級管理者))
+    施測者((施測者))
+
+    subgraph 系統設定子系統
+        direction TB
+        UC06a([設定攝影機索引])
+        UC06b([校正 ROI 區域])
+        UC06c([校正 px2cm 比例])
+        UC06d([管理管理者帳號])
+        UC06e([同步機器設定])
+    end
+
+    超級管理者 --> UC06d
+    超級管理者 --> UC06e
+    施測者     --> UC06a
+    施測者     --> UC06b
+    施測者     --> UC06c
+    UC06a --> UC06b
+    UC06b --> UC06c
+```
 
 ---
 
@@ -703,7 +1001,35 @@ Ch5 側重儀器關卡（collect_raisins）為**本機執行**（非遠端 API�
 
 ### D. 實體關係圖（ER Diagram）
 
-![附錄D 實體關係圖](imgs/diagram_8a.png)
+```mermaid
+flowchart TD
+    Start([開始]) --> A[管理者登入管理後台]
+    A --> B{選擇操作}
+    B -->|新增| C[輸入 UID、姓名、生日]
+    C --> D{UID 格式正確?}
+    D -->|否| E[顯示格式錯誤]
+    E --> C
+    D -->|是| F{UID 已存在?}
+    F -->|是| G[顯示 UID 重複錯誤]
+    G --> C
+    F -->|否| H[POST /api/user/add 寫入 MySQL]
+    H --> I[POST /create-uid-folder 建立目錄]
+    I --> J[顯示新增成功]
+    J --> End([結束])
+    B -->|查詢| K[輸入目標 UID]
+    K --> L[POST /api/search-scores 查詢]
+    L --> M{有資料?}
+    M -->|否| N[顯示無記錄提示]
+    N --> End
+    M -->|是| O[以表格顯示兒童資料]
+    O --> End
+    B -->|刪除| P[選擇目標兒童]
+    P --> Q{確認刪除?}
+    Q -->|否| End
+    Q -->|是| R[DELETE /users 刪除帳號]
+    R --> S[顯示刪除成功]
+    S --> End
+```
 
 ---
 
