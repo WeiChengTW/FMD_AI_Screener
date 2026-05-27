@@ -47,7 +47,7 @@ FMD_AI_Screener/
 
 ---
 
-## 物件導向設計文件（OO Course Deliverables）
+## 物件導向設計文件
 
 本節為物件導向程式設計課程期末專題的 OO 設計文件，依課程第四章至第八章規範撰寫。  
 所有 UML 圖表使用 **Mermaid 語法**，可在 GitHub 直接渲染，或於 VS Code 安裝 Markdown PDF 擴充套件後匯出 PDF。
