@@ -89,3 +89,5 @@ Thumbs.db
 
 
 .DS_Store
+# ignore CLAUDE personal notes
+CLAUDE.md
