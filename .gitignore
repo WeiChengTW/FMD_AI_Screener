@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore Python source files from tracking
+*.py
+
 # C extensions
 *.so
 
