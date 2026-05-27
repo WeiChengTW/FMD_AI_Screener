@@ -55,8 +55,8 @@ htmlcov/
 node_modules/
 
 # Generated images and document outputs
-imgs/*.png
-*.docx
+imgs/
+*.png
 *.pdf
 
 # Editor backups
@@ -83,3 +83,6 @@ Thumbs.db
 
 # keep this file itself
 !.gitignore
+
+
+.DS_Store
