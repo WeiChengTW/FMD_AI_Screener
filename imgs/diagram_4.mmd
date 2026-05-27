@@ -1,0 +1,17 @@
+flowchart LR
+    施測者((施測者))
+    伺服器((Mac Mini\n伺服器))
+
+    subgraph AI 分析子系統
+        direction TB
+        UC03a([提交影像至伺服器])
+        UC03b([執行 AI 模型推論])
+        UC03c([計算並儲存分數])
+        UC03d([查詢分析狀態])
+    end
+
+    施測者 --> UC03a
+    施測者 --> UC03d
+    伺服器 --> UC03b
+    伺服器 --> UC03c
+    UC03a --> UC03b

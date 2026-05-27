@@ -1,0 +1,20 @@
+flowchart LR
+    超級管理者((超級管理者))
+    施測者((施測者))
+
+    subgraph 系統設定子系統
+        direction TB
+        UC06a([設定攝影機索引])
+        UC06b([校正 ROI 區域])
+        UC06c([校正 px2cm 比例])
+        UC06d([管理管理者帳號])
+        UC06e([同步機器設定])
+    end
+
+    超級管理者 --> UC06d
+    超級管理者 --> UC06e
+    施測者     --> UC06a
+    施測者     --> UC06b
+    施測者     --> UC06c
+    UC06a --> UC06b
+    UC06b --> UC06c
