@@ -1296,7 +1296,7 @@ erDiagram
     user_list ||--o{ cut_line : ""
     user_list ||--o{ one_fold : ""
     user_list ||--o{ two_fold : ""
-    user_list ||--o{ collect_raisins : 
+        user_list ||--o{ collect_raisins : ""
 ```
 
 ---
