@@ -727,19 +727,67 @@ classDiagram
 ```mermaid
 flowchart LR
     管理者((管理者))
+    超級管理者((超級管理者))
+    施測者((施測者))
+    兒童((兒童))
     家長教師(("家長／教師"))
+    伺服器(("Mac Mini\n伺服器"))
 
-    subgraph 成績管理子系統
+    subgraph UC01 兒童帳號管理
+        direction TB
+        UC01a([新增兒童帳號])
+        UC01b([查詢兒童資料])
+        UC01c([刪除兒童帳號])
+    end
+
+    subgraph UC02 施測關卡執行
+        direction TB
+        UC02a([輸入兒童 UID])
+        UC02b([選擇測驗關卡])
+        UC02c([啟動攝影機])
+        UC02d([執行任務與拍照])
+        UC02e([提交影像分析])
+    end
+
+    subgraph UC03 AI 影像分析與評分
+        direction TB
+        UC03a([接收影像])
+        UC03b([執行 AI 模型推論])
+        UC03c([計算並儲存分數])
+    end
+
+    subgraph UC04 成績查詢與管理
         direction TB
         UC04a([查詢兒童歷史成績])
         UC04b([新增或修改成績])
         UC04c([刪除成績記錄])
     end
 
-    管理者  --> UC04a
-    管理者  --> UC04b
-    管理者  --> UC04c
-    家長教師 --> UC04a
+    subgraph UC05 AI 居家建議查閱
+        direction TB
+        UC05a([開啟家長報告])
+        UC05b([生成 AI 居家建議])
+        UC05c([查看建議快取])
+    end
+
+    subgraph UC06 系統設定與機器管理
+        direction TB
+        UC06a([設定攝影機與 ROI])
+        UC06b([校正 px2cm 比例])
+        UC06c([管理管理者帳號])
+        UC06d([同步機器設定])
+    end
+
+    管理者     --> UC01a & UC01b & UC01c
+    管理者     --> UC04a & UC04b & UC04c
+    施測者     --> UC02a & UC02b & UC02c & UC02d & UC02e
+    施測者     --> UC06a & UC06b
+    兒童       --> UC02d
+    家長教師   --> UC04a & UC05a & UC05b & UC05c
+    超級管理者 --> UC06c & UC06d
+    伺服器     --> UC03a & UC03b & UC03c
+    UC02e      --> UC03a
+    UC03c      --> UC04a
 ```
 
 #### 3.4.2 主要流程循序圖（Sequence Diagram）
@@ -1041,38 +1089,21 @@ erDiagram
         varchar name
         date birthday
     }
-    score_list {
-        varchar uid FK
-        varchar task_id FK
-        date test_date
-        time time
-    }
-    task_list {
-        varchar task_id PK
-        varchar task_name
-    }
     admin_users {
         varchar account PK
         varchar password
         varchar email
         tinyint level
     }
-    machine_configs {
-        char machine_id PK
-        varchar machine_name
-        varchar hostname
-        int top_camera_index
-        int side_camera_index
-        double px2cm
-        double standard_area
-        timestamp updated_at
+    task_list {
+        varchar task_id PK
+        varchar task_name
     }
-    machine_identities {
-        char machine_id PK
-        varchar hostname
-        varchar mac_address
-        varchar location_code
-        timestamp last_seen_at
+    score_list {
+        varchar uid PK-FK
+        varchar task_id PK-FK
+        date test_date PK
+        time time PK
     }
     ai_advice_history {
         int id PK
@@ -1081,10 +1112,165 @@ erDiagram
         text score_signature
         timestamp updated_at
     }
-    task_score_table {
-        varchar uid FK
-        date test_date
-        time time
+    machine_configs {
+        char machine_id PK
+        varchar machine_name
+        varchar hostname
+        int top_camera_index
+        int side_camera_index
+        int roi_x
+        int roi_y
+        int roi_w
+        int roi_h
+        int side_roi_x
+        int side_roi_y
+        int side_roi_w
+        int side_roi_h
+        double px2cm
+        double standard_area
+        timestamp updated_at
+        timestamp created_at
+    }
+    machine_identities {
+        char machine_id PK
+        varchar hostname
+        varchar mac_address
+        varchar location_code
+        timestamp last_seen_at
+        timestamp created_at
+    }
+    string_blocks {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    pyramid {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    stair {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    build_wall {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    draw_circle {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    draw_square {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    draw_cross {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    draw_line {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    color {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    connect_dots {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    cut_circle {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    cut_square {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    cut_paper {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    cut_line {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    one_fold {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    two_fold {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
+        int score
+        varchar result_img_path
+        text data1
+    }
+    collect_raisins {
+        varchar uid PK-FK
+        date test_date PK
+        time time PK
         int score
         varchar result_img_path
         text data1
@@ -1094,10 +1280,23 @@ erDiagram
     task_list ||--o{ score_list : "references"
     user_list ||--o| ai_advice_history : "cached in"
     machine_configs ||--|| machine_identities : "identified by"
-    user_list ||--o{ task_score_table : "recorded in"
-    task_list ||--o{ task_score_table : "maps to"
-    score_list }o--|| task_score_table : "references"
-
+    user_list ||--o{ string_blocks : ""
+    user_list ||--o{ pyramid : ""
+    user_list ||--o{ stair : ""
+    user_list ||--o{ build_wall : ""
+    user_list ||--o{ draw_circle : ""
+    user_list ||--o{ draw_square : ""
+    user_list ||--o{ draw_cross : ""
+    user_list ||--o{ draw_line : ""
+    user_list ||--o{ color : ""
+    user_list ||--o{ connect_dots : ""
+    user_list ||--o{ cut_circle : ""
+    user_list ||--o{ cut_square : ""
+    user_list ||--o{ cut_paper : ""
+    user_list ||--o{ cut_line : ""
+    user_list ||--o{ one_fold : ""
+    user_list ||--o{ two_fold : ""
+    user_list ||--o{ collect_raisins : 
 ```
 
 ---
