@@ -414,6 +414,19 @@ flowchart LR
 | | 5. 介面回到輸入狀態，UID 欄位清空 |
 | 後置條件 | 未新增任何資料；`user_list` 不變 |
 
+```mermaid
+flowchart TD
+    Start([開始]) --> A[管理者輸入 UID、姓名、生日並點選送出]
+    A --> B[POST /api/user/add]
+    B --> C[MySQL 執行 INSERT INTO user_list]
+    C --> D{UID 已存在？}
+    D -->|否| E[寫入成功 → 正常情節]
+    D -->|是| F[MySQL 回傳 Duplicate Entry 錯誤]
+    F --> G[系統顯示「UID 已存在，請更換」]
+    G --> H[UID 欄位清空，介面回到輸入狀態]
+    H --> End([結束，user_list 不變])
+```
+
 ---
 
 ### 3.2 UC02 – 施測關卡執行
@@ -457,6 +470,21 @@ flowchart LR
 | | 5. 施測者重新插拔攝影機或至「相機設定」更新索引後重試 |
 | 後置條件 | 未拍照；未建立分析任務 |
 
+```mermaid
+flowchart TD
+    Start([開始]) --> A[施測者點選開始相機]
+    A --> B[POST /opencv-camera/start]
+    B --> C[嘗試開啟所有攝影機索引 0–N]
+    C --> D{任一索引開啟成功？}
+    D -->|是| E[攝影機啟動 → 正常情節]
+    D -->|否| F[回傳 success:false，HTTP 500，MSG-003]
+    F --> G[前端顯示「相機無法開啟，請確認裝置連線」]
+    G --> H{施測者重新插拔攝影機？}
+    H -->|是| I[至設定頁更新攝影機索引]
+    I --> B
+    H -->|否| End([結束，未拍照])
+```
+
 #### UC02-E2　例外情節：UID 不存在
 
 | 項目 | 說明 |
@@ -472,6 +500,19 @@ flowchart LR
 | | 4. 系統回傳 `{success: false, code: "USER_NOT_FOUND"}`（HTTP 404） |
 | | 5. 顯示「此使用者不存在，請請管理者建立帳號」（MSG-001） |
 | 後置條件 | Session UID 未設定；系統停留在輸入頁 |
+
+```mermaid
+flowchart TD
+    Start([開始]) --> A[施測者輸入 UID 並按確認]
+    A --> B[POST /session/set-uid]
+    B --> C[查詢 MySQL user_list]
+    C --> D{UID 存在？}
+    D -->|是| E[Session 設定成功 → 正常情節]
+    D -->|否| F[回傳 USER_NOT_FOUND，HTTP 404]
+    F --> G[顯示「此使用者不存在，請請管理者建立帳號」MSG-001]
+    G --> H[Session UID 未設定，停留在輸入頁]
+    H --> End([結束])
+```
 
 ---
 
@@ -512,6 +553,21 @@ flowchart LR
 | | 5. 施測者可選擇重試或跳過此關卡 |
 | 後置條件 | 未寫入任何分數；`score_list` 及任務子表不變 |
 
+```mermaid
+flowchart TD
+    Start([開始]) --> A[施測端呼叫 POST /api/analysis/submit]
+    A --> B[等待 Mac Mini 回應]
+    B --> C{逾時限制內收到回應？}
+    C -->|是| D[正常情節繼續]
+    C -->|否| E[requests 拋出 Timeout 例外]
+    E --> F[回傳 success:false，HTTP 500]
+    F --> G[前端顯示「分析失敗，請重新提交」]
+    G --> H{施測者選擇重試？}
+    H -->|是| A
+    H -->|否| I[跳過此關卡，未寫入分數]
+    I --> End([結束])
+```
+
 ---
 
 ### 3.4 UC04 – 成績查詢與管理
@@ -544,6 +600,18 @@ flowchart LR
 | | 2. MySQL 回傳空結果集 |
 | | 3. 系統顯示「此兒童尚無施測記錄」提示 |
 | 後置條件 | 畫面顯示提示訊息；資料庫不變 |
+
+```mermaid
+flowchart TD
+    Start([開始]) --> A[管理者輸入 UID 並查詢]
+    A --> B[POST /api/search-scores]
+    B --> C[查詢 score_list 與各任務子表]
+    C --> D{有成績資料？}
+    D -->|是| E[以表格顯示歷次成績 → 正常情節]
+    D -->|否| F[MySQL 回傳空結果集]
+    F --> G[系統顯示「此兒童尚無施測記錄」]
+    G --> End([結束，資料庫不變])
+```
 
 ---
 
@@ -586,6 +654,20 @@ flowchart LR
 | | 5. 家長報告頁僅顯示成績總覽，建議欄位顯示「AI 顧問不可用」 |
 | 後置條件 | 頁面正常載入；建議功能停用 |
 
+```mermaid
+flowchart TD
+    Start([開始]) --> A[家長開啟 parent_dashboard.html]
+    A --> B[GET /api/ai_advice/uid]
+    B --> C[PDMS2Advisor 初始化]
+    C --> D{AI_API_KEY 已設定？}
+    D -->|是| E[正常情節繼續]
+    D -->|否| F[記錄 Warning: AI_API_KEY not set，MSG-008]
+    F --> G[回傳固定文字「AI 顧問不可用。」HTTP 200]
+    G --> H[家長報告頁顯示成績總覽]
+    H --> I[建議欄位顯示「AI 顧問不可用」]
+    I --> End([結束])
+```
+
 #### UC05-E2　例外情節：快取命中，直接返回舊建議
 
 | 項目 | 說明 |
@@ -601,6 +683,20 @@ flowchart LR
 | | 4. 直接回傳快取建議，**不呼叫 LLM API** |
 | | 5. 家長報告頁立即顯示建議（回應速度顯著加快） |
 | 後置條件 | `ai_advice_history` 不變；LLM API 未被呼叫 |
+
+```mermaid
+flowchart TD
+    Start([開始]) --> A[家長開啟 parent_dashboard.html]
+    A --> B[查詢兒童所有關卡最新成績]
+    B --> C[計算 score_signature 成績指紋]
+    C --> D[查詢 ai_advice_history]
+    D --> E{score_signature 相符？}
+    E -->|否| F[快取未命中 → 正常情節生成新建議]
+    E -->|是| G[直接回傳快取建議]
+    G --> H[LLM API 未被呼叫]
+    H --> I[家長報告頁立即顯示建議]
+    I --> End([結束，ai_advice_history 不變])
+```
 
 ---
 
@@ -641,6 +737,19 @@ flowchart LR
 | | 4. 設定頁顯示「未偵測到攝影機，請確認 USB 連線」 |
 | | 5. 施測者連接攝影機後點選「重新掃描」 |
 | 後置條件 | `machine_configs` 不變；設定未儲存 |
+
+```mermaid
+flowchart TD
+    Start([開始]) --> A[施測者進入設定頁面 setting.html]
+    A --> B[GET /camera-devices 掃描所有裝置]
+    B --> C{找到可用攝影機？}
+    C -->|是| D[正常情節繼續]
+    C -->|否| E[回傳 devices: 空陣列]
+    E --> F[顯示「未偵測到攝影機，請確認 USB 連線」]
+    F --> G{施測者連接攝影機後點選重新掃描？}
+    G -->|是| B
+    G -->|否| End([結束，machine_configs 不變])
+```
 
 ---
 
