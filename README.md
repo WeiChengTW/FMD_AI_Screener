@@ -49,7 +49,7 @@ FMD_AI_Screener/
 
 ## 物件導向設計文件
 
-本節為物件導向程式設計課程期末專題的 OO 設計文件，依課程第四章至第八章規範撰寫。  
+本節為物件導向程式設計課程期末專題設計文件，依課程第四章至第八章規範撰寫。  
 所有 UML 圖表使用 **Mermaid 語法**，可在 GitHub 直接渲染，或於 VS Code 安裝 Markdown PDF 擴充套件後匯出 PDF。
 
 ### 文件清單
@@ -60,7 +60,7 @@ FMD_AI_Screener/
 | [docs/ch05-use-case-diagrams.md](docs/ch05-use-case-diagrams.md) | 第五章 | **使用案例圖** — 6 個主要功能域，對應 6 張 Mermaid 使用案例圖 |
 | [docs/ch06-use-case-descriptions.md](docs/ch06-use-case-descriptions.md) | 第六章 | **使用案例描述** — 6 組使用案例，每組含 1 張正常情節與 1–2 張例外情節，共 14 張描述表 |
 | [docs/ch07-activity-diagrams.md](docs/ch07-activity-diagrams.md) | 第七章 | **活動圖** — 對應 6 張使用案例的完整活動流程（Mermaid flowchart TD） |
-| [docs/ch08-class-diagram.md](docs/ch08-class-diagram.md) | 第八章 | **類別圖** — 系統完整 OO 類別架構，含繼承與使用關係（Mermaid classDiagram） |
+| [docs/ch08-class-diagram.md](docs/ch08-class-diagram.md) | 第八章 | **類別圖** — 系統完整類別架構，含繼承與使用關係（Mermaid classDiagram） |
 
 ### 使用案例功能域總覽
 
