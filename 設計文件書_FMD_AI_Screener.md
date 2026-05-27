@@ -75,6 +75,222 @@
 ### 2.2 系統範圍
 
 ```mermaid
+flowchart LR
+    subgraph 系統邊界內
+        direction TB
+        FE[前端 Web 介面\n觸控螢幕]
+        TEST[施測端 Flask\nrun.py :8000]
+        ADMIN[管理端 Flask\nadmin.py :8001]
+        SERVER[伺服器端 Flask\nweb.py :3000]
+        AI[AI 影像分析模組\nCh1–Ch5]
+        RAG[RAG 智慧建議\nPDMS2Advisor]
+        DB[(MySQL 資料庫)]
+    end
+
+    施測者((施測者)) --> FE
+    兒童((兒童)) --> FE
+    家長((家長)) --> SERVER
+    管理者((管理者)) --> ADMIN
+    FE --> TEST
+    TEST -- Tailscale VPN --> SERVER
+    SERVER --> AI & RAG
+    AI & RAG --> DB
+```
+
+**系統邊界內：**
+- 前端 Web 介面（觸控螢幕）
+- 施測端 Flask 應用（run.py, port 8000）
+- 伺服器端 Flask 應用（MacWeb/web.py, port 3000；admin.py, port 8001）
+- AI 影像分析模組（Ch1–Ch5）
+- RAG 智慧建議模組（PDMS2Advisor）
+- MySQL 資料庫（兒童資料、成績、AI 建議快取）
+
+**系統邊界外：**
+- 完整 PDMS-2 量表的全項目評估
+- 醫療診斷與治療
+- 家長行動裝置應用程式
+
+### 2.3 系統架構
+
+本系統採用**三層式架構（Three-Tier Architecture）**，搭配 Tailscale VPN 實現遠端安全通訊：
+
+```mermaid
+flowchart TB
+    subgraph 展示層
+        direction LR
+        FE[Web 前端\nHTML / CSS / JS\n觸控螢幕介面]
+    end
+    subgraph 應用層
+        direction LR
+        RUN[施測端 Flask\nrun.py :8000]
+        ADM[管理端 Flask\nadmin.py :8001]
+        WEB[Mac Mini Flask\nweb.py :3000]
+        AI[AI 分析模組\nCh1–Ch5]
+        RAG[PDMS2Advisor\nRAG 模組]
+    end
+    subgraph 資料層
+        direction LR
+        DB[(MySQL 資料庫)]
+        CHROMA[(ChromaDB\n向量資料庫)]
+        FILES[影像檔案\nkid/uid/]
+    end
+
+    FE --> RUN & ADM
+    RUN -- Tailscale --> WEB
+    WEB --> AI & RAG & FILES
+    RUN & ADM & WEB --> DB
+    RAG --> CHROMA
+```
+
+### 2.4 軟/硬體建構項目需求概述
+
+| 類別 | 項目 | 需求說明 |
+|----------|----------|----------|
+| **硬體** | 施測端主機 | Intel i5 以上，8GB RAM，Windows 11 |
+| **硬體** | 攝影機 | PW313D 雙鏡頭網路攝影機（俯視 + 側視） |
+| **硬體** | 觸控螢幕 | 14 吋 IPS 1080P，支援觸控輸入 |
+| **硬體** | 伺服器 | Mac Mini M2 Pro（部署後端與資料庫） |
+| **硬體** | Arduino | Ch5 儀器量測（側重計數器）使用 |
+| **軟體** | 作業系統（施測端） | Windows 11 |
+| **軟體** | 作業系統（伺服器） | macOS |
+| **軟體** | Python 執行環境 | Python 3.9（施測端）/ 3.9+（伺服器） |
+| **軟體** | 資料庫 | MySQL 8.0+ |
+| **軟體** | 網路連線 | Tailscale VPN（外網安全通訊） |
+| **軟體** | 瀏覽器 | Chrome / Edge（支援觸控） |
+
+### 2.5 軟/硬體環境
+
+#### 軟體環境（施測端）
+
+| 項目 | 版本 / 說明 |
+|----------|----------|
+| OS | Windows 11 |
+| Python | 3.9 |
+| Flask | 3.1.2 |
+| OpenCV | 4.12.0.88 |
+| PyMySQL | 1.1.2 |
+| Tailscale | 最新穩定版 |
+
+#### 軟體環境（分析伺服器 / Mac Mini）
+
+| 套件 | 版本 |
+|----------|----------|
+| Flask | 3.1.2 |
+| OpenCV | 4.12.0.88 |
+| Ultralytics (YOLO) | 8.3.217 |
+| TensorFlow | 2.20.0 |
+| PyTorch | 2.8.0 |
+| LangChain | 0.3.30 |
+| LangChain-Chroma | 0.2.6 |
+| langchain-huggingface | 0.3.1 |
+| ChromaDB | 1.5.9 |
+| sentence-transformers | 5.1.2 |
+| scikit-image | 0.24.0 |
+| PyMySQL | 1.1.2 |
+
+#### 硬體環境
+
+| 設備 | 規格 |
+|----------|----------|
+| 施測端 PC | Intel i5+，8GB RAM，1TB SSD |
+| 攝影機 | PW313D 雙鏡頭，1080P，USB |
+| 觸控螢幕 | 14 吋，IPS，1920×1080 |
+| Mac Mini（伺服器） | M2 Pro，16GB RAM，512GB SSD |
+| Arduino | Uno（Ch5 側重儀器搭配使用） |
+
+### 2.6 一般限制
+
+| 限制類型 | 說明 |
+|----------|----------|
+| **網路依賴** | 施測時需透過 Tailscale 連線至 Mac Mini，斷線將無法上傳影像與取得分析結果 |
+| **作業系統** | 施測端限 Windows 11（YOLO/SAM 模型推論在伺服器端執行，本機僅需輕量 Flask） |
+| **年齡範圍** | 目前僅支援 4–6 歲，不同年齡的評分標準需另行擴充 |
+| **語言** | 系統介面為繁體中文；AI 建議預設以繁體中文輸出 |
+| **AI API 金鑰** | RAG 建議需設定 `AI_API_KEY`（`.env`）；使用長庚大學機構雲端 LLM API |
+| **儲存空間** | 每位兒童的影像與錄影快取存於 `kid/{uid}/` 目錄，需預留足夠磁碟空間 |
+| **攝影機數量** | Ch5 使用側面攝影機（Side），其他章節使用上方攝影機（Top） |
+
+---
+
+## 3. 設計內容
+
+### 3.1 軟/硬體建構項目架構
+
+#### 3.1.1 軟體模組架構圖
+
+```
+FMD_AI_Screener/
+├── PDMS2_web/                    # 施測端主程式
+│   ├── run.py                    # 施測端 Flask 主程式（port 8000）
+│   ├── admin.py                  # 管理端 Flask 主程式（port 8001）
+│   ├── utils/
+│   │   └── rag_advisor.py        # PDMS2Advisor（RAG 智慧建議）
+│   ├── html/                     # 前端 HTML 頁面
+│   │   ├── start.html            # 起始頁（UID 輸入）
+│   │   ├── index.html            # 關卡選擇頁
+│   │   ├── camera.html           # 相機控制頁
+│   │   ├── task.html             # 任務引導頁
+│   │   ├── admin.html            # 管理者後台
+│   │   ├── admin_login.html      # 管理者登入
+│   │   ├── superadmin.html       # 超級管理者
+│   │   ├── parent_dashboard.html # 家長成績報告
+│   │   └── setting.html          # 系統設定
+│   ├── js/                       # 前端 JavaScript
+│   ├── css/                      # 前端樣式
+│   ├── ch1-t1/ ~ ch1-t4/        # 積木建構分析模組
+│   ├── ch2-t1/ ~ ch2-t6/        # 圖形描繪分析模組
+│   ├── ch3-t1/ ~ ch3-t4/        # 剪紙分析模組
+│   ├── ch4-t1/ ~ ch4-t2/        # 折紙分析模組
+│   ├── ch5-t1/                   # 儀器量測模組（本機執行）
+│   ├── rag_db/                   # ChromaDB 向量資料庫（持久化）
+│   └── model_cache/              # HuggingFace 本地模型快取
+├── MacWeb/                       # 伺服器端主程式
+│   └── web.py                    # Mac Mini Flask 主程式（port 3000）
+├── RAG/                          # 知識庫文件
+│   ├── PDMS2.md                  # PDMS-2 題目標準對照表
+│   └── Clinical_Context.md       # 臨床背景知識
+└── scratch/                      # 測試與工具腳本
+```
+
+#### 3.1.2 部署架構圖
+
+```mermaid
+flowchart LR
+    subgraph 施測端 Windows PC
+        direction TB
+        FE[瀏覽器 Chrome/Edge]
+        RUN[run.py :8000]
+        ADM[admin.py :8001]
+        CAM[PW313D 攝影機]
+        ARD[Arduino Ch5]
+    end
+
+    subgraph Mac Mini 伺服器
+        direction TB
+        WEB[web.py :3000]
+        AI_MOD[AI 模組\nYOLO / SAM / TF]
+        RAG_MOD[PDMS2Advisor]
+        MYSQL[(MySQL)]
+        CHROMA[(ChromaDB)]
+        FILES[影像儲存\nkid/uid/]
+    end
+
+    FE --> RUN & ADM
+    CAM --> RUN
+    ARD --> RUN
+    RUN -- Tailscale VPN --> WEB
+    WEB --> AI_MOD & RAG_MOD & FILES
+    WEB & RUN & ADM --> MYSQL
+    RAG_MOD --> CHROMA
+```
+
+---
+
+### 3.2 軟硬體組件設計說明
+
+#### 3.2.1 主要類別設計（Class Diagram）
+
+```mermaid
 classDiagram
     class FlaskApp {
         <<abstract>>
@@ -265,199 +481,6 @@ classDiagram
     User "1" --> "0..*" ScoreRecord : has
     Task "1" --> "0..*" ScoreRecord : referenced by
     User "1" --> "0..1" AIAdviceHistory : cached in
-```
-
-**系統邊界內：**
-- 前端 Web 介面（觸控螢幕）
-- 施測端 Flask 應用（run.py, port 8000）
-- 伺服器端 Flask 應用（MacWeb/web.py, port 3000；admin.py, port 8001）
-- AI 影像分析模組（Ch1–Ch5）
-- RAG 智慧建議模組（PDMS2Advisor）
-- MySQL 資料庫（兒童資料、成績、AI 建議快取）
-
-**系統邊界外：**
-- 完整 PDMS-2 量表的全項目評估
-- 醫療診斷與治療
-- 家長行動裝置應用程式
-
-### 2.3 系統架構
-
-本系統採用**三層式架構（Three-Tier Architecture）**，搭配 Tailscale VPN 實現遠端安全通訊：
-
-```mermaid
-flowchart LR
-    管理者((管理者))
-
-    subgraph 兒童帳號管理子系統
-        direction TB
-        UC01a([新增兒童帳號])
-        UC01b([查詢兒童資料])
-        UC01c([刪除兒童帳號])
-    end
-
-    管理者 --> UC01a
-    管理者 --> UC01b
-    管理者 --> UC01c
-```
-
-### 2.4 軟/硬體建構項目需求概述
-
-| 類別 | 項目 | 需求說明 |
-|----------|----------|----------|
-| **硬體** | 施測端主機 | Intel i5 以上，8GB RAM，Windows 11 |
-| **硬體** | 攝影機 | PW313D 雙鏡頭網路攝影機（俯視 + 側視） |
-| **硬體** | 觸控螢幕 | 14 吋 IPS 1080P，支援觸控輸入 |
-| **硬體** | 伺服器 | Mac Mini M2 Pro（部署後端與資料庫） |
-| **硬體** | Arduino | Ch5 儀器量測（側重計數器）使用 |
-| **軟體** | 作業系統（施測端） | Windows 11 |
-| **軟體** | 作業系統（伺服器） | macOS |
-| **軟體** | Python 執行環境 | Python 3.9（施測端）/ 3.9+（伺服器） |
-| **軟體** | 資料庫 | MySQL 8.0+ |
-| **軟體** | 網路連線 | Tailscale VPN（外網安全通訊） |
-| **軟體** | 瀏覽器 | Chrome / Edge（支援觸控） |
-
-### 2.5 軟/硬體環境
-
-#### 軟體環境（施測端）
-
-| 項目 | 版本 / 說明 |
-|----------|----------|
-| OS | Windows 11 |
-| Python | 3.9 |
-| Flask | 3.1.2 |
-| OpenCV | 4.12.0.88 |
-| PyMySQL | 1.1.2 |
-| Tailscale | 最新穩定版 |
-
-#### 軟體環境（分析伺服器 / Mac Mini）
-
-| 套件 | 版本 |
-|----------|----------|
-| Flask | 3.1.2 |
-| OpenCV | 4.12.0.88 |
-| Ultralytics (YOLO) | 8.3.217 |
-| TensorFlow | 2.20.0 |
-| PyTorch | 2.8.0 |
-| LangChain | 0.3.30 |
-| LangChain-Chroma | 0.2.6 |
-| langchain-huggingface | 0.3.1 |
-| ChromaDB | 1.5.9 |
-| sentence-transformers | 5.1.2 |
-| scikit-image | 0.24.0 |
-| PyMySQL | 1.1.2 |
-
-#### 硬體環境
-
-| 設備 | 規格 |
-|----------|----------|
-| 施測端 PC | Intel i5+，8GB RAM，1TB SSD |
-| 攝影機 | PW313D 雙鏡頭，1080P，USB |
-| 觸控螢幕 | 14 吋，IPS，1920×1080 |
-| Mac Mini（伺服器） | M2 Pro，16GB RAM，512GB SSD |
-| Arduino | Uno（Ch5 側重儀器搭配使用） |
-
-### 2.6 一般限制
-
-| 限制類型 | 說明 |
-|----------|----------|
-| **網路依賴** | 施測時需透過 Tailscale 連線至 Mac Mini，斷線將無法上傳影像與取得分析結果 |
-| **作業系統** | 施測端限 Windows 11（YOLO/SAM 模型推論在伺服器端執行，本機僅需輕量 Flask） |
-| **年齡範圍** | 目前僅支援 4–6 歲，不同年齡的評分標準需另行擴充 |
-| **語言** | 系統介面為繁體中文；AI 建議預設以繁體中文輸出 |
-| **AI API 金鑰** | RAG 建議需設定 `AI_API_KEY`（`.env`）；使用長庚大學機構雲端 LLM API |
-| **儲存空間** | 每位兒童的影像與錄影快取存於 `kid/{uid}/` 目錄，需預留足夠磁碟空間 |
-| **攝影機數量** | Ch5 使用側面攝影機（Side），其他章節使用上方攝影機（Top） |
-
----
-
-## 3. 設計內容
-
-### 3.1 軟/硬體建構項目架構
-
-#### 3.1.1 軟體模組架構圖
-
-```
-FMD_AI_Screener/
-├── PDMS2_web/                    # 施測端主程式
-│   ├── run.py                    # 施測端 Flask 主程式（port 8000）
-│   ├── admin.py                  # 管理端 Flask 主程式（port 8001）
-│   ├── utils/
-│   │   └── rag_advisor.py        # PDMS2Advisor（RAG 智慧建議）
-│   ├── html/                     # 前端 HTML 頁面
-│   │   ├── start.html            # 起始頁（UID 輸入）
-│   │   ├── index.html            # 關卡選擇頁
-│   │   ├── camera.html           # 相機控制頁
-│   │   ├── task.html             # 任務引導頁
-│   │   ├── admin.html            # 管理者後台
-│   │   ├── admin_login.html      # 管理者登入
-│   │   ├── superadmin.html       # 超級管理者
-│   │   ├── parent_dashboard.html # 家長成績報告
-│   │   └── setting.html          # 系統設定
-│   ├── js/                       # 前端 JavaScript
-│   ├── css/                      # 前端樣式
-│   ├── ch1-t1/ ~ ch1-t4/        # 積木建構分析模組
-│   ├── ch2-t1/ ~ ch2-t6/        # 圖形描繪分析模組
-│   ├── ch3-t1/ ~ ch3-t4/        # 剪紙分析模組
-│   ├── ch4-t1/ ~ ch4-t2/        # 折紙分析模組
-│   ├── ch5-t1/                   # 儀器量測模組（本機執行）
-│   ├── rag_db/                   # ChromaDB 向量資料庫（持久化）
-│   └── model_cache/              # HuggingFace 本地模型快取
-├── MacWeb/                       # 伺服器端主程式
-│   └── web.py                    # Mac Mini Flask 主程式（port 3000）
-├── RAG/                          # 知識庫文件
-│   ├── PDMS2.md                  # PDMS-2 題目標準對照表
-│   └── Clinical_Context.md       # 臨床背景知識
-└── scratch/                      # 測試與工具腳本
-```
-
-#### 3.1.2 部署架構圖
-
-```mermaid
-flowchart LR
-    施測者((施測者))
-    兒童((兒童))
-
-    subgraph 施測流程子系統
-        direction TB
-        UC02a([輸入兒童 UID])
-        UC02b([選擇測驗關卡])
-        UC02c([啟動攝影機])
-        UC02d([執行任務與拍照])
-        UC02e([提交影像分析])
-    end
-
-    施測者 --> UC02a
-    施測者 --> UC02b
-    施測者 --> UC02c
-    施測者 --> UC02d
-    施測者 --> UC02e
-    兒童  --> UC02d
-```
-
----
-
-### 3.2 軟硬體組件設計說明
-
-#### 3.2.1 主要類別設計（Class Diagram）
-
-```mermaid
-flowchart LR
-    施測者((施測者))
-    伺服器((Mac Mini\n伺服器))
-
-    subgraph AI 分析子系統
-        direction TB
-        UC03a([提交影像至伺服器])
-        UC03b([執行 AI 模型推論])
-        UC03c([計算並儲存分數])
-        UC03d([查詢分析狀態])
-    end
-
-    施測者 --> UC03a
-    施測者 --> UC03d
-    伺服器 --> UC03b
-    伺服器 --> UC03c
-    UC03a --> UC03b
 ```
 
 #### 3.2.2 任務對照表（TASK_MAP）
@@ -724,48 +747,58 @@ flowchart LR
 **施測完整流程（以 Ch1-t2 堆金字塔為例）：**
 
 ```mermaid
-flowchart LR
-    家長教師(("家長／教師"))
+sequenceDiagram
+    actor 施測者
+    participant run as 施測端<br/>run.py
+    participant web as Mac Mini<br/>web.py
+    participant ai as AI分析模組<br/>(Ch1-t2)
+    participant db as MySQL
 
-    subgraph AI 建議子系統
-        direction TB
-        UC05a([開啟家長報告])
-        UC05b([查看成績總覽])
-        UC05c([生成 AI 居家建議])
-        UC05d([查看建議快取])
-    end
+    施測者->>run: POST /session/set-uid {uid}
+    run->>db: 查詢 uid 是否存在
+    db-->>run: 確認存在
+    run-->>施測者: {success: true}
 
-    家長教師 --> UC05a
-    家長教師 --> UC05b
-    家長教師 --> UC05c
-    家長教師 --> UC05d
-    UC05a --> UC05b
-    UC05a --> UC05c
+    施測者->>run: POST /opencv-camera/start {camera_index, Ch1-t2}
+    run-->>施測者: {success: true} 攝影機啟動
+
+    施測者->>run: POST /opencv-camera/capture {task_id, uid}
+    run-->>施測者: {success: true, filename}
+
+    施測者->>run: POST /run-python {id: Ch1-t2, uid}
+    run->>web: POST /api/analysis/submit (image, uid, Ch1-t2)
+    web->>ai: 執行 YOLO + SAM 分析
+    ai-->>web: {score, result_img_path}
+    web->>db: INSERT score 至 pyramid 資料表
+    web-->>run: {ok: true, score: 2}
+    run-->>施測者: {success: true, task_id}
+
+    施測者->>run: GET /check-task/{task_id}
+    run-->>施測者: {status: done, result: {score: 2}}
 ```
 
 #### 3.4.3 活動圖（Activity Diagram）—— 整體篩檢流程
 
 ```mermaid
-flowchart LR
-    超級管理者((超級管理者))
-    施測者((施測者))
-
-    subgraph 系統設定子系統
-        direction TB
-        UC06a([設定攝影機索引])
-        UC06b([校正 ROI 區域])
-        UC06c([校正 px2cm 比例])
-        UC06d([管理管理者帳號])
-        UC06e([同步機器設定])
-    end
-
-    超級管理者 --> UC06d
-    超級管理者 --> UC06e
-    施測者     --> UC06a
-    施測者     --> UC06b
-    施測者     --> UC06c
-    UC06a --> UC06b
-    UC06b --> UC06c
+flowchart TD
+    Start([開始篩檢]) --> A[管理者建立兒童帳號]
+    A --> B[施測者輸入兒童 UID]
+    B --> C{UID 有效?}
+    C -->|否| B
+    C -->|是| D[選擇測驗關卡]
+    D --> E[啟動攝影機預覽]
+    E --> F[引導兒童執行任務]
+    F --> G[施測者拍照]
+    G --> H[提交影像至 Mac Mini 進行 AI 分析]
+    H --> I{分析成功?}
+    I -->|否| J[顯示錯誤，重試]
+    J --> G
+    I -->|是| K[儲存分數至 MySQL]
+    K --> L{還有下一關?}
+    L -->|是| D
+    L -->|否| M[家長查看成績報告]
+    M --> N[觸發 AI 居家建議生成]
+    N --> End([篩檢完成])
 ```
 
 ---
@@ -1002,33 +1035,69 @@ Ch5 側重儀器關卡（collect_raisins）為**本機執行**（非遠端 API�
 ### D. 實體關係圖（ER Diagram）
 
 ```mermaid
-flowchart TD
-    Start([開始]) --> A[管理者登入管理後台]
-    A --> B{選擇操作}
-    B -->|新增| C[輸入 UID、姓名、生日]
-    C --> D{UID 格式正確?}
-    D -->|否| E[顯示格式錯誤]
-    E --> C
-    D -->|是| F{UID 已存在?}
-    F -->|是| G[顯示 UID 重複錯誤]
-    G --> C
-    F -->|否| H[POST /api/user/add 寫入 MySQL]
-    H --> I[POST /create-uid-folder 建立目錄]
-    I --> J[顯示新增成功]
-    J --> End([結束])
-    B -->|查詢| K[輸入目標 UID]
-    K --> L[POST /api/search-scores 查詢]
-    L --> M{有資料?}
-    M -->|否| N[顯示無記錄提示]
-    N --> End
-    M -->|是| O[以表格顯示兒童資料]
-    O --> End
-    B -->|刪除| P[選擇目標兒童]
-    P --> Q{確認刪除?}
-    Q -->|否| End
-    Q -->|是| R[DELETE /users 刪除帳號]
-    R --> S[顯示刪除成功]
-    S --> End
+erDiagram
+    user_list {
+        varchar uid PK
+        varchar name
+        date birthday
+    }
+    score_list {
+        varchar uid FK
+        varchar task_id FK
+        date test_date
+        time time
+    }
+    task_list {
+        varchar task_id PK
+        varchar task_name
+    }
+    admin_users {
+        varchar account PK
+        varchar password
+        varchar email
+        tinyint level
+    }
+    machine_configs {
+        char machine_id PK
+        varchar machine_name
+        varchar hostname
+        int top_camera_index
+        int side_camera_index
+        double px2cm
+        double standard_area
+        timestamp updated_at
+    }
+    machine_identities {
+        char machine_id PK
+        varchar hostname
+        varchar mac_address
+        varchar location_code
+        timestamp last_seen_at
+    }
+    ai_advice_history {
+        int id PK
+        varchar uid FK
+        text advice
+        text score_signature
+        timestamp updated_at
+    }
+    task_score_table {
+        varchar uid FK
+        date test_date
+        time time
+        int score
+        varchar result_img_path
+        text data1
+    }
+
+    user_list ||--o{ score_list : "has"
+    task_list ||--o{ score_list : "references"
+    user_list ||--o| ai_advice_history : "cached in"
+    machine_configs ||--|| machine_identities : "identified by"
+    user_list ||--o{ task_score_table : "recorded in"
+    task_list ||--o{ task_score_table : "maps to"
+    score_list }o--|| task_score_table : "references"
+
 ```
 
 ---
