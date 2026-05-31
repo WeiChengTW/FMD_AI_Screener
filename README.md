@@ -317,7 +317,7 @@ python PDMS2_web/admin.py
 
 ## 介紹影片
 
-[運用 AI 技術判別精細動作之早期遲緩篩檢系統介紹影片](https://youtu.be/uGfGr5dzklI?si=zy6J9WrYJ886j5G3)
+[運用 AI 技術判別精細動作之早期遲緩篩檢系統介紹影片](https://www.youtube.com/watch?v=FlGjlvIecec&feature=youtu.be)
 
 ## 獲得的獎項
 
