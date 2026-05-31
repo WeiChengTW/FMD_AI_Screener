@@ -4,263 +4,293 @@
 **團隊名稱：** 現在發現還不遲，你說對不隊（獵遲小隊）  
 **團隊成員：** 洪偉城、林政維、呂昊宸、林宛瑩  
 **指導教授：** 趙一平教授  
-**文件版本：** v1.0（2026-05-27）
+**文件版本：** v2.0（2026-06-01）
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Frontend](https://img.shields.io/badge/Frontend-HTML5%2FCSS3%2FJavaScript-E34F26.svg)](https://developer.mozilla.org/docs/Web) [![Backend](https://img.shields.io/badge/Backend-Flask-black.svg)](https://flask.palletsprojects.com/) [![Database](https://img.shields.io/badge/Database-MySQL%208.0+-4479A1.svg)](https://www.mysql.com/) [![CV](https://img.shields.io/badge/Computer%20Vision-OpenCV-green.svg)](https://opencv.org/) [![Model](https://img.shields.io/badge/Model-YOLO-red.svg)](https://github.com/ultralytics) [![Segmentation](https://img.shields.io/badge/Segmentation-SAM-purple.svg)](https://github.com/facebookresearch/segment-anything) [![DL](https://img.shields.io/badge/Deep%20Learning-TensorFlow%2FPyTorch-EE4C2C.svg)](https://www.tensorflow.org/) [![CANS Lab](https://img.shields.io/badge/CANS-Lab-orange.svg)](https://canslab1.github.io/)
 
 ---
 
-## 介紹影片
-
-[運用AI技術判別精細動作之早期遲緩篩檢系統介紹影片](https://youtu.be/uGfGr5dzklI?si=zy6J9WrYJ886j5G3)
-
-## 獲得的獎項
-
-- [114年度「為桃園做研究」桃園市政府大專校院學生創新點子及研究實作競賽 金質研究獎](https://sccdc.tycg.gov.tw/News_Content.aspx?n=16792&s=1600221#lg=1&slide=1)
-- [2025 全國 AI 專題創意競賽 佳作](https://phpweb2.nutn.edu.tw/ilt/wordpress/wp-content/uploads/2025/12/%E6%B1%BA%E8%B3%BD%E7%B5%90%E6%9E%9C.pdf)
-
----
-
 ## 目錄
 
-1. [主題說明](#1-主題說明)
-2. [系統特色](#2-系統特色)
-3. [AI 應用與模型流程](#3-ai-應用與模型流程)
-4. [系統架構](#4-系統架構)
-5. [設計理念](#5-設計理念)
-6. [使用情境](#6-使用情境)
-7. [預期成果](#7-預期成果)
-8. [安裝與使用指南](#8-安裝與使用指南)
-9. [開發工具](#9-開發工具)
-10. [物件導向設計文件](#10-物件導向設計文件)
-11. [參考資料](#11-參考資料)
+1. [專案摘要](#1-專案摘要)
+2. [問題與目標族群](#2-問題與目標族群)
+3. [系統完成度](#3-系統完成度)
+4. [軟硬體與部署](#4-軟硬體與部署)
+5. [可執行檔與操作步驟](#5-可執行檔與操作步驟)
+6. [驗證結果與限制](#6-驗證結果與限制)
+7. [物件導向設計文件](#7-物件導向設計文件)
+8. [參考資料](#8-參考資料)
 
 ---
 
-## 1. 主題說明
+## 1. 專案摘要
 
-### 什麼是兒童發展遲緩？
+本專題是一套結合 **兒童精細動作篩檢、影像 AI 判讀、RAG 居家建議、MySQL 紀錄與雙端 Web 介面** 的早期遲緩篩檢系統。系統以 **PDMS-2（Peabody Developmental Motor Scales-2）** 為評分基準，將測驗流程遊戲化，讓非職能治療師人員也能完成初步篩檢與結果整理。
 
-根據 Guralnick 的觀點，兒童發展遲緩通常源自於生物性風險（先天性疾病、神經發展問題）與環境性風險等多重因素，使得兒童在社交、動作或認知發展上落後於同齡。早期療育（Early Intervention, EI）是針對有發展遲緩或身心障礙的嬰幼兒及其家庭所提供的各類服務與支持，可能包括語言治療、物理治療等。由於幼兒發展具有高度可塑性，及早發現與介入能在黃金時期發揮最大療效。
+一句話版本：**把 PDMS-2 的精細動作測驗做成可攜式、可追蹤、可自動分析的篩檢系統。**
 
-### 為什麼需要提早介入？
+### 這個專題做了什麼
 
-6 歲前是兒童發展的黃金時期。根據統計，110 年底早期療育個案中，「3–5 歲未滿」占比 42.3% 為最高，「5–6 歲未滿」占 23.4%，兩者合計達 66%。這顯示多數孩子是在 3–6 歲才被發現問題，很多兒童已經錯過了最早期的介入時機。
+- 施測端提供兒童測驗流程與關卡操作。
+- 管理端提供兒童資料、測驗紀錄與結果查詢。
+- MacWeb 提供影像分析與結果回傳。
+- RAG 模組提供個別化居家建議。
+- MySQL 負責保存兒童、關卡與測驗資料。
 
-研究顯示，經過八週職能治療師主導的精細動作介入後，精細動作遲緩的比例從 85.7% 降至僅 7%。然而偏鄉地區往往因醫療與教育資源不足，導致問題不易被及時發現——來自偏鄉的家庭其發展遲緩診斷平均延後約 5 個月，凸顯了建立低門檻、可攜式檢測系統的重要性。
+### 目前完成到哪裡
 
-### 系統設計目的
-
-本系統以國際通用的 **PDMS-2（皮巴迪動作發展量表第二版）** 為評分基準，專為 4-6 歲兒童設計，透過「妙妙屋」故事情境與遊戲化介面，讓偏鄉衛生所人員無需職能治療師在場即可完成篩檢，並自動生成個人化居家練習建議。
-
-**為何選擇 PDMS-2？**
-根據 Relebo 等人(2021)針對 392 名 12-48 個月兒童的驗證研究，PDMS-2 具有良好的內部一致性（α = 0.85）及極高的重測信度（ICC = 0.98–0.99），能穩定且有效區分兒童的動作發展能力。
-
----
-
-## 2. 系統特色
-
-| 特色 | 說明 |
-|------|------|
-| 🎯 **標準化評估** | 基於 PDMS-2 專業量表，17 個子關卡涵蓋積木建構、圖形描繪、剪紙、折紙、儀器量測 |
-| 🎮 **遊戲化體驗** | 故事情境降低兒童測試抗拒，5 分鐘快速架設 |
-| 🚀 **AI 多階段判讀** | YOLO → SAM → TensorFlow/幾何規則，輸出 0-2 分 |
-| 📱 **可攜式設計** | 一袋帶走，適合偏鄉巡迴使用 |
-| ☁️ **雲端記錄** | MySQL 資料庫完整追蹤兒童發展歷程，透過 Tailscale 安全連線 |
-
-### 系統架構
-
-```
-FMD_AI_Screener/
-├── PDMS2_web/          # 施測端 Flask（port 8000）+ 管理端 Flask（port 8001）
-│   ├── run.py          # 施測端主程式
-│   ├── admin.py        # 管理端主程式
-│   ├── utils/rag_advisor.py   # PDMS2Advisor（RAG 建議模組）
-│   ├── html/           # 前端 Web 頁面
-│   ├── ch1-t1~ch5-t1/ # 各子關卡 AI 分析模組
-│   └── rag_db/         # ChromaDB 向量資料庫
-├── MacWeb/web.py       # 分析伺服器 Flask（port 3000）
-└── RAG/                # PDMS-2 知識庫文件
-```
+- 已完成 17 個 PDMS-2 子關卡的系統化整合，涵蓋積木、圖形描繪、剪紙、折紙與儀器題。
+- 已完成施測端、管理端與 AI 分析伺服器的分工架構。
+- 已完成 RAG 居家建議流程與測試報告產出。
+- 已完成物件導向設計文件，對應課程第 4 到第 8 章。
 
 ---
 
-## 3. AI 應用與模型流程
-
-本專案的 AI 不是單一模型，而是依題型拆成多條可重用的視覺流程：
-
-### Ch1 積木建構題
-以 YOLO 偵測積木位置，再用 SAM 取得精準遮罩，配合骨架化與層級分組，判斷金字塔、階梯與牆面堆疊是否符合 PDMS-2 標準。
-
-### Ch2 圖形描繪題
-先做 A4 紙校正與像素/公分換算，再透過 YOLO 切出待辨識圖形，搭配 TensorFlow 分類模型區分圓形、橢圓、四邊形、十字等目標，並以骨架與端點分析評分。
-
-### Ch3 剪紙題
-以 YOLO 偵測紙張與物件遮罩，再利用 ArUco 標記完成尺度校正，最後根據輪廓到中心點的最短/最長距離計算是否達標。
-
-### Ch4 折紙題
-以彩色邊緣與最大面積四邊形偵測為主，搭配幾何量測與影像分析判定折線與紙張形狀。
-
-### Ch5 側重儀器題
-以側重儀器搭配 Arduino 進行即時量測，持續計算數量與時間，並結合遊戲狀態紀錄做即時回饋與最終評分。
-
-### 設計原則
-**「先偵測、再分割、後分類、最後用規則或量測轉成分數」**——使模型結果更接近臨床情境下的人工判讀方式。
-
----
-
-## 4. 系統架構
-
-### 硬體組成
-
-| 設備 | 規格 | 用途 |
-|------|------|------|
-| 施測端 PC | Intel i5+，8GB RAM，Windows 11 | 前端 Web 介面 + 施測端 Flask |
-| PW313D 攝影機 | 雙鏡頭（俯視 + 側視），1080P USB | 拍攝兒童動作影像 |
-| 14 吋觸控螢幕 | IPS，1920×1080 | 兒童遊戲化操作介面 |
-| Mac Mini M2 Pro | 16GB RAM，512GB SSD，macOS | AI 推論伺服器 + MySQL 資料庫 |
-| Arduino Uno | — | Ch5 側重儀器豆子計數 |
-
-### 三層式架構
-
-```
-施測端 PC（Flask + 前端）
-    ↕ Tailscale VPN
-Mac Mini M2 Pro（AI 分析伺服器 + MySQL）
-```
-
----
-
-## 5. 設計理念
+## 2. 問題與目標族群
 
 ### 問題背景
 
-根據 WHO 統計，0-6 歲兒童發展遲緩發生率約 7%，台灣每年約有 1.4 萬名小朋友可能出現發展遲緩。然而：
-- 偏鄉評估中心數量僅占全國 6%
-- 發展遲緩診斷平均延後約 5 個月
-- 接受早期療育服務人數從 2016 年的 34,450 人次上升至 2024 年的 61,000 人次
+兒童發展遲緩若無法及早辨識，常會錯過黃金介入期。偏鄉或資源不足地區更容易因為人力、設備與評估流程限制，而讓診斷與介入延後。
 
-### 解決方案
+本專題希望解決的不是單純「做一個測驗網站」，而是以下三件事：
 
-1. **把測驗變成遊戲，把檢測變成故事** — 提升投入、數據自然、降低測試效應
-2. **AI 輔助評分** — 降低人工逐張判讀的負擔
-3. **雲端追蹤** — MySQL 記錄單次與縱向表現，便於後續轉介與追蹤
-4. **可攜式設計** — 五分鐘架設，一袋帶走
+1. 讓兒童篩檢流程更容易被執行。
+2. 讓評分與紀錄更標準化。
+3. 讓結果可以被後續追蹤與轉介使用。
 
----
+### 目標族群
 
-## 6. 使用情境
+- **施測者**：衛生所、幼兒園、社區或巡迴篩檢現場的人員。
+- **管理者**：需要查看歷史紀錄、管理兒童資料與成績的人員。
+- **家長**：需要理解孩子表現與後續居家練習方向的人。
+- **孩童**：實際接受測驗的 4 至 6 歲兒童。
 
-### 妙妙屋互動測驗
+### 設計目標
 
-小朋友走進「妙妙屋」，平板會播放自製故事，小朋友隨著故事引導完成任務：
-- 疊魔法石頭（積木題）
-- 用魔法畫筆完成線條（圖形題）
-- 剪出魔法形狀（剪紙題）
-- 折出魔法形狀（折紙題）
-- 數豆子（儀器題）
-
-### 適用場域
-
-- 偏鄉衛生所巡迴篩檢
-- 幼兒園日常評估
-- 課後輔導與社區活動中心
+- 降低測驗門檻。
+- 減少人工逐張判讀壓力。
+- 保留原始測驗與結果紀錄。
+- 讓使用者從系統中得到可執行的後續建議。
 
 ---
 
-## 7. 預期成果
+## 3. 系統完成度
 
-| 對象 | 成果 |
-|------|------|
-| **老師** | 減少依賴經驗判斷，快速獲得具客觀依據的孩童精細動作表現紀錄 |
-| **家長** | 每項動作均有系統記錄，提高家長信任，降低焦慮 |
-| **孩童** | 遊戲化篩檢減少測驗壓力，表現更真實自然 |
-| **學校** | 累積標準化量表指標與影音紀錄，建立完整發展史 |
-| **長期** | 減少偏鄉兒童因延誤而惡化，促使提早發現、提早轉介 |
+### 系統功能一覽
+
+| 功能 | 完成內容 | 狀態 |
+|------|----------|------|
+| 施測端 | 提供測驗流程、子關卡切換、影像與結果傳遞 | 已完成 |
+| 管理端 | 查詢、管理、結果與使用者資料操作 | 已完成 |
+| AI 分析 | 影像分析伺服器與關卡對應分析流程 | 已完成 |
+| RAG 建議 | 依測驗結果生成居家練習建議 | 已完成 |
+| 資料保存 | MySQL 紀錄、影像檔案與分析結果追蹤 | 已完成 |
+| 文件化 | 說明文件、使用案例、活動圖與類別圖 | 已完成 |
+
+### 關卡覆蓋範圍
+
+系統目前整合了 17 個 PDMS-2 子關卡，覆蓋以下題型：
+
+- Ch1 積木建構
+- Ch2 圖形描繪
+- Ch3 剪紙
+- Ch4 折紙
+- Ch5 側重儀器
+
+### 核心技術流程
+
+1. 施測端蒐集影像與互動資料。
+2. AI 伺服器進行偵測、分割、尺度校正或幾何分析。
+3. 系統將分析結果回傳資料庫。
+4. 管理端與 RAG 模組根據結果產出可閱讀的建議。
+
+### 系統特色
+
+- **遊戲化測驗**：把測驗包裝成故事情境，降低兒童抗拒。
+- **多模型分析**：依題型使用 YOLO、SAM、TensorFlow 與幾何規則。
+- **可追蹤資料**：測驗結果、影像與建議可持續保存。
+- **雙端部署**：施測端與分析伺服器分離，便於實際部署。
 
 ---
 
-## 8. 安裝與使用指南
+## 4. 軟硬體與部署
 
-### 系統需求
+### 硬體需求
 
-#### 硬體需求
-- **處理器：** Intel i5 或同等級以上
-- **記憶體：** 8GB RAM 以上
-- **儲存空間：** 10GB 可用空間
-- **攝影機：** PW313D 雙鏡頭網路攝影機或相容裝置
-- **顯示器：** 觸控螢幕（建議 14 吋 IPS 1080P）
+- 施測用電腦：Intel i5 等級以上，建議 8GB RAM 以上。
+- 攝影機：雙鏡頭或相容 USB 攝影機。
+- 顯示器：觸控螢幕佳，便於兒童互動。
+- 分析主機：Mac Mini 或其他可執行 AI 服務的主機。
+- 資料庫主機：MySQL 8.0+。
 
-#### 軟體需求
-- **作業系統：** Windows 11 / macOS
-- **Python 版本：** 3.7 / 3.10 / 3.13
-- **資料庫：** MySQL 8.0+
-- **瀏覽器：** Chrome / Edge（支援觸控功能）
+### 軟體需求
 
-### Installation
+- Windows 11 或 macOS。
+- Python 3.10 以上。
+- Git。
+- MySQL 8.0+。
+- Chrome 或 Edge。
 
-#### Python Version
-- Python 3.10 or later (tested on Python 3.12 and 3.13)
+### 專案結構
 
-#### Setup
+```text
+FMD_AI_Screener/
+├── PDMS2_web/                 施測端與管理端
+│   ├── run.py                 施測端主程式
+│   ├── admin.py               管理端主程式
+│   ├── scripts/               測試與輔助腳本
+│   ├── ch1-t1 ~ ch5-t1/       各關卡分析模組
+│   └── requirements.txt       施測端依賴
+├── MacWeb/
+│   ├── web.py                 分析伺服器主程式
+│   └── requirements.txt       分析伺服器依賴
+├── RAG/                        PDMS-2 知識庫文件
+├── scratch/                    測試腳本與臨時實驗
+└── 物件導向程式設計期末報告/   課程文件
+```
+
+### 必要環境變數
+
+這些值通常放在 `PDMS2_web/.env`，`MacWeb/web.py` 也會讀取同一份設定：
+
+- `PDMS_DATA_ROOT`：測驗資料與影像儲存根目錄。
+- `DB_HOST`、`DB_PORT`、`DB_USER`、`DB_PASSWORD`、`DB_NAME`：MySQL 連線設定。
+- `WEB_SECRET_KEY`：Web session 金鑰。
+- `IMAGE_SIGN_SECRET`：圖片簽章金鑰。
+- `MACWEB_BASE_URL`：分析伺服器位址，預設為 `http://127.0.0.1:3000`。
+- `REMOTE_CONFIG_SYNC`：是否同步遠端設定。
+
+### 建議部署順序
+
+1. 先啟動 MacWeb 分析伺服器。
+2. 再啟動施測端。
+3. 最後視需要啟動管理端。
+
+---
+
+## 5. 可執行檔與操作步驟
+
+### 主要可執行檔
+
+| 檔案 | 用途 | 建議執行方式 |
+|------|------|--------------|
+| [PDMS2_web/run.py](PDMS2_web/run.py) | 施測端主程式 | `python PDMS2_web/run.py` |
+| [PDMS2_web/admin.py](PDMS2_web/admin.py) | 管理端主程式 | `python PDMS2_web/admin.py` |
+| [MacWeb/web.py](MacWeb/web.py) | AI 分析伺服器 | `python MacWeb/web.py` |
+| [PDMS2_web/scripts/rag_tester.py](PDMS2_web/scripts/rag_tester.py) | RAG 測試腳本 | `python PDMS2_web/scripts/rag_tester.py` |
+| [PDMS2_web/scripts/camtest.py](PDMS2_web/scripts/camtest.py) | 攝影機測試腳本 | `python PDMS2_web/scripts/camtest.py` |
+
+### 安裝步驟
+
+1. 取得專案。
 
 ```bash
 git clone https://github.com/WeiChengTW/FMD_AI_Screener.git
 cd FMD_AI_Screener
-pip install -r requirements.txt
 ```
 
-#### Dependencies
+2. 建立虛擬環境。
 
-Install all required packages:
+```powershell
+python -m venv .venv39
+.\.venv39\Scripts\Activate.ps1
+```
+
+3. 安裝施測端依賴。
 
 ```bash
-pip install -r requirements.txt
+pip install -r PDMS2_web/requirements.txt
 ```
 
-Or install individually:
+4. 安裝分析伺服器依賴。
 
 ```bash
-pip install flask flask-cors mysql-connector-python opencv-python>=4.8.0 \
-    ultralytics torch tensorflow pillow pyserial chromadb langchain-community \
-    numpy scipy matplotlib
+pip install -r MacWeb/requirements.txt
 ```
 
-#### Standard Library Modules (no installation needed)
+5. 建立或修改 `PDMS2_web/.env`，填入前面列出的環境變數。
 
-`tkinter`, `random`, `os`, `time`, `math`, `threading`, `pickle`, `warnings`, `json`, `csv`
+### 執行步驟
+
+1. 啟動分析伺服器。
+
+```bash
+python MacWeb/web.py
+```
+
+2. 啟動施測端。
+
+```bash
+python PDMS2_web/run.py
+```
+
+3. 若要管理資料，另開終端執行管理端。
+
+```bash
+python PDMS2_web/admin.py
+```
+
+### 測試步驟
+
+1. 先做服務啟動測試：確認 `MacWeb/web.py`、`run.py`、`admin.py` 都能正常啟動。
+2. 再做攝影機測試：執行 `PDMS2_web/scripts/camtest.py`。
+3. 再做 RAG 測試：執行 `PDMS2_web/scripts/rag_tester.py`。
+4. 最後進行各關卡流程測試，確認影像上傳、分析回傳與結果紀錄正常。
+
+### 標準安裝順序建議
+
+若是第一次部署，建議順序如下：
+
+1. 安裝 Python 與 Git。
+2. 安裝 `PDMS2_web` 與 `MacWeb` 的依賴。
+3. 準備 MySQL 與 `.env`。
+4. 啟動 MacWeb。
+5. 啟動施測端。
+6. 啟動管理端。
+7. 再做 RAG 與攝影機驗證。
 
 ---
 
-## 9. 開發工具
+## 6. 驗證結果與限制
 
-### 核心技術框架
+### 驗證結果
 
-| 類別 | 技術 |
-|------|------|
-| 機器學習/深度學習 | YOLO、 SAM、 TensorFlow、 PyTorch |
-| 影像處理 | OpenCV、 PIL、骨架化、輪廓分析、 ArUco 校正 |
-| Web 框架 | Flask (Python 後端) |
-| 前端技術 | HTML5、 CSS3、 JavaScript (ES6+) |
-| 資料庫 | MySQL 關聯式資料庫 |
-| 遠端連線 | Tailscale VPN |
+本專題除了完成系統整合，也實際產出 RAG 測試報告。最新一組報告顯示三個案例皆成功，且分數達到 100/100：
+
+| 報告 | 結果摘要 |
+|------|----------|
+| [PDMS2_web/scripts/rag_test_report_20260519_014808.md](PDMS2_web/scripts/rag_test_report_20260519_014808.md) | Ch1、Ch2、Ch3 三個案例皆 success，分數 100/100 |
+| [PDMS2_web/scripts/rag_test_report_20260519_014654.md](PDMS2_web/scripts/rag_test_report_20260519_014654.md) | Ch1、Ch2、Ch3 三個案例皆 success，分數 100/100 |
+| [PDMS2_web/scripts/rag_test_report_20260519_014418.md](PDMS2_web/scripts/rag_test_report_20260519_014418.md) | Ch1 100/100，Ch2 70/100，Ch3 100/100 |
+| [PDMS2_web/scripts/rag_test_report_20260519_014259.md](PDMS2_web/scripts/rag_test_report_20260519_014259.md) | Ch1、Ch2、Ch3 皆 success，分數 50/100 |
+
+### 我們做到的程度
+
+- 已完成從題目資料、影像分析、結果儲存到建議生成的完整流程。
+- 已完成可實際啟動的多端架構，而不是只有單一腳本示範。
+- 已完成課程要求的詞彙表、使用案例圖、使用案例描述、活動圖與類別圖。
+- 已完成 RAG 的查詢與建議生成，並能輸出測試報告。
+
+### 目前限制
+
+- 這是一套依賴攝影機、影像品質與現場擺位的系統，實際表現會受硬體與環境影響。
+- MySQL、`.env`、模型檔與資料根目錄都必須先設定好，否則服務無法完整啟動。
+- 不同題型依賴不同分析模組，因此某些關卡在特定硬體或權重檔未備齊時，可能只能部分運作。
+- 測試報告目前主要驗證 RAG 生成流程，若要作為正式部署依據，仍建議再做現場實機測試。
 
 ---
 
-## 10. 物件導向設計文件
+## 7. 物件導向設計文件
 
-本節為物件導向程式設計課程期末專題設計文件，依課程第四章至第八章規範撰寫。
-所有 UML 圖表使用 **Mermaid 語法**，可在 GitHub 直接渲染，或於 VS Code 安裝 Markdown PDF 擴充套件後匯出 PDF。
-
-### 文件清單
+本節為物件導向程式設計課程期末專題設計文件，對應課程第 4 至第 8 章。所有 UML 圖表使用 Mermaid 語法撰寫，可直接於 GitHub 檢視。
 
 | 文件 | 章節 | 說明 |
 |------|------|------|
-| [docs/ch04-vocabulary.md](docs/ch04-vocabulary.md) | 第四章 | **詞彙表** — 25 個系統核心術語，含中英文名稱、定義與備註 |
-| [docs/ch05-use-case-diagrams.md](docs/ch05-use-case-diagrams.md) | 第五章 | **使用案例圖** — 6 個主要功能域，對應 6 張 Mermaid 使用案例圖 |
-| [docs/ch06-use-case-descriptions.md](docs/ch06-use-case-descriptions.md) | 第六章 | **使用案例描述** — 6 組使用案例，每組含 1 張正常情節與 1-2 張例外情節，共 14 張描述表 |
-| [docs/ch07-activity-diagrams.md](docs/ch07-activity-diagrams.md) | 第七章 | **活動圖** — 對應 6 張使用案例的完整活動流程（Mermaid flowchart TD） |
-| [docs/ch08-class-diagram.md](docs/ch08-class-diagram.md) | 第八章 | **類別圖** — 系統完整類別架構，含繼承與使用關係（Mermaid classDiagram） |
+| [物件導向程式設計期末報告/ch04-vocabulary.md](物件導向程式設計期末報告/ch04-vocabulary.md) | 第四章 | 詞彙表 |
+| [物件導向程式設計期末報告/ch05-use-case-diagrams.md](物件導向程式設計期末報告/ch05-use-case-diagrams.md) | 第五章 | 使用案例圖 |
+| [物件導向程式設計期末報告/ch06-use-case-descriptions.md](物件導向程式設計期末報告/ch06-use-case-descriptions.md) | 第六章 | 使用案例描述 |
+| [物件導向程式設計期末報告/ch07-activity-diagrams.md](物件導向程式設計期末報告/ch07-activity-diagrams.md) | 第七章 | 活動圖 |
+| [物件導向程式設計期末報告/ch08-class-diagram.md](物件導向程式設計期末報告/ch08-class-diagram.md) | 第八章 | 類別圖 |
 
 ### 使用案例功能域總覽
 
@@ -268,46 +298,28 @@ pip install flask flask-cors mysql-connector-python opencv-python>=4.8.0 \
 |----|--------|-----------|------|
 | UC-01 | 兒童帳號管理 | 管理者 | 兒童 UID 建立、查詢、刪除 |
 | UC-02 | 進行精細動作測驗 | 施測者、兒童 | 妙妙屋情境化測驗，完成 17 個 PDMS-2 子關卡 |
-| UC-03 | AI 影像分析與評分 | AI 分析引擎（Mac Mini） | YOLO → SAM → TF / 幾何規則，輸出 0-2 分 |
+| UC-03 | AI 影像分析與評分 | AI 分析引擎 | YOLO、SAM、幾何規則與分類模型輸出 0-2 分 |
 | UC-04 | 成績管理與查詢 | 管理者、家長 | 分項得分查詢、手動修改、成績歷史追蹤 |
-| UC-05 | 生成 AI 居家建議 | PDMS2Advisor（RAG） | ChromaDB + LLM 生成個人化練習建議，score_signature 快取 |
-| UC-06 | 系統設定與機器管理 | 超級管理者、施測者 | 攝影機 ROI 校正、px2cm 設定、管理者帳號管理 |
-
-### 類別架構層次
-
-```
-資料實體層   User / AdminUser / Task / ScoreRecord / MachineConfig / AIAdviceHistory
-AI 服務層    AIAnalyzer（抽象）→ BlockAnalyzer / DrawingAnalyzer / CuttingAnalyzer / FoldingAnalyzer / InstrumentAnalyzer
-             PyramidChecker / StairChecker / Analyze_graphics / PaperDetector_YOLO / PaperDetector_Edge / PDMS2Advisor
-後端應用層   FlaskApp（抽象）→ TestingApp (port 8000) / AdminApp (port 8001) / ServerApp (port 3000)
-             CameraController
-前端控制層   CameraPage / TaskPage / AdminPage / MainPage
-```
+| UC-05 | 生成 AI 居家建議 | PDMS2Advisor（RAG） | 依測驗結果生成個人化練習建議 |
+| UC-06 | 系統設定與機器管理 | 超級管理者、施測者 | 攝影機校正、px2cm 設定、帳號管理 |
 
 ---
 
-## 11. 參考資料
+## 8. 參考資料
 
-[1] Guralnick (2011), "Why Early Intervention Works: A Systems Perspective." *Infants & Young Children*
+1. Guralnick (2011), Why Early Intervention Works: A Systems Perspective.
+2. CDC, Learn the Signs. Act Early: Early Intervention.
+3. 衛生福利部與相關早療統計資料。
+4. Relebo et al. (2021), PDMS-2 驗證研究。
+5. 本專案內部測試報告與課程文件。
 
-[2] CDC, "Learn the Signs. Act Early: Early Intervention."
+---
 
-[3] 行政院主計總處, "國情統計通報 — 110年底早期療育人數占比"
+## 介紹影片
 
-[4] Hennigan et al. (2021), "The effects of occupational therapy-led fine motor centers on preschoolers' fine motor skills." *Journal of Occupational Therapy, Schools, & Early Intervention*
+[運用 AI 技術判別精細動作之早期遲緩篩檢系統介紹影片](https://youtu.be/uGfGr5dzklI?si=zy6J9WrYJ886j5G3)
 
-[5] Barnard-Brak et al. (2021), "Rural and Racial/Ethnic Differences in Children Receiving Early Intervention Services." *Fam Community Health*
+## 獲得的獎項
 
-[6] Hsieh et al. (2020), "Collaborative Home-Visit Program for Young Children With Motor Delays in Rural Taiwan." *Phys Ther*
-
-[7] Rebelo et al. (2021), "Validity and reliability of the Portuguese version of the Peabody Developmental Motor Scales-II." *PLOS ONE*
-
-[8] 衛生福利部, "未滿 7 歲兒童新增 6 次兒童發展篩檢服務"
-
-[9] 衛生福利部國民健康署, "兒童發展聯合評估中心名單"
-
-[10] 衛生福利部, "我國偏鄉離島地區醫療資源及相關提升計畫執行成效之探討"
-
-[11] 衛生福利部, "優化偏鄉醫療精進計畫第二期" (2024)
-
-[12] Choo et al. (2019), "Developmental delay: identification and management at primary care level." *Singapore Med J*
+- [114年度「為桃園做研究」桃園市政府大專校院學生創新點子及研究實作競賽 金質研究獎](https://sccdc.tycg.gov.tw/News_Content.aspx?n=16792&s=1600221#lg=1&slide=1)
+- [2025 全國 AI 專題創意競賽 佳作](https://phpweb2.nutn.edu.tw/ilt/wordpress/wp-content/uploads/2025/12/%E6%B1%BA%E8%B3%BD%E7%B5%90%E6%9E%9C.pdf)
