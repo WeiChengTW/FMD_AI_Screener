@@ -257,10 +257,10 @@ python PDMS2_web/admin.py
 
 本專題除了完成系統整合，也實際產出 RAG 測試結果。可在本機工作區查看的四次測試摘要如下：
 
-- 2026-05-19 01:48:08：Ch1、Ch2、Ch3 皆 success，分數 100/100。
-- 2026-05-19 01:46:54：Ch1、Ch2、Ch3 皆 success，分數 100/100。
-- 2026-05-19 01:44:18：Ch1 100/100，Ch2 70/100，Ch3 100/100。
-- 2026-05-19 01:42:59：Ch1、Ch2、Ch3 皆 success，分數 50/100。
+- [2026-05-19 01:48:08：Ch1、Ch2、Ch3 皆 success，分數 100/100](PDMS2_web/scripts/rag_test_report_20260519_014808.md)
+- [2026-05-19 01:46:54：Ch1、Ch2、Ch3 皆 success，分數 100/100](PDMS2_web/scripts/rag_test_report_20260519_014654.md)
+- [2026-05-19 01:44:18：Ch1 100/100，Ch2 70/100，Ch3 100/100](PDMS2_web/scripts/rag_test_report_20260519_014418.md)
+- [2026-05-19 01:42:59：Ch1、Ch2、Ch3 皆 success，分數 50/100](PDMS2_web/scripts/rag_test_report_20260519_014259.md)
 
 整體來看，RAG 建議流程已可穩定產出結果，且在較新的測試中已達到 100/100 的完整案例表現。
 
