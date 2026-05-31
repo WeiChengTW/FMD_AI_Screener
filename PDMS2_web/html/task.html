@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>任務操作｜魔法王國大冒險</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=25" />
+
+</head>
+
+<body class="task-page">
+  <header class="kidbar">
+    <div class="kidbar-left">
+      <span class="logo" aria-hidden="true">🪄</span>
+      <div class="title-wrap">
+        <h1 class="app-title">任務操作</h1>
+        <div class="subtitle">跟著指示一步一步完成！</div>
+      </div>
+    </div>
+    <div class="kidbar-right">
+      <button id="readBtn" class="btn big pill">🎤 讀指示</button>
+      <button id="stopBtn" class="btn danger pill">⏹ 停止</button>
+      <a id="backBtn" href="/html/index.html" class="btn ghost pill">← 回關卡</a>
+    </div>
+  </header>
+
+  <main class="task-split" aria-live="polite">
+
+    <!-- 左側：影片 / 圖片 -->
+    <div class="task-left">
+      <figure class="task-illustration">
+        <img id="img" alt="示意圖" style="display:none" />
+        <video id="video" controls autoplay loop style="display:none"></video>
+        <div id="imgEmoji" style="font-size:80px"></div>
+      </figure>
+    </div>
+
+    <!-- 右側：標題 + 步驟 + 按鈕 -->
+    <div class="task-right">
+      <section class="task-head">
+        <div class="task-emoji" id="emoji">✨</div>
+        <div>
+          <h2 class="task-title" id="title">任務標題</h2>
+          <p class="task-desc" id="desc">任務說明</p>
+        </div>
+      </section>
+
+      <section class="task-steps">
+        <h3>步驟</h3>
+        <ol id="steps"></ol>
+        <div class="hint">完成後按下方「完成」，會自動幫你在主頁打勾。</div>
+      </section>
+
+      <div class="task-actions">
+        <a id="backBtnBottom" href="/html/index.html" class="btn secondary fat">← 回上一頁</a>
+        <button id="doneBtn" class="btn primary fat">開始測試</button>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+  <script src="/js/task.js?v=2" defer></script>
+</body>
+
+</html>
