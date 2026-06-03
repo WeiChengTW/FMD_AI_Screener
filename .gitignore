@@ -77,3 +77,7 @@ PDMS2_web/rag_db/
 # Sentence Transformers model cache (auto-downloaded, do not commit)
 PDMS2_web/model_cache/
 
+# FMD_AI_Screener document generation outputs
+/imgs/
+/設計文件書_FMD_AI_Screener.pdf
+
