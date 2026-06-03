@@ -80,3 +80,7 @@ PDMS2_web/model_cache/
 # RAG test reports (generated output, do not commit)
 PDMS2_web/scripts/rag_test_report*.md
 
+# FMD_AI_Screener document generation outputs
+/imgs/
+/設計文件書_FMD_AI_Screener.pdf
+
