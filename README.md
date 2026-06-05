@@ -10,6 +10,13 @@
 
 ---
 
+## 介紹影片
+
+- [運用 AI 技術判別精細動作之早期遲緩篩檢系統介紹影片](https://www.youtube.com/watch?v=FlGjlvIecec&feature=youtu.be)
+- [第二次報告影片](https://youtu.be/MkSqsJYiUxs)
+
+---
+
 ## 目錄
 
 1. [專案摘要](#1-專案摘要)
@@ -314,10 +321,6 @@ python PDMS2_web/admin.py
 5. 本專案內部測試報告與課程文件。
 
 ---
-
-## 介紹影片
-
-[運用 AI 技術判別精細動作之早期遲緩篩檢系統介紹影片](https://www.youtube.com/watch?v=FlGjlvIecec&feature=youtu.be)
 
 ## 獲得的獎項
 
