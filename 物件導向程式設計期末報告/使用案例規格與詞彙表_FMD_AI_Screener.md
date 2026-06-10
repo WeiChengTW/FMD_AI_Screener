@@ -6,6 +6,7 @@
 **日期：** 2026-05-27  
 **撰寫團隊：** 洪偉城、林政維、呂昊宸、林宛瑩  
 **指導教授：** 趙一平教授  
+**GitHub連結：** https://github.com/WeiChengTW/FMD_AI_Screener/tree/doc
 
 ---
 
