@@ -977,4 +977,4 @@ flowchart TD
 
 ---
 
-*本文件使用 Mermaid 語法繪製所有 UML 圖表，執行 `python3 gen_doc.py 使用案例規格與詞彙表_FMD_AI_Screener.md` 可自動 render 圖表並輸出 Word 格式。*
+*本文件使用 Mermaid 語法繪製所有 UML 圖表，建議直接於 GitHub 上開啟本文件以檢視渲染後的圖表。*
