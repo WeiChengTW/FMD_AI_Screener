@@ -6,7 +6,7 @@
 **日期：** 2026-05-27  
 **撰寫團隊：** 洪偉城、林政維、呂昊宸、林宛瑩  
 **指導教授：** 趙一平教授  
-**GitHub連結：** https://github.com/WeiChengTW/FMD_AI_Screener/tree/doc
+**GitHub連結：** https://github.com/WeiChengTW/FMD_AI_Screener/tree/doc/%E7%89%A9%E4%BB%B6%E5%B0%8E%E5%90%91%E7%A8%8B%E5%BC%8F%E8%A8%AD%E8%A8%88%E6%9C%9F%E6%9C%AB%E5%A0%B1%E5%91%8A
 
 ---
 
