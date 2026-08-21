@@ -179,14 +179,15 @@
       }
     }
 
-    const colCount = userLevel === 3 ? 7 : 6;
+    const colCount = userLevel === 3 ? 8 : 7;
     if (total === 0) {
       $tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">${state.historyDate ? '這天沒有測驗紀錄' : '目前沒有符合條件的測驗紀錄'}</td></tr>`;
       return;
     }
 
     $tbody.innerHTML = paged.map(r => {
-      const dateDisplay = `${r.test_date || ''} ${r.time || ''}`.trim();
+      const dateDisplay = r.test_date || '';
+      const timeDisplay = r.time || '—';
 
       const opTd = (userLevel === 3)
         ? `<td><div style="display:flex; gap:8px;">
@@ -214,6 +215,7 @@
           <td style="font-weight:700;">${r.task_id || ''}</td>
           <td>${scoreCell}</td>
           <td style="font-weight:600; color:#7A6060;">${dateDisplay}</td>
+          <td style="font-weight:600; color:#7A6060; font-variant-numeric:tabular-nums;">${timeDisplay}</td>
           <td>${imgCell}</td>
         </tr>`;
     }).join('');
