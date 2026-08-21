@@ -4,7 +4,7 @@ from pathlib import Path
 from flask import Flask, send_from_directory, request, jsonify, session, redirect
 import threading
 from datetime import datetime, date
-import os, secrets, queue
+import os, queue
 import hashlib
 import hmac
 import webbrowser
@@ -128,12 +128,12 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 os.environ["PYTHONUTF8"] = "1"
 
 PORT = 8001
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 MACWEB_BASE_URL = _env.get("MACWEB_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
 IMAGE_SIGN_SECRET = _env.get("IMAGE_SIGN_SECRET", "")
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+app.secret_key = os.environ.get("WEB_SECRET_KEY") or _env.get("WEB_SECRET_KEY", "dev-only-secret-change-me")
 CORS(app, supports_credentials=True)
 
 
@@ -841,7 +841,7 @@ def api_admin_delete(account_id):
 
 
 def _open_browser():
-    webbrowser.open(f"http://{HOST}:{PORT}/")
+    webbrowser.open(f"http://127.0.0.1:{PORT}/")
 
 
 if __name__ == "__main__":
