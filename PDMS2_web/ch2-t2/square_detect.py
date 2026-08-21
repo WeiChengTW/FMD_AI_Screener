@@ -310,6 +310,24 @@ class SquareGapAnalyzer:
         blur = cv2.GaussianBlur(img, (3, 3), 0)
         _, binary = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
+        # 保險機制：紙面亮度不均 (中央亮、邊角暗) 時，全域 Otsu 會把「較亮的紙」和
+        # 「較暗的紙」切成兩類，半張紙被誤判成筆跡。正常照片的筆跡覆蓋率約 1~2%，
+        # 一旦超過 INK_RATIO_MAX 就代表二值化整個壞掉，改用背景除法打光校正重做。
+        # 正常照片不會進到這裡，所以既有分數不受影響。
+        INK_RATIO_MAX = 0.05
+        if (binary > 0).mean() > INK_RATIO_MAX:
+            h_, w_ = img.shape[:2]
+            k_ = max(31, (min(h_, w_) // 8) | 1)
+            background = cv2.morphologyEx(
+                img, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_, k_))
+            )
+            flat = cv2.divide(img, background, scale=255)
+            blur = cv2.GaussianBlur(flat, (3, 3), 0)
+            _, binary = cv2.threshold(
+                blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+            )
+            print(f"[SquareGapAnalyzer] 偵測到打光不均，已改用背景除法重新二值化: {img_path}")
+
         # cv2.imshow('ori', img)
         # cv2.imshow('binary', binary)
 
