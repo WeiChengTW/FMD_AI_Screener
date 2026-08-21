@@ -614,17 +614,27 @@ def api_add_user():
         if not uid or not birthday:
             return jsonify({"ok": False, "msg": "UID 與生日不可為空"}), 400
 
-        # A. 寫入受測者基本資料
+        # A. 先取舊生日，判斷這次有沒有改動（決定是否一併同步家長密碼）
+        old = db_exec("SELECT birthday FROM user_list WHERE uid=%s", (uid,), fetch="one")
+        old_birthday = old["birthday"].isoformat() if old and old.get("birthday") else None
+        birthday_changed = old_birthday != birthday
+
+        # B. 寫入受測者基本資料
         ensure_user(uid, name, birthday)
 
-        # B. 同步建立 Level 1 家長登入權限
-        # 帳號預設為 uid, 密碼預設為 birthday
+        # C. 同步建立 Level 1 家長登入權限
+        # 帳號為 uid、密碼為生日；生日有異動才覆蓋密碼，避免洗掉家長自行改過的密碼
+        parent_email = f"{name}@parent.com" if name else f"{uid}@parent.com"
+        pwd_clause = "password=VALUES(password), " if birthday_changed else ""
         db_exec(
             "INSERT INTO admin_users (account, password, email, level) VALUES (%s, %s, %s, 1) "
-            "ON DUPLICATE KEY UPDATE password=COALESCE(password, VALUES(password))",
-            (uid, birthday, f"{name}@parent.com"),
+            f"ON DUPLICATE KEY UPDATE {pwd_clause}email=VALUES(email)",
+            (uid, birthday, parent_email),
         )
-        return jsonify({"ok": True, "msg": "受測者與家長帳號已同步建立成功！"})
+        msg = "受測者與家長帳號已同步建立成功！"
+        if birthday_changed and old_birthday:
+            msg = "受測者資料已更新，家長登入密碼已同步為新的出生日期。"
+        return jsonify({"ok": True, "msg": msg})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 

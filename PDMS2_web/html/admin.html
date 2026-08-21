@@ -32,14 +32,14 @@
           <select data-role="sel-level" style="width: 280px;">
             <option value="">（請選擇測驗項目）</option>
           </select>
-          <button class="btn" data-action="clear-filter">清除條件</button>
-          <button class="btn" id="btn-ai-advice" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; display: none;">✨ AI 專家建議</button>
+          <button class="btn" data-action="clear-filter" title="清空受測者與測驗項目的篩選，回到完整清單">清除條件</button>
+          <button class="btn" id="btn-ai-advice" title="依這位受測者的各關卡成績，由 AI 生成居家訓練建議（需連線分析，約需數十秒）" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; display: none;">✨ AI 專家建議</button>
         </div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group">
-          <label style="font-weight:700; font-size:20px; color:var(--text-muted); white-space:nowrap;">📅 歷史紀錄：</label>
-          <input type="date" id="sel-date" style="width:210px;">
-          <button class="btn" id="btn-clear-history" style="display:none;">← 回最新紀錄</button>
+          <label style="font-weight:700; font-size:20px; color:var(--text-muted); white-space:nowrap;" title="指定某一天，只看那天做過的測驗">📅 歷史紀錄：</label>
+          <input type="date" id="sel-date" style="width:210px;" title="選擇日期後，清單只顯示該日期的測驗紀錄">
+          <button class="btn" id="btn-clear-history" style="display:none;" title="取消日期篩選，回到全部紀錄">← 回最新紀錄</button>
         </div>
         <div style="flex-grow: 1;"></div>
         <button class="btn primary" id="btn-add-record" data-action="new">新增紀錄</button>
@@ -113,16 +113,6 @@
     </div>
   </dialog>
 
-  <dialog id="chart-dialog">
-    <div class="chart-dialog-header">
-      <span id="chart-title">測驗進度圖</span>
-      <button class="chart-close-btn" onclick="document.getElementById('chart-dialog').close()">✕</button>
-    </div>
-    <div class="chart-dialog-body">
-      <canvas id="progress-chart"></canvas>
-    </div>
-  </dialog>
-
   <dialog id="change-pwd-dialog">
     <div class="dialog-header">修改密碼</div>
     <div class="dialog-body">
@@ -162,7 +152,6 @@
     </div>
   </dialog>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="../js/admin.js"></script>
   <script>

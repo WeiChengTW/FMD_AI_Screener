@@ -13,6 +13,16 @@
       userLevel = Number((js.user && js.user.level) || 0);
       if (userLevel < 3) document.getElementById('th-op')?.remove();
 
+      // 按鈕文字隨身分調整：Level 2 開出來的是「新增受測者」，不是補登測驗成績
+      const $btnAdd = document.getElementById('btn-add-record');
+      if ($btnAdd) {
+        const isL2 = userLevel === 2;
+        $btnAdd.textContent = isL2 ? '新增受測者' : '新增紀錄';
+        $btnAdd.title = isL2
+          ? '建立一位新的受測者，並同步開通家長登入帳號（帳號為 UID、密碼為出生日期）'
+          : '手動補登或修改一筆測驗紀錄';
+      }
+
       const roleDisplay = document.getElementById('user-role-display');
       if (roleDisplay) {
         const userName = js.user.name || js.user.account;
@@ -198,19 +208,19 @@
 
       const sv = r.score;
       const scoreCell = (sv === null || sv === undefined || sv === -1)
-        ? '<span class="score-badge score-na">—</span>'
-        : sv === 0 ? '<span class="score-badge score-0">0</span>'
-        : sv === 1 ? '<span class="score-badge score-1">1</span>'
-        :            '<span class="score-badge score-2">2</span>';
+        ? '<span class="score-badge score-na" title="尚未測驗，或該次未取得有效判讀結果">—</span>'
+        : sv === 0 ? '<span class="score-badge score-0" title="0 分：未達標準">0</span>'
+        : sv === 1 ? '<span class="score-badge score-1" title="1 分：部分達標">1</span>'
+        :            '<span class="score-badge score-2" title="2 分：完全達標">2</span>';
 
       const imgCell = (r.compare_url || r.result_img_url)
-        ? `<a href="${r.compare_url || r.result_img_url}" target="_blank" class="btn-view">🔍 檢視結果</a>`
-        : '<span class="no-perm">尚無圖片</span>';
+        ? `<a href="${r.compare_url || r.result_img_url}" target="_blank" class="btn-view" title="開新分頁檢視這次測驗的原圖與 AI 判讀結果對比">🔍 檢視結果</a>`
+        : '<span class="no-perm" title="這次測驗沒有留下結果圖">尚無圖片</span>';
 
       return `
         <tr data-key="${r.row_key}" data-uid="${r.uid}" data-name="${r.name || ''}">
           ${opTd}
-          <td style="font-weight:700; color:#5C4E4E; cursor:pointer; text-decoration:underline dotted #FFBF80;" data-action="show-chart">${r.uid}</td>
+          <td style="font-weight:700; color:#5C4E4E;">${r.uid}</td>
           <td>${r.name || '—'}</td>
           <td style="font-weight:700;">${r.task_id || ''}</td>
           <td>${scoreCell}</td>
@@ -220,90 +230,6 @@
         </tr>`;
     }).join('');
   }
-
-  // ── 進度圖 ──────────────────────────────────────────────────────────────────
-  let _chartInstance = null;
-
-  function openProgressChart(uid, name) {
-    // 從 state.rows 拿出該 UID 全部歷史（未去重）
-    const uidRows = state.rows.filter(r => r.uid === uid);
-
-    // 每個 task_id 只取最新一筆（date|time 最大）
-    const latestMap = new Map();
-    uidRows.forEach(r => {
-      const key = r.task_id;
-      const ts = (r.test_date || '') + '|' + (r.time || '');
-      const cur = latestMap.get(key);
-      if (!cur || ts > (cur.test_date || '') + '|' + (cur.time || '')) latestMap.set(key, r);
-    });
-
-    // 按 task_id 排序（Ch1-t1 < Ch1-t2 < ... < Ch5-t1）
-    const sorted = [...latestMap.values()].sort((a, b) => a.task_id < b.task_id ? -1 : 1);
-    const labels = sorted.map(r => r.task_id);
-    const scores = sorted.map(r => (r.score === null || r.score === undefined || r.score === -1) ? null : r.score);
-
-    const colors = scores.map(s =>
-      s === null ? '#D8D0C8'
-      : s === 0  ? '#FF8FA3'
-      : s === 1  ? '#FFD166'
-      :             '#4ECBA8'
-    );
-
-    document.getElementById('chart-title').textContent = `${uid}（${name || '—'}）測驗進度`;
-    const dialog = document.getElementById('chart-dialog');
-    dialog.showModal();
-
-    if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
-
-    _chartInstance = new Chart(document.getElementById('progress-chart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: '最新分數',
-          data: scores,
-          borderColor: '#FF9F43',
-          borderWidth: 3,
-          pointBackgroundColor: colors,
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 8,
-          pointHoverRadius: 11,
-          tension: 0.35,
-          fill: true,
-          backgroundColor: 'rgba(255, 159, 67, 0.08)',
-          spanGaps: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ctx.raw === null ? '尚未測驗' : `分數：${ctx.raw}`
-            }
-          }
-        },
-        scales: {
-          y: {
-            min: 0, max: 2,
-            ticks: { stepSize: 1, font: { size: 14 } },
-            grid: { color: '#F0E6D2' }
-          },
-          x: {
-            ticks: { font: { size: 13 }, maxRotation: 45 },
-            grid: { color: '#F9F6F0' }
-          }
-        }
-      }
-    });
-  }
-
-  document.getElementById('chart-dialog')?.addEventListener('close', () => {
-    if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
-  });
 
   document.getElementById('pagination')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-pg]');
@@ -393,12 +319,6 @@
         btnSave.textContent = originalText;
         btnSave.disabled = false;
       }
-    }
-
-    if (act === 'show-chart') {
-      const tr = btn.closest('tr');
-      openProgressChart(tr.dataset.uid, tr.dataset.name);
-      return;
     }
 
     if (act === 'edit' && userLevel === 3) {
