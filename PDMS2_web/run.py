@@ -6,7 +6,6 @@ import json
 import time
 import uuid
 import base64
-import secrets
 import logging
 import traceback
 import subprocess
@@ -215,6 +214,7 @@ def _env_flag(value, default: bool = False) -> bool:
 
 def _remote_config_sync_enabled() -> bool:
     env = _read_env_file()
+    WEB_SECRET_KEY = os.environ.get("WEB_SECRET_KEY") or _env.get("WEB_SECRET_KEY", "dev-only-secret-change-me")
     return _env_flag(env.get("REMOTE_CONFIG_SYNC"), True)
 
 
@@ -782,7 +782,7 @@ app = Flask(
     static_folder=str(ROOT / "static"),
     static_url_path="/static",
 )
-app.secret_key = secrets.token_hex(16)
+app.secret_key = WEB_SECRET_KEY
 CORS(app)
 
 
