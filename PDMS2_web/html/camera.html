@@ -5,10 +5,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>拍照存證｜魔法王國</title>
-  <link rel="stylesheet" href="/css/styles.css?v=1" />
+  <link rel="stylesheet" href="/css/styles.css?v=27" />
   <style>
     html, body {
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -21,7 +22,7 @@
       flex-direction: column;
       padding: 8px 12px;
       gap: 6px;
-      padding-bottom: 80px;
+      padding-bottom: 132px;
       overflow: hidden;
     }
 
@@ -65,10 +66,18 @@
       gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
-      padding: 12px 20px;
+      padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(8px);
       box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 觸控螢幕用：按鈕要夠大才按得準 */
+    .bottom-bar .btn {
+      min-height: 78px;
+      font-size: 22px;
+      font-weight: 900;
+      padding: 16px 34px;
     }
 
     .tip {
@@ -147,6 +156,7 @@
   </div>
 
   <script src="/js/camera.js?v=1" defer></script>
+  <script src="/js/custom-scrollbar.js"></script>
 </body>
 
 </html>

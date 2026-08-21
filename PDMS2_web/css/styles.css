@@ -539,3 +539,38 @@ body.task-page .task-actions .btn {
 .confetti span { position:absolute; font-size:26px; animation:fall 900ms ease-out forwards; }
 @keyframes fall { to { transform:translateY(100vh) rotate(360deg); opacity:0; } }
 .confetti-piece { position:absolute; width:10px; height:18px; border-radius:4px; opacity:.9; }
+
+/* ── 童趣捲軸：觸控螢幕友善的加粗版（顏色跟著關卡主色走）────────── */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--accent) var(--accent-bg);
+}
+
+::-webkit-scrollbar {
+  width: 30px;
+  height: 30px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--accent-bg);
+  border-radius: 999px;
+  margin: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 999px;
+  /* 透明外框 + padding-box 做出浮在軌道上的圓潤膠囊 */
+  border: 6px solid transparent;
+  background-clip: padding-box;
+  min-height: 48px;
+}
+
+::-webkit-scrollbar-thumb:active {
+  border-width: 4px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
