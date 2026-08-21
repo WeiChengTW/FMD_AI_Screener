@@ -8,6 +8,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # RAG & LLM libraries
+import chromadb.api as chromadb_api
+
+# langchain-chroma 0.2.x expects this symbol, but chromadb 1.5.x does not export it.
+if not hasattr(chromadb_api, "CreateCollectionConfiguration"):
+    from chromadb.api.configuration import CollectionConfiguration
+
+    chromadb_api.CreateCollectionConfiguration = CollectionConfiguration
+
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma

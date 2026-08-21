@@ -128,7 +128,7 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 os.environ["PYTHONUTF8"] = "1"
 
 PORT = 8001
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 MACWEB_BASE_URL = _env.get("MACWEB_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
 IMAGE_SIGN_SECRET = _env.get("IMAGE_SIGN_SECRET", "")
 
@@ -841,7 +841,7 @@ def api_admin_delete(account_id):
 
 
 def _open_browser():
-    webbrowser.open(f"http://{HOST}:{PORT}/")
+    webbrowser.open(f"http://127.0.0.1:{PORT}/")
 
 
 if __name__ == "__main__":
