@@ -511,17 +511,17 @@ def list_scores():
         db_tasks = db_exec("SELECT task_id, task_name FROM task_list", fetch="all") or []
         effective_map = {r["task_id"]: r["task_name"] for r in db_tasks} or TASK_MAP
         for task_id, table_name in effective_map.items():
+            # 以任務明細表為主表：每次測驗都是獨立一筆，time 與 score 同源
             sql = f"""
-                SELECT s.uid, u.name, s.task_id, t.task_name, d.score, d.result_img_path, s.test_date, d.time
-                FROM score_list AS s
-                JOIN user_list AS u ON u.uid = s.uid
-                JOIN task_list AS t ON t.task_id = s.task_id
-                LEFT JOIN `{table_name}` AS d ON d.uid = s.uid AND d.test_date = s.test_date
-                WHERE s.task_id = %s
+                SELECT d.uid, u.name, %s AS task_id, t.task_name, d.score, d.result_img_path, d.test_date, d.time
+                FROM `{table_name}` AS d
+                JOIN user_list AS u ON u.uid = d.uid
+                JOIN task_list AS t ON t.task_id = %s
+                WHERE 1 = 1
             """
-            params = [task_id]
+            params = [task_id, task_id]
             if level == 1:  # 🔐 家長過濾：帳號與 UID 綁定
-                sql += " AND s.uid = %s"
+                sql += " AND d.uid = %s"
                 params.append(account)
             rows = db_exec(sql, tuple(params), fetch="all") or []
             all_rows_raw.extend(rows)

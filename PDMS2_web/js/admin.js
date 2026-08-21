@@ -142,17 +142,7 @@
       filtered = filtered.filter(r => r.test_date === state.historyDate);
       filtered.sort((a, b) => { const ta = a.time || '', tb = b.time || ''; return tb > ta ? 1 : tb < ta ? -1 : 0; });
     } else {
-      // 主視圖：每個 uid+task_id 只保留最新一筆
-      const map = new Map();
-      filtered.forEach(r => {
-        const key = r.uid + '|' + r.task_id;
-        const cur = map.get(key);
-        if (!cur) { map.set(key, r); return; }
-        const a = (cur.test_date || '') + '|' + (cur.time || '');
-        const b = (r.test_date || '') + '|' + (r.time || '');
-        if (b > a) map.set(key, r);
-      });
-      filtered = [...map.values()];
+      // 主視圖：列出每一次測驗，由新到舊（同一關測多次會全部列出）
       filtered.sort((a, b) => {
         const da = (a.test_date || '') + '|' + (a.time || '');
         const db = (b.test_date || '') + '|' + (b.time || '');
@@ -196,9 +186,7 @@
     }
 
     $tbody.innerHTML = paged.map(r => {
-      const dateDisplay = state.historyDate
-        ? `${r.test_date || ''} ${r.time || ''}`.trim()
-        : (r.test_date ?? '');
+      const dateDisplay = `${r.test_date || ''} ${r.time || ''}`.trim();
 
       const opTd = (userLevel === 3)
         ? `<td><div style="display:flex; gap:8px;">
