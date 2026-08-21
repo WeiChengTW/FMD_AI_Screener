@@ -232,7 +232,7 @@ def analyze_image_side(img_path, model):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
     # ====== 5. 縫隙檢查與形狀分析邏輯維持原樣 ======
-    GAP_THRESHOLD_RATIO = 0.7
+    GAP_THRESHOLD_RATIO = 0.85
     avg_width = np.mean([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes)>0 else 1.0
     GAP_THRESHOLD = GAP_THRESHOLD_RATIO * avg_width
 

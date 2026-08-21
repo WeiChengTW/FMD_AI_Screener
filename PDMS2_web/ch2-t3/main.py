@@ -230,8 +230,12 @@ def main(img_path):
 
     
     # 參數要改
+    # 注意：CrossScorer 要的是「每像素幾公分」，這裡算出來的是「每公分幾像素」，必須取倒數
     cs = CrossScorer(
-        cm_per_pixel=pixel_per_cm, angle_min=70.0, angle_max=110.0, max_spread_cm=0.6
+        cm_per_pixel=1.0 / pixel_per_cm,
+        angle_min=70.0,
+        angle_max=110.0,
+        max_spread_cm=0.6,
     )
     
     # 單張處理
@@ -281,7 +285,88 @@ def main(img_path):
     return SCORE, None
 
 
+def test_folder(folder=None, show=False):
+    """單張／整個資料夾的離線測試模式，不呼叫 sys.exit，方便直接看分數與結果圖。
+
+    用法:
+        python main.py --test                      # 測 0821fix 資料夾
+        python main.py --test 0821fix              # 指定資料夾
+        python main.py --test 0821fix/xxx.jpg      # 指定單張圖片
+        python main.py --test 0821fix --show       # 順便開視窗顯示結果圖
+    """
+    if folder is None:
+        folder = os.path.join(BASE_DIR, "0821fix")
+
+    if os.path.isfile(folder):
+        images = [folder]
+        out_dir = os.path.join(os.path.dirname(folder), "test_result")
+    else:
+        exts = ("jpg", "jpeg", "png", "bmp")
+        images = []
+        for ext in exts:
+            images.extend(glob.glob(os.path.join(folder, f"*.{ext}")))
+            images.extend(glob.glob(os.path.join(folder, f"*.{ext.upper()}")))
+        # 去重 + 排除先前產生的 _result 圖
+        images = sorted(
+            {p for p in images if "_result" not in os.path.basename(p)}
+        )
+        out_dir = os.path.join(folder, "test_result")
+
+    os.makedirs(out_dir, exist_ok=True)
+    print(f"[TEST] 來源: {folder}")
+    print(f"[TEST] 共 {len(images)} 張待測圖片")
+
+    summary = []
+    for image_path in images:
+        name = os.path.basename(image_path)
+        print("")
+        print("=" * 60)
+        print(f"[TEST] 處理: {name}")
+        print("=" * 60)
+        try:
+            score, result_img = main(image_path)
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            print(f"[TEST][ERROR] {name}: {e}")
+            summary.append((name, "EXCEPTION", str(e)))
+            continue
+
+        if result_img is None:
+            result_img = cv2.imread(image_path)
+
+        save_path = os.path.join(out_dir, f"{os.path.splitext(name)[0]}_result.jpg")
+        if result_img is not None:
+            cv2.imwrite(save_path, result_img)
+            print(f"[TEST] 結果圖已存: {save_path}")
+            if show:
+                cv2.imshow(name, result_img)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+
+        print(f"[TEST] score = {score}")
+        summary.append((name, score, save_path))
+
+    print("")
+    print("#" * 60)
+    print("[TEST] 總結")
+    print("#" * 60)
+    for name, score, extra in summary:
+        print(f"  {name:<45} score={score}")
+    return summary
+
+
 if __name__ == "__main__":
+    # ===== 測試模式: python main.py --test [資料夾或圖片路徑] [--show] =====
+    if len(sys.argv) > 1 and sys.argv[1] in ("--test", "-t"):
+        args = sys.argv[2:]
+        show = "--show" in args
+        args = [a for a in args if not a.startswith("-")]
+        target = args[0] if args else None
+        test_folder(target, show=show)
+        sys.exit(0)
+    # ===== 正式模式 (由後端以 uid / id 呼叫) =====
     if len(sys.argv) > 2:
         # 使用傳入的 uid 和 id 作為圖片路徑
         uid = sys.argv[1]

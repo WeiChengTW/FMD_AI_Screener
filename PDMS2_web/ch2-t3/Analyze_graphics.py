@@ -278,9 +278,42 @@ class Analyze_graphics:
         try:
             # 1. 轉為灰階
             gray = cv2.cvtColor(ori_img, cv2.COLOR_BGR2GRAY)
-            
+
             # 2. 進行二值化 (使用 Otsu 自動閾值 + 反轉黑白)
             _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+            # 2-1. 保險機制：打光校正 (背景除法)
+            # 拍照時紙面亮度不均 (中央亮、邊角暗)，全域 Otsu 只有一個門檻，
+            # 會把「較亮的紙」和「較暗的紙」切成兩類，導致半張紙被誤判成筆跡。
+            # 正常照片的筆跡覆蓋率約 1%，一旦超過 INK_RATIO_MAX 就代表二值化整個壞掉：
+            # 改用大 kernel 閉運算估出紙張底色再相除，把紙攤平成均勻白色後重做，
+            # 並清掉細碎雜訊。正常照片不會進到這裡，所以既有分數不受影響。
+            INK_RATIO_MAX = 0.05
+            if (binary > 0).mean() > INK_RATIO_MAX:
+                print("偵測到打光不均，改用背景除法重新二值化")
+                h0, w0 = gray.shape
+                k = max(31, (min(h0, w0) // 8) | 1)  # kernel 需為奇數且遠大於筆畫寬度
+                background = cv2.morphologyEx(
+                    gray,
+                    cv2.MORPH_CLOSE,
+                    cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)),
+                )
+                flat = cv2.GaussianBlur(cv2.divide(gray, background, scale=255), (3, 3), 0)
+                _, binary = cv2.threshold(
+                    flat, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+                )
+
+                # 移除細碎雜訊 (紙張紋理、雜點)，只留下夠大的連通塊
+                n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
+                if n_labels > 1:
+                    areas = stats[1:, cv2.CC_STAT_AREA]
+                    min_area = max(int(areas.max() * 0.02), int(gray.size * 0.00001), 5)
+                    cleaned = np.zeros_like(binary)
+                    for i in range(1, n_labels):
+                        if stats[i, cv2.CC_STAT_AREA] >= min_area:
+                            cleaned[labels == i] = 255
+                    if cleaned.any():
+                        binary = cleaned
 
             # --- 新增：強制作廢最外圈邊緣 ---
             # 直接將圖片最外圍 15 pixel 塗黑，消滅 A4 透視變換殘留的邊緣碎線
