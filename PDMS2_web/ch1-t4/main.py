@@ -141,7 +141,7 @@ def analyze_image_top(frame, model):
 
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.7
-GAP_RATIO = 0.5
+GAP_RATIO = 0.85
 
 def analyze_image_side(IMG_PATH, model):
     frame = cv2.imread(IMG_PATH)
