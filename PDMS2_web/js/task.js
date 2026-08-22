@@ -1055,3 +1055,73 @@ const bottomBtn = document.getElementById("backBtnBottom");
 if (topBtn) topBtn.addEventListener("click", safeBack);
 
 if (bottomBtn) bottomBtn.addEventListener("click", safeBack);
+
+// ── 每一關的語音提示：進入 2 秒後播放，播完再等 2 秒重播（無限循環） ──
+(function setupVoiceGuide(){
+
+  const id = getId();
+  if(!id || !TASK_MAP[id]) return;
+
+  const audio = document.getElementById("guideAudio");
+  if(!audio) return;
+
+  const GAP = 2000;          // 進場延遲 / 每次重播間隔（毫秒）
+  let timer = null;
+  let stopped = false;
+  let waiting = false;       // 是否正在等使用者互動解鎖自動播放
+
+  audio.src = `/voice_guide/${id}.mp3`;
+
+  function stopGuide(){
+    stopped = true;
+    clearTimeout(timer);
+    try{ audio.pause(); }catch(e){}
+  }
+
+  function schedule(delay){
+    clearTimeout(timer);
+    if(stopped) return;
+    timer = setTimeout(play, delay);
+  }
+
+  function play(){
+    if(stopped) return;
+    try{ audio.currentTime = 0; }catch(e){}
+    const p = audio.play();
+    if(p && typeof p.catch === "function"){
+      // 瀏覽器擋自動播放時，等使用者第一次互動再播
+      p.catch(()=> waitForGesture());
+    }
+  }
+
+  function waitForGesture(){
+    if(waiting || stopped) return;
+    waiting = true;
+    const kick = ()=>{
+      waiting = false;
+      document.removeEventListener("click", kick);
+      document.removeEventListener("touchstart", kick);
+      document.removeEventListener("keydown", kick);
+      play();
+    };
+    document.addEventListener("click", kick);
+    document.addEventListener("touchstart", kick);
+    document.addEventListener("keydown", kick);
+  }
+
+  audio.addEventListener("ended", ()=> schedule(GAP));
+  audio.addEventListener("error", ()=>{
+    console.warn("找不到語音提示：", audio.src);
+    stopGuide();
+  });
+
+  // 按「停止」或離開頁面就不再重播
+  const stopBtn = document.getElementById("stopBtn");
+  if(stopBtn) stopBtn.addEventListener("click", stopGuide);
+  const doneBtn = document.getElementById("doneBtn");
+  if(doneBtn) doneBtn.addEventListener("click", stopGuide);
+  window.addEventListener("pagehide", stopGuide);
+
+  schedule(GAP);
+
+})();
