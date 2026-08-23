@@ -688,7 +688,7 @@ const TASK_MAP = {
 
   },
 
-  "ch3-t3": { emoji:"scissorsLine", title:"剪圓：把窗戶剪開",
+  "ch3-t3": { emoji:"scissorsLine", title:"沿著線剪紙：把窗戶剪開",
 
     desc:"幫小精靈把窗戶剪開。",
 
@@ -698,7 +698,7 @@ const TASK_MAP = {
 
   },
 
-  "ch3-t4": { emoji:"scissorsHalfpaper", title:"剪方：剪窗簾",
+  "ch3-t4": { emoji:"scissorsHalfpaper", title:"把紙剪兩半：剪窗簾",
 
     desc:"幫小精靈將紙平分成兩半當窗簾。",
 
@@ -794,6 +794,14 @@ function render(){
 
   const imgSrc = typeof data.img === 'function' ? data.img() : data.img;
 
+  // 記下這次抽到的是左邊還是右邊版本（語音提示會跟著同一邊）
+
+  window.__taskSide =
+
+    /[-_](L|left)\.(mp4|webm)$/i.test(imgSrc || "") ? "left" :
+
+    /[-_](R|right)\.(mp4|webm)$/i.test(imgSrc || "") ? "right" : null;
+
  
 
   if(imgSrc){
@@ -809,6 +817,8 @@ function render(){
         video.style.display = "block";
 
         video.controls = true;
+
+        video.muted = true;      // 引導影片一律靜音，不蓋到語音提示
 
       }
 
@@ -876,29 +886,7 @@ function render(){
 
 
 
-  // 讀指示
-
-  document.getElementById("readBtn").onclick = ()=>{
-
-    const text = `${data.title}。${data.desc}。步驟：` + (data.steps||[]).join("、");
-
-    const u = new SpeechSynthesisUtterance(text);
-
-    u.lang="zh-TW"; speechSynthesis.cancel();
-
-    speechSynthesis.speak(u);
-
-  };
-
- 
-
-  // 停止朗讀
-
-  document.getElementById("stopBtn").onclick = ()=>{
-
-    speechSynthesis.cancel();
-
-  };
+  // 「讀指示 / 停止」改由檔尾的語音提示區塊處理（播放 voice_guide 的 mp3）
 
 
 
@@ -1069,13 +1057,32 @@ if (bottomBtn) bottomBtn.addEventListener("click", safeBack);
   let timer = null;
   let stopped = false;
   let waiting = false;       // 是否正在等使用者互動解鎖自動播放
+  let started = false;       // 是否已經開始播過
 
-  audio.src = `/voice_guide/${id}.mp3`;
+  // 抽到左右版本時優先播對應語音，找不到就退回一般版本
+
+  const sources = (window.__taskSide
+
+    ? [`/voice_guide/${id}_${window.__taskSide}.mp3`]
+
+    : []).concat([`/voice_guide/${id}.mp3`]);
+
+  let srcIndex = 0;
+
+  audio.src = sources[srcIndex];
 
   function stopGuide(){
     stopped = true;
     clearTimeout(timer);
     try{ audio.pause(); }catch(e){}
+  }
+
+  // 「讀指示」：不管現在停著還是播到一半，都從頭再播一次，之後繼續循環
+  function replayGuide(){
+    stopped = false;
+    clearTimeout(timer);
+    try{ audio.pause(); }catch(e){}
+    play();
   }
 
   function schedule(delay){
@@ -1086,6 +1093,7 @@ if (bottomBtn) bottomBtn.addEventListener("click", safeBack);
 
   function play(){
     if(stopped) return;
+    started = true;
     try{ audio.currentTime = 0; }catch(e){}
     const p = audio.play();
     if(p && typeof p.catch === "function"){
@@ -1111,11 +1119,21 @@ if (bottomBtn) bottomBtn.addEventListener("click", safeBack);
 
   audio.addEventListener("ended", ()=> schedule(GAP));
   audio.addEventListener("error", ()=>{
+    // 這個檔名不存在就換下一個候選
+    if(srcIndex + 1 < sources.length){
+      srcIndex += 1;
+      audio.src = sources[srcIndex];
+      // 已經播過才立刻補播；還沒開始的話交給原本的 2 秒倒數
+      if(started) schedule(0);
+      return;
+    }
     console.warn("找不到語音提示：", audio.src);
     stopGuide();
   });
 
-  // 按「停止」或離開頁面就不再重播
+  // 「讀指示」重播、「停止」停掉循環，離開頁面也停
+  const readBtn = document.getElementById("readBtn");
+  if(readBtn) readBtn.addEventListener("click", replayGuide);
   const stopBtn = document.getElementById("stopBtn");
   if(stopBtn) stopBtn.addEventListener("click", stopGuide);
   const doneBtn = document.getElementById("doneBtn");
