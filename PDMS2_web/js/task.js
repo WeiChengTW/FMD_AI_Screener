@@ -812,13 +812,17 @@ function render(){
 
       if(video){
 
-        video.src = imgSrc;
+        // 先顯示再設 src：Safari 不會自動播放還在 display:none 的影片
 
         video.style.display = "block";
 
         video.controls = true;
 
         video.muted = true;      // 引導影片一律靜音，不蓋到語音提示
+
+        video.src = imgSrc;
+
+        forceAutoplay(video);
 
       }
 
@@ -1143,3 +1147,56 @@ if (bottomBtn) bottomBtn.addEventListener("click", safeBack);
   schedule(GAP);
 
 })();
+
+
+// ── 盡可能讓引導影片自動播放（Safari / iOS 特別龜毛） ──
+// 靜音 + playsinline 是自動播放的必要條件，另外在各種時機重試，
+// 真的被擋住時，使用者第一次碰到畫面就會補播。
+function forceAutoplay(video){
+
+  if(!video) return;
+
+  // 這幾個屬性要在載入時就存在，Safari 才認
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.setAttribute("autoplay", "");
+
+  const MEDIA_EVENTS = ["loadedmetadata", "loadeddata", "canplay", "canplaythrough"];
+  const GESTURES = ["pointerdown", "click", "touchstart", "touchend", "keydown"];
+
+  let done = false;
+  let tries = 0;
+
+  function cleanup(){
+    MEDIA_EVENTS.forEach(e => video.removeEventListener(e, attempt));
+    GESTURES.forEach(e => document.removeEventListener(e, attempt, true));
+    document.removeEventListener("visibilitychange", attempt);
+    clearInterval(poller);
+  }
+
+  function attempt(){
+    if(done) return;
+    if(tries++ > 60){ cleanup(); return; }   // 約 30 秒後放棄自動重試
+    const p = video.play();
+    if(p && typeof p.then === "function"){
+      p.then(()=>{ done = true; cleanup(); }).catch(()=>{ /* 還被擋著，等下一個時機 */ });
+    }else if(!video.paused){
+      done = true; cleanup();
+    }
+  }
+
+  MEDIA_EVENTS.forEach(e => video.addEventListener(e, attempt));
+  GESTURES.forEach(e => document.addEventListener(e, attempt, true));
+  document.addEventListener("visibilitychange", attempt);
+
+  // 有些瀏覽器 promise 不會 reject，只是靜靜地不播 —— 定期檢查補刀
+  const poller = setInterval(()=>{ if(video.paused) attempt(); else { done = true; cleanup(); } }, 500);
+
+  video.load();
+  attempt();
+
+}
