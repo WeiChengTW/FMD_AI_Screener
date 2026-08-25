@@ -26,9 +26,8 @@ class StairChecker:
         if not self.is_stair_shape(layers):
             return False, "Not stair shape"
 
-        if self.is_left_stair(layers):
-            return True, "Left Stair"
-        elif self.is_right_stair(layers):
-            return True, "Right Stair"
-        else:
-            return False, "Incorrect X alignment"
+        # 不分左右，往哪一邊爬都算對
+        if self.is_left_stair(layers) or self.is_right_stair(layers):
+            return True, "Stair shape"
+
+        return False, "Incorrect X alignment"

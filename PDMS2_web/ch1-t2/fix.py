@@ -216,7 +216,7 @@ def analyze_image_side(img_path, model):
         if not res: SCORE = 0
     elif MODE_SIDE == 1:
         avg_bw = avg_width // 2 if len(yolo_boxes)>0 else 0
-        res, msg = PyramidCheck().check_pyramid(layers, avg_bw, IS_GAP)
+        res, msg, SCORE = PyramidCheck().check_pyramid(layers, avg_bw, IS_GAP, SCORE)
         if not res: SCORE = 0
 
     score_text = f"Side Score: {SCORE}/2 | {msg}"

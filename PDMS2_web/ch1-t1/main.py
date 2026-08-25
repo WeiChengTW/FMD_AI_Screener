@@ -167,8 +167,46 @@ def score_from_image(img_path, conf=CONF):
     return score, correct_num, result_img
 
 # ================== Main ==================
+# ================== 測試模式輔助 ==================
+def _show_result(title, img, save_path=None):
+    """把結果圖顯示出來（太大就自動縮小），順便存一份檔案。"""
+    if img is None:
+        print(f"[TEST] {title}：沒有結果圖", flush=True)
+        return
+    if save_path:
+        cv2.imwrite(save_path, img)
+        print(f"[TEST] 結果已存到：{save_path}", flush=True)
+    h, w = img.shape[:2]
+    scale = min(1.0, 1280 / max(w, 1), 720 / max(h, 1))
+    view = cv2.resize(img, (int(w * scale), int(h * scale))) if scale < 1.0 else img
+    try:
+        cv2.imshow(title, view)
+        print("[TEST] 按任意鍵繼續／關閉視窗...", flush=True)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    except cv2.error as e:
+        print(f"[TEST] 這個環境無法開視窗（{e}），請直接看存檔。", flush=True)
+
+
+def _result_path(src_path):
+    base, ext = os.path.splitext(src_path)
+    return f"{base}_result{ext or '.jpg'}"
+
+
 if __name__ == "__main__":
     print("[DEBUG] ch1-t1 main.py 開始執行", flush=True)
+    # ===== 測試模式：python main.py --test <圖片路徑> =====
+    if len(sys.argv) > 1 and sys.argv[1] in ("--test", "-t"):
+        if len(sys.argv) < 3:
+            print("用法：python main.py --test <圖片路徑>", flush=True)
+            sys.exit(-1)
+        test_path = sys.argv[2]
+        print(f"[TEST] 分析圖片：{test_path}", flush=True)
+        score, num, result_img = score_from_image(test_path)
+        print(f"[TEST] score={score}, num={num}", flush=True)
+        _show_result(f"ch1-t1  score={score}  num={num}", result_img, _result_path(test_path))
+        sys.exit(0)
+
 
     if len(sys.argv) > 2:
         uid, img_id = sys.argv[1], sys.argv[2]

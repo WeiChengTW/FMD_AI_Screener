@@ -171,6 +171,10 @@ def analyze_image_side(IMG_PATH, model):
         cv2.putText(annotated, f"NG: Found {len(yolo_boxes)} blocks", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,0,255), 3)
         return annotated, 0
 
+    if not centroids:
+        cv2.putText(annotated, "NG: No valid mask", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,0,255), 3)
+        return annotated, 0
+
     # 自動分層
     sorted_items = sorted(enumerate(centroids), key=lambda x: x[1][1])
     avg_h = np.mean([b[3]-b[1] for b in yolo_boxes])
@@ -211,8 +215,58 @@ def analyze_image_side(IMG_PATH, model):
     return annotated, SCORE
 
 # ================== Main 執行區塊 ==================
+# ================== 測試模式輔助 ==================
+def _show_result(title, img, save_path=None):
+    """把結果圖顯示出來（太大就自動縮小），順便存一份檔案。"""
+    if img is None:
+        print(f"[TEST] {title}：沒有結果圖", flush=True)
+        return
+    if save_path:
+        cv2.imwrite(save_path, img)
+        print(f"[TEST] 結果已存到：{save_path}", flush=True)
+    h, w = img.shape[:2]
+    scale = min(1.0, 1280 / max(w, 1), 720 / max(h, 1))
+    view = cv2.resize(img, (int(w * scale), int(h * scale))) if scale < 1.0 else img
+    try:
+        cv2.imshow(title, view)
+        print("[TEST] 按任意鍵繼續／關閉視窗...", flush=True)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    except cv2.error as e:
+        print(f"[TEST] 這個環境無法開視窗（{e}），請直接看存檔。", flush=True)
+
+
+def _result_path(src_path):
+    base, ext = os.path.splitext(src_path)
+    return f"{base}_result{ext or '.jpg'}"
+
+
 if __name__ == "__main__":
     print("[DEBUG] ch1-t4 main.py 開始執行", flush=True)
+    # ===== 測試模式：python main.py --test <側視圖> [俯視圖] =====
+    if len(sys.argv) > 1 and sys.argv[1] in ("--test", "-t"):
+        if len(sys.argv) < 3:
+            print("用法：python main.py --test <側視圖路徑> [俯視圖路徑]", flush=True)
+            sys.exit(-1)
+        side_path = sys.argv[2]
+        top_path = sys.argv[3] if len(sys.argv) > 3 else None
+
+        print(f"[TEST] 分析側視圖：{side_path}", flush=True)
+        ann_side, s_side = analyze_image_side(side_path, yolo_model)
+        print(f"[TEST] 側視圖得分：{s_side}", flush=True)
+        _show_result(f"ch1-t4 side  score={s_side}", ann_side, _result_path(side_path))
+
+        if top_path:
+            print(f"[TEST] 分析俯視圖：{top_path}", flush=True)
+            frame_top = cv2.imread(top_path)
+            if frame_top is None:
+                print(f"[TEST] 讀不到俯視圖：{top_path}", flush=True)
+            else:
+                ann_top, _, s_top = analyze_image_top(frame_top, yolo_model)
+                print(f"[TEST] 俯視圖得分：{s_top}", flush=True)
+                _show_result(f"ch1-t4 top  score={s_top}", ann_top, _result_path(top_path))
+        sys.exit(0)
+
     if len(sys.argv) > 2:
         uid, img_id = sys.argv[1], sys.argv[2]
         SIDE_PATH = os.path.join("kid", uid, f"{img_id}-side.jpg")

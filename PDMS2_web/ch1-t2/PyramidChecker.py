@@ -26,7 +26,7 @@ class PyramidCheck:
         
         
         if len(layers) != 3:
-            return False, "Not 3 layers"
+            return False, "Not 3 layers", 0
 
         if self.is_pyramid_shape(layers, x_threshold=block_width):
             if gap:
