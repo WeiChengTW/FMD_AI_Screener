@@ -91,7 +91,7 @@ CONF_TOP = 0.6
 # OFFSET_RATIO：判定「排列有對齊」的容忍度，相對於積木最長邊。
 # 中心點在 X 或 Y 其中一軸的標準差小於「積木最長邊 x 此比例」就算對齊。
 # 數值越大越寬鬆（原本寫死 1/8 = 0.125，對 3 歲小朋友太嚴）
-OFFSET_RATIO = 0.35
+OFFSET_RATIO = 0.25
 
 def analyze_image_top(frame, model):
     if TOP_ROI_W > 0 and TOP_ROI_H > 0:
