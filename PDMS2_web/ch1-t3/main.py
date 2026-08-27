@@ -161,7 +161,9 @@ def analyze_image_top(frame, model, initial_get_point=2):
 
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.8
-GAP_THRESHOLD_RATIO = 0.85
+# GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
+# 本關（階梯）有縫隙會扣分，所以放寬 = 調高，容忍 3 歲小朋友擺不整齊
+GAP_RATIO = 0.45
 
 def analyze_image_side(img_path, model):
     frame = cv2.imread(img_path)
@@ -214,9 +216,14 @@ def analyze_image_side(img_path, model):
             })
 
     layers = grouper.group_by_y(centroids, boxes=yolo_boxes)
-    avg_w = np.mean([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes) > 0 else 1.0
-    gap_checker = CheckGap(gap_threshold=GAP_THRESHOLD_RATIO*avg_w)
-    gap_pairs = gap_checker.check(layers)
+    # 用中位數而非平均，避免單一個偵測歪掉的框拉走整體寬度
+    avg_w = np.median([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes) > 0 else 1.0
+    gap_checker = CheckGap(gap_ratio=GAP_RATIO)
+    gap_pairs = gap_checker.check(layers, avg_w)
+    if gap_pairs:
+        print(f"[DEBUG] 發現 {len(gap_pairs) // 2} 組縫隙，積木寬度: {avg_w:.2f}, 縫隙閾值: {GAP_RATIO * avg_w:.2f} ({GAP_RATIO:.2f} W)", flush=True)
+        for pair in gap_pairs[::2]:
+            print(f"[DEBUG]   縫隙寬 {pair[2]:.2f}px = {pair[2] / avg_w:.2f} W", flush=True)
     
     # 3. 為每一層隨機生成一種專屬顏色 (RGB)
     layer_colors = {}

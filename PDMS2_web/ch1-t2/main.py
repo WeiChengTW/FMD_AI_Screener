@@ -232,20 +232,24 @@ def analyze_image_side(img_path, model):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
     # ====== 5. 縫隙檢查與形狀分析邏輯維持原樣 ======
-    GAP_THRESHOLD_RATIO = 0.85
-    avg_width = np.mean([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes)>0 else 1.0
-    GAP_THRESHOLD = GAP_THRESHOLD_RATIO * avg_width
+    # GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」
+    # 本關「有縫隙」才拿 2 分，所以放寬 = 調低，讓小朋友稍微留一點縫就算數
+    GAP_RATIO = 0.10
+    # 滿分需要幾對相鄰積木有縫（底層 2 對 + 中層 1 對，全部共 3 對）
+    # 對 3 歲小朋友不要求三對全中，有 1 對就算通過
+    MIN_GAP_PAIRS = 1
+    # 用中位數而非平均，避免單一個偵測歪掉的框拉走整體寬度
+    avg_width = np.median([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes)>0 else 1.0
 
     if len(centroids) >= 2:
-        gap_checker = CheckGap(gap_threshold=GAP_THRESHOLD)
-        gap_pairs = gap_checker.check(layers)
-        if len(gap_pairs) // 2 == 3:
-            IS_GAP = True
-        else:
-            IS_GAP = False
+        gap_checker = CheckGap(gap_ratio=GAP_RATIO)
+        gap_pairs = gap_checker.check(layers, avg_width)
+        IS_GAP = (len(gap_pairs) // 2) >= MIN_GAP_PAIRS
 
         if len(gap_pairs) > 0:
-            print(f"[DEBUG] 發現 {len(gap_pairs) // 2} 組縫隙，平均寬度: {avg_width:.2f}, 縫隙閾值: {GAP_THRESHOLD:.2f}", flush=True)
+            print(f"[DEBUG] 發現 {len(gap_pairs) // 2} 組縫隙，積木寬度: {avg_width:.2f}, 縫隙閾值: {GAP_RATIO * avg_width:.2f} ({GAP_RATIO:.2f} W)", flush=True)
+            for pair in gap_pairs[::2]:
+                print(f"[DEBUG]   縫隙寬 {pair[2]:.2f}px = {pair[2] / avg_width:.2f} W", flush=True)
             for pair in gap_pairs:
                 p1, p2 = pair[0], pair[1]
                 cv2.line(annotated_frame, (int(p1[0]), int(p1[1])), (int(p2[0]), int(p2[1])), (0,0,255), 3)

@@ -158,7 +158,8 @@ def analyze_image_top(frame, initial_get_point=2):
 
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.8
-GAP_THRESHOLD_RATIO = 0.5
+# GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
+GAP_RATIO = 0.25
 
 def analyze_image_side(img_path, model):
     frame = cv2.imread(img_path)
@@ -192,12 +193,12 @@ def analyze_image_side(img_path, model):
             cv2.putText(annotated_frame, f"{i}", (int(cx)-15, int(cy)-15), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 3)
 
-    avg_width = np.mean([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes)>0 else 1.0
-    GAP_THRESHOLD = GAP_THRESHOLD_RATIO * avg_width
+    # 用中位數而非平均，避免單一個偵測歪掉的框拉走整體寬度
+    avg_width = np.median([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes)>0 else 1.0
 
     if len(centroids) >= 2:
-        gap_checker = CheckGap(gap_threshold=GAP_THRESHOLD, y_layer_threshold=30)
-        gap_pairs = gap_checker.check(centroids)
+        gap_checker = CheckGap(gap_ratio=GAP_RATIO)
+        gap_pairs = gap_checker.check([centroids], avg_width)
         if gap_pairs:
             IS_GAP = len(gap_pairs) // 2 == 3
             for pair in gap_pairs:
