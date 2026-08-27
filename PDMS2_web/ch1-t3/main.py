@@ -151,19 +151,23 @@ def analyze_image_top(frame, model, initial_get_point=2):
                 rotate_ok_list.append(rotate_ok)
                 cv2.drawContours(cropped, [box], 0, (0, 255, 0) if rotate_ok else (0, 0, 255), 2)
 
-    offset = False
-    if len(centers) >= 2 and max_mask_side > 0:
-        threshold = max_mask_side * OFFSET_RATIO
-        std_x = np.std([p[0] for p in centers])
-        std_y = np.std([p[1] for p in centers])
-        offset = std_x < threshold or std_y < threshold
-        print(f"[DEBUG] offset 檢查：積木最長邊={max_mask_side}, 容忍門檻={threshold:.2f} ({OFFSET_RATIO} 邊長), std_x={std_x:.2f}, std_y={std_y:.2f} -> {'對齊 OK' if offset else 'Offset NG'}", flush=True)
+    # === 暫時停用 offset(對齊) 判斷，只保留旋轉判斷 ===
+    # offset = False
+    # if len(centers) >= 2 and max_mask_side > 0:
+    #     threshold = max_mask_side * OFFSET_RATIO
+    #     std_x = np.std([p[0] for p in centers])
+    #     std_y = np.std([p[1] for p in centers])
+    #     offset = std_x < threshold or std_y < threshold
+    # print(f"[DEBUG] offset 檢查：積木最長邊={max_mask_side}, 容忍門檻={threshold:.2f} ({OFFSET_RATIO} 邊長), std_x={std_x:.2f}, std_y={std_y:.2f} -> {'對齊 OK' if offset else 'Offset NG'}", flush=True)
+    offset = True  # 停用中：一律視為對齊合格
 
     is_rotate_ng = not all(rotate_ok_list) if rotate_ok_list else False
     is_offset_ng = not offset
-    if is_offset_ng or is_rotate_ng: GET_POINT = 1
+    # if is_offset_ng or is_rotate_ng: GET_POINT = 1
+    if is_rotate_ng: GET_POINT = 1
     
-    summary = f"{'Offset !' if is_offset_ng else 'No Offset'} | {'Rotate !' if is_rotate_ng else 'No Rotate'}"
+    # summary = f"{'Offset !' if is_offset_ng else 'No Offset'} | {'Rotate !' if is_rotate_ng else 'No Rotate'}"
+    summary = f"{'Rotate !' if is_rotate_ng else 'No Rotate'}"
     cv2.putText(cropped, summary, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,0,255) if GET_POINT==1 else (0,0,0), 3)
     return cropped, summary, GET_POINT
 
