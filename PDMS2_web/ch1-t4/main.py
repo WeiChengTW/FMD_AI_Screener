@@ -141,7 +141,9 @@ def analyze_image_top(frame, model):
 
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.7
-GAP_RATIO = 0.85
+# GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
+# 本關有縫隙會扣分，所以放寬 = 調高，容忍 3 歲小朋友擺不整齊
+GAP_RATIO = 0.45
 
 def analyze_image_side(IMG_PATH, model):
     frame = cv2.imread(IMG_PATH)
@@ -198,10 +200,14 @@ def analyze_image_side(IMG_PATH, model):
     p1_a, p1_b = centroids[l1_idx[0]], centroids[l1_idx[1]]
     p2_a, p2_b = centroids[l2_idx[0]], centroids[l2_idx[1]]
     
-    l1_gap, l2_gap = abs(p1_a[0]-p1_b[0]), abs(p2_a[0]-p2_b[0])
-    avg_w = np.mean([b[2]-b[0] for b in yolo_boxes])
+    # 用中位數而非平均，避免單一個偵測歪掉的框拉走整體寬度
+    avg_w = np.median([b[2]-b[0] for b in yolo_boxes])
+    # 中心點距離要扣掉一個積木寬度，才是真正的縫隙寬度
+    l1_gap = abs(p1_a[0]-p1_b[0]) - avg_w
+    l2_gap = abs(p2_a[0]-p2_b[0]) - avg_w
     gap_threshold = avg_w * GAP_RATIO
     l1_has, l2_has = l1_gap > gap_threshold, l2_gap > gap_threshold
+    print(f"[DEBUG] 積木寬度: {avg_w:.2f}, 縫隙閾值: {gap_threshold:.2f} ({GAP_RATIO:.2f} W) | L1 縫隙: {l1_gap:.2f} ({l1_gap/avg_w:.2f} W), L2 縫隙: {l2_gap:.2f} ({l2_gap/avg_w:.2f} W)", flush=True)
 
     if l1_has:
         cv2.line(annotated, (int(p1_a[0]), int(p1_a[1])), (int(p1_b[0]), int(p1_b[1])), (0,0,255), 5)
