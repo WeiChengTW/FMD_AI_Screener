@@ -150,8 +150,8 @@ def analyze_image_top(frame, model):
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.7
 # GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
-# 本關有縫隙會扣分，所以放寬 = 調高，容忍 3 歲小朋友擺不整齊
-GAP_RATIO = 0.45
+# 注意：本關有縫隙會扣分，此值調低會變嚴格（與 ch1-t2/t3 統一為 0.08）
+GAP_RATIO = 0.08
 
 def analyze_image_side(IMG_PATH, model):
     frame = cv2.imread(IMG_PATH)

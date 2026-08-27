@@ -167,7 +167,7 @@ def analyze_image_top(frame, initial_get_point=2):
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.8
 # GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
-GAP_RATIO = 0.25
+GAP_RATIO = 0.08
 
 def analyze_image_side(img_path, model):
     frame = cv2.imread(img_path)
