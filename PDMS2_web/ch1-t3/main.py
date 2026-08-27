@@ -102,6 +102,11 @@ SIDE_ROI_H = _read_env_int("PDMS2_SIDE_ROI_H")
 # ================== 俯視圖 (TOP View) 分析 ==================
 CONF_TOP = 0.8
 
+# OFFSET_RATIO：判定「排列有對齊」的容忍度，相對於積木最長邊。
+# 中心點在 X 或 Y 其中一軸的標準差小於「積木最長邊 x 此比例」就算對齊。
+# 數值越大越寬鬆（原本寫死 1/8 = 0.125，對 3 歲小朋友太嚴）
+OFFSET_RATIO = 0.35
+
 def analyze_image_top(frame, model, initial_get_point=2):
     if TOP_ROI_W > 0 and TOP_ROI_H > 0:
         cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
@@ -148,8 +153,11 @@ def analyze_image_top(frame, model, initial_get_point=2):
 
     offset = False
     if len(centers) >= 2 and max_mask_side > 0:
-        threshold = max_mask_side // 8
-        offset = np.std([p[0] for p in centers]) < threshold or np.std([p[1] for p in centers]) < threshold
+        threshold = max_mask_side * OFFSET_RATIO
+        std_x = np.std([p[0] for p in centers])
+        std_y = np.std([p[1] for p in centers])
+        offset = std_x < threshold or std_y < threshold
+        print(f"[DEBUG] offset 檢查：積木最長邊={max_mask_side}, 容忍門檻={threshold:.2f} ({OFFSET_RATIO} 邊長), std_x={std_x:.2f}, std_y={std_y:.2f} -> {'對齊 OK' if offset else 'Offset NG'}", flush=True)
 
     is_rotate_ng = not all(rotate_ok_list) if rotate_ok_list else False
     is_offset_ng = not offset
