@@ -672,6 +672,49 @@ TASK_MAP = {
 }
 
 
+# =========================
+# Ch5-t1：所有人的遊戲紀錄都存在同一個大 JSON
+# =========================
+CH5_T1_RECORDS_PATH = ROOT / "kid" / "ch5-t1_records.json"
+_ch5_t1_records_lock = threading.Lock()
+
+
+def load_ch5_t1_records() -> dict:
+    """讀取大 JSON；檔案不存在或壞掉時回傳空結構。"""
+    if not CH5_T1_RECORDS_PATH.exists():
+        return {"task_id": "Ch5-t1", "task_name": "collect_raisins", "records": []}
+    try:
+        with open(CH5_T1_RECORDS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict) or not isinstance(data.get("records"), list):
+            raise ValueError("格式不符")
+        return data
+    except Exception as e:
+        write_to_console(f"[Ch5-t1] 讀取紀錄檔失敗（將重建）: {e}", "WARN")
+        return {"task_id": "Ch5-t1", "task_name": "collect_raisins", "records": []}
+
+
+def append_ch5_t1_record(record: dict) -> None:
+    """把一次遊戲紀錄追加到大 JSON（加鎖 + 原子寫入，避免同時寫壞檔）。"""
+    with _ch5_t1_records_lock:
+        data = load_ch5_t1_records()
+        # 同一個 record_id 重跑就覆蓋，不要留重複
+        data["records"] = [
+            r for r in data["records"] if r.get("record_id") != record.get("record_id")
+        ]
+        data["records"].append(record)
+        data["records"].sort(
+            key=lambda r: (r.get("test_date") or "", r.get("time") or "")
+        )
+        data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        CH5_T1_RECORDS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = CH5_T1_RECORDS_PATH.parent / (CH5_T1_RECORDS_PATH.name + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, CH5_T1_RECORDS_PATH)
+
+
 def user_exists(uid: str) -> bool:
     """回傳這個 uid 是否存在於 user_list"""
     row = db_exec(
@@ -695,10 +738,11 @@ def insert_task_payload(
     score: int,
     result_img_path: str,
     data1: Optional[str] = None,
+    test_time: Optional[str] = None,
 ) -> None:
     table = task_id_to_table(task_id)
-    # 獲取當前時間
-    current_time = datetime.now().strftime("%H:%M:%S")
+    # 獲取當前時間（呼叫端可指定，Ch5-t1 需要與大 JSON 的紀錄時間完全一致）
+    current_time = test_time or datetime.now().strftime("%H:%M:%S")
 
     sql = f"""
         INSERT INTO `{table}` (uid, test_date, time, score, result_img_path, data1)
@@ -734,6 +778,7 @@ def insert_score(
     uid: str,
     task_id: str,
     test_date: Optional[date] = None,
+    test_time: Optional[str] = None,
 ) -> date:
 
     if not user_exists(uid):
@@ -747,7 +792,7 @@ def insert_score(
     if test_date is None:
         test_date = date.today()
 
-    current_time = datetime.now().strftime("%H:%M:%S")
+    current_time = test_time or datetime.now().strftime("%H:%M:%S")
 
     db_exec(
         """
@@ -1379,30 +1424,74 @@ def run_analysis_in_background(
             if not ch5_main_path.exists():
                 raise FileNotFoundError(f"找不到 ch5-t1/main.py: {ch5_main_path}")
             
-            cmd = [sys.executable, str(ch5_main_path), uid, str(cam_idx)]
+            cmd = [
+                sys.executable,
+                "-u",  # 不緩衝，log 才會即時吐出來
+                str(ch5_main_path),
+                uid,
+                str(cam_idx),
+            ]
             write_to_console(f"[Ch5-t1] 執行命令: {' '.join(cmd)}", "INFO")
-            
-            result = subprocess.run(
+
+            child_env = os.environ.copy()
+            child_env["PYTHONUNBUFFERED"] = "1"
+            child_env["PYTHONIOENCODING"] = "utf-8"
+
+            proc = subprocess.Popen(
                 cmd,
                 cwd=ROOT,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=600,
+                bufsize=1,
+                env=child_env,
             )
-            
-            if result.stdout:
-                write_to_console(f"[Ch5-t1][stdout] {result.stdout}", "INFO")
-            if result.stderr:
-                write_to_console(f"[Ch5-t1][stderr] {result.stderr}", "WARN")
-            
-            score = result.returncode if result.returncode in (0, 1, 2) else 0
+
+            # 逐行收 log：加上收到的時間，最後整包寫進大 JSON
+            RESULT_MARKER = "##CH5T1_RESULT##"
+            collected_lines = []
+            summary = {}
+            deadline = time.time() + 600
+            timed_out = False
+            try:
+                for raw_line in proc.stdout:
+                    line = raw_line.rstrip("\r\n")
+                    if line:
+                        if line.startswith(RESULT_MARKER):
+                            # 結構化摘要，不放進 log 陣列
+                            try:
+                                summary = json.loads(line[len(RESULT_MARKER):])
+                            except Exception as e:
+                                write_to_console(f"[Ch5-t1] 解析結果摘要失敗: {e}", "WARN")
+                        else:
+                            collected_lines.append(
+                                {"t": datetime.now().strftime("%H:%M:%S"), "text": line}
+                            )
+                            write_to_console(f"[Ch5-t1] {line}", "INFO")
+                    if time.time() > deadline:
+                        timed_out = True
+                        proc.kill()
+                        break
+                returncode = proc.wait(timeout=30)
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=10)
+                if proc.stdout:
+                    proc.stdout.close()
+
+            if timed_out:
+                raise TimeoutError("Ch5-t1 遊戲執行逾時（600 秒）")
+
+            score = returncode if returncode in (0, 1, 2) else 0
             write_to_console(f"[Ch5-t1] 遊戲完成，分數: {score}", "INFO")
             
             # 從狀態 JSON 讀取確認分數
             state_file = ROOT / "kid" / uid / "Ch5-t1_state.json"
             final_score = score
+            state = {}
             if state_file.exists():
                 try:
                     with open(state_file, "r", encoding="utf-8") as f:
@@ -1413,11 +1502,48 @@ def run_analysis_in_background(
                 except Exception as e:
                     write_to_console(f"[Ch5-t1] 讀取狀態檔失敗: {e}", "WARN")
             
+            # 這一刻的日期時間同時用於 DB 與大 JSON，之後才抓得回同一筆
+            now = datetime.now()
+            record_date = now.date()
+            record_time = now.strftime("%H:%M:%S")
+            record_id = f"{uid}_{now.strftime('%Y%m%d_%H%M%S')}"
+
+            # 把這次紀錄追加到大 JSON（所有人的 Ch5-t1 紀錄都在同一個檔）
+            record = {
+                "record_id": record_id,
+                "uid": uid,
+                "test_date": record_date.isoformat(),
+                "time": record_time,
+                "score": final_score,
+                "bean_count": summary.get("bean_count", state.get("bean_count")),
+                "target_bean_count": summary.get(
+                    "target_bean_count", state.get("target_bean_count", 10)
+                ),
+                "remaining_time": summary.get(
+                    "remaining_time", state.get("remaining_time")
+                ),
+                "warning": bool(summary.get("warning", state.get("warning"))),
+                "end_reason": summary.get("end_reason", ""),
+                "started_at": summary.get("started_at"),
+                "ended_at": summary.get("ended_at"),
+                "log": collected_lines,
+            }
+            try:
+                append_ch5_t1_record(record)
+                write_to_console(
+                    f"[Ch5-t1] 紀錄已寫入 {CH5_T1_RECORDS_PATH.name}: {record_id}", "INFO"
+                )
+            except Exception as e:
+                write_to_console(f"[Ch5-t1] 寫入紀錄檔失敗: {e}", "ERROR")
+
             # 寫入 DB
             try:
                 ensure_task(task_id_std)
-                test_date = insert_score(uid, task_id_std)
-                result_img_path = f"kid/{uid}/Ch5-t1_result.mp4"
+                test_date = insert_score(
+                    uid, task_id_std, test_date=record_date, test_time=record_time
+                )
+                # 指向大 JSON 裡的這一筆（編號 + 時間）
+                result_img_path = f"kid/{CH5_T1_RECORDS_PATH.name}#{record_id}"
                 insert_task_payload(
                     task_id=task_id_std,
                     uid=uid,
@@ -1425,6 +1551,7 @@ def run_analysis_in_background(
                     score=final_score,
                     result_img_path=result_img_path,
                     data1=None,
+                    test_time=record_time,
                 )
                 write_to_console(f"[Ch5-t1] 分數已寫入 DB: {final_score}", "INFO")
             except Exception as e:
