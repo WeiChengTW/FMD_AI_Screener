@@ -625,6 +625,9 @@ DB = dict(
 )
 
 MACWEB_BASE_URL = _env.get("MACWEB_BASE_URL", "http://127.0.0.1:3000")
+ADMIN_NOTIFY_URL = _env.get(
+    "ADMIN_NOTIFY_URL", "http://127.0.0.1:8001/internal/score-updated"
+)
 
 DEMO_MODE = _env.get("DEMO_MODE", "false").strip().lower() == "true"
 
@@ -1346,9 +1349,9 @@ def submit_remote_analysis(uid: str, img_id: str) -> dict:
 def _notify_admin_score_updated():
     def _post():
         try:
-            requests.post("http://127.0.0.1:8001/internal/score-updated", timeout=2)
-        except Exception:
-            pass
+            requests.post(ADMIN_NOTIFY_URL, timeout=2)
+        except Exception as e:
+            write_to_console(f"通知管理端刷新失敗（{ADMIN_NOTIFY_URL}）：{e}", "ERROR")
     Thread(target=_post, daemon=True).start()
 
 

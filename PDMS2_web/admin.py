@@ -578,6 +578,40 @@ def list_scores():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.get("/scores/version")
+def scores_version():
+    """輕量版本戳記：只做 COUNT/MAX/SUM，供前端輪詢判斷要不要重抓 /scores。"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"ok": False, "msg": "尚未登入"}), 401
+        level, account = int(user.get("level") or 0), user.get("account")
+        db_tasks = db_exec("SELECT task_id, task_name FROM task_list", fetch="all") or []
+        effective_map = {r["task_id"]: r["task_name"] for r in db_tasks} or TASK_MAP
+        # 17 張明細表併成一次 UNION ALL，避免每張表各一次連線往返
+        parts, params = [], []
+        for table_name in effective_map.values():
+            part = (
+                "SELECT COUNT(*) AS c, MAX(CONCAT(d.test_date, ' ', d.time)) AS m, "
+                f"COALESCE(SUM(d.score), 0) AS s FROM `{table_name}` AS d WHERE 1 = 1"
+            )
+            if level == 1:
+                part += " AND d.uid = %s"
+                params.append(account)
+            parts.append(part)
+        rows = db_exec(" UNION ALL ".join(parts), tuple(params), fetch="all") or []
+        total, latest, score_sum = 0, "", 0
+        for row in rows:
+            total += int(row.get("c") or 0)
+            score_sum += float(row.get("s") or 0)
+            m = row.get("m")
+            if m and str(m) > latest:
+                latest = str(m)
+        return jsonify({"ok": True, "version": f"{total}|{latest}|{score_sum}"})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
 @app.get("/users")
 def list_users():
     try:

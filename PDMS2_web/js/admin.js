@@ -431,8 +431,28 @@
         es.onerror = () => { es.close(); setTimeout(connectSSE, 5000); };
       }
       connectSSE();
-      // 保留 60 秒保底輪詢，以防 SSE 連線中斷後靜默失敗
-      setInterval(reloadScores, 60 * 1000);
+
+      // 跨機器情境（例如在 Mac 拍照、這台看畫面）收不到 SSE，
+      // 改用輕量版本戳記輪詢：有變動才去重抓較重的 /scores。
+      let lastVersion = null;
+      let checking = false;
+      async function checkVersion() {
+        if (checking) return;
+        checking = true;
+        try {
+          const r = await fetch('/scores/version', { credentials: 'include' });
+          const js = await r.json();
+          if (js.ok) {
+            if (lastVersion !== null && js.version !== lastVersion) await reloadScores();
+            lastVersion = js.version;
+          }
+        } catch (e) {
+          console.error("版本檢查失敗", e);
+        } finally {
+          checking = false;
+        }
+      }
+      setInterval(checkVersion, 4000);
     }
   })();
 })();
