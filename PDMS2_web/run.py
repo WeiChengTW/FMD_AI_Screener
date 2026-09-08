@@ -26,7 +26,6 @@ from flask import Flask, send_from_directory, request, jsonify, session
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from utils.rag_advisor import advisor
 
 ROOT = Path(__file__).parent.resolve()
 ENV_PATH = ROOT / ".env"
@@ -672,6 +671,8 @@ TASK_MAP = {
     "Ch4-t1": "one_fold",
     "Ch4-t2": "two_fold",
     "Ch5-t1": "collect_raisins",
+    "Ch5-t2": "unbutton",
+    "Ch5-t3": "button",
 }
 
 
@@ -858,7 +859,11 @@ def api_get_ai_advice(uid):
     取得該兒童的 AI 專家建議。
     """
     # 這裡可以加入權限檢查，例如 session.get("user")
+    # 延遲 import：rag_advisor 會連鎖載入 chromadb / langchain / torch，
+    # 只在真的呼叫這支 API 時才付這個代價，使用者端機器可以不裝那包
     try:
+        from utils.rag_advisor import advisor
+
         advice = advisor.generate_advice(uid)
         return jsonify({"ok": True, "advice": advice})
     except Exception as e:
@@ -1723,6 +1728,13 @@ camera_active = False
 current_task_id = ""
 camera_lock = threading.RLock()
 
+# 錄影（Ch5-t2 / Ch5-t3 鈕扣關）：錄影中由背景執行緒獨佔讀幀，預覽改讀快取幀
+recording = False
+recording_thread = None
+recording_path = None
+latest_frame_jpg = None
+RECORD_FPS = 20
+
 LIVE_CAMERA_WIDTH = 1280
 LIVE_CAMERA_HEIGHT = 720
 
@@ -1932,6 +1944,8 @@ def crop_center(frame, camera_idx=None):
 
 def get_frame():
     global camera, camera_active, current_camera_index
+    if recording and latest_frame_jpg is not None:
+        return latest_frame_jpg
     try:
         with camera_lock:
             if not camera_active or camera is None:
@@ -2001,6 +2015,88 @@ def get_opencv_frame():
         return jsonify({"success": False}), 500
     img_b64 = base64.b64encode(frame_data).decode("utf-8")
     return jsonify({"success": True, "image": img_b64})
+
+
+def _record_loop(fps: int):
+    """錄影中唯一的讀幀者：寫檔的同時把最新幀快取起來給預覽用。"""
+    global recording, latest_frame_jpg
+    writer = None
+    interval = 1.0 / fps
+    next_t = time.time()
+    try:
+        while recording:
+            with camera_lock:
+                if not camera_active or camera is None:
+                    break
+                ret, frame = camera.read()
+            if not ret:
+                continue
+            frame = crop_center(frame, current_camera_index)
+            if writer is None:
+                h, w = frame.shape[:2]
+                writer = cv2.VideoWriter(
+                    str(recording_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
+                )
+                if not writer.isOpened():
+                    write_to_console(f"[錄影] 影片檔建立失敗: {recording_path}", "ERROR")
+                    break
+            writer.write(frame)
+            ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if ok:
+                latest_frame_jpg = buf.tobytes()
+            next_t += interval
+            wait = next_t - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            else:
+                next_t = time.time()
+    finally:
+        if writer is not None:
+            writer.release()
+        recording = False
+        latest_frame_jpg = None
+
+
+@app.post("/opencv-camera/record/start")
+def start_opencv_recording():
+    global recording, recording_thread, recording_path
+    if DEMO_MODE:
+        return jsonify({"success": False, "error": "示範模式不支援錄影"}), 400
+    if not camera_active:
+        return jsonify({"success": False, "error": "相機尚未開啟"}), 400
+    if recording:
+        return jsonify({"success": False, "error": "已經在錄影中"}), 400
+
+    data = request.get_json() or {}
+    task_id_input = (data.get("task_id") or "").strip()
+    uid = (data.get("uid") or "").strip() or session.get("uid", "default")
+    if not task_id_input:
+        return jsonify({"success": False, "error": "缺少 task_id"}), 400
+
+    target_dir = ROOT / "kid" / uid
+    target_dir.mkdir(parents=True, exist_ok=True)
+    recording_path = target_dir / f"{task_id_input}.mp4"
+
+    recording = True
+    recording_thread = Thread(target=_record_loop, args=(RECORD_FPS,), daemon=True)
+    recording_thread.start()
+    write_to_console(f"[錄影] 開始: {recording_path}", "INFO")
+    return jsonify({"success": True, "filename": recording_path.name})
+
+
+@app.post("/opencv-camera/record/stop")
+def stop_opencv_recording():
+    global recording, recording_thread
+    if not recording:
+        return jsonify({"success": False, "error": "目前沒有在錄影"}), 400
+    recording = False
+    if recording_thread is not None:
+        recording_thread.join(timeout=5)
+        recording_thread = None
+    write_to_console(f"[錄影] 結束: {recording_path}", "INFO")
+    return jsonify(
+        {"success": True, "filename": recording_path.name if recording_path else None}
+    )
 
 
 @app.post("/opencv-camera/capture")

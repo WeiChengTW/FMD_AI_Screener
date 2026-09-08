@@ -263,7 +263,9 @@ const ICON_PATHS = {
 
   // 第五關
   treasure: "icons/ch5_beans_ai.png",
-  beans:    "icons/ch5_beans_ai.png"
+  beans:    "icons/ch5_beans_ai.png",
+  unbutton: "icons/ch5_unbutton.svg",
+  button:   "icons/ch5_button.svg"
 };
 
 /** 統一產生 <img> icon 的 HTML */
@@ -332,6 +334,8 @@ const STORY = [
     intro: "到寶藏洞窟把魔法豆豆裝進罐子，回到魔法王國！",
     tasks: [
       { icon: "beans", title: "豆豆裝罐子：完成任務", note: "把彩色豆豆一顆一顆裝進罐子。" },
+      { icon: "unbutton", title: "解鈕扣：打開魔法披風", note: "把鈕扣條上的鈕扣解開，越快越好。" },
+      { icon: "button", title: "扣鈕扣：穿上魔法披風", note: "把最下面的鈕扣扣好，越快越好。" },
     ],
   },
 ];
@@ -509,9 +513,9 @@ function renderTasks() {
 
   // 根據任務數量動態設定欄數
   const count = ch.tasks.length;
-  const cols = count === 1 ? 1 : count >= 5 ? 3 : 2;
-  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  grid.style.gridAutoRows = '1fr';
+  const cols = count <= 4 ? count : count <= 6 ? 3 : 4;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  grid.style.gridAutoRows = 'minmax(300px, 1fr)';
 }
 
 /* ========= 小老師模式 ========= */

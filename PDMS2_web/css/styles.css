@@ -27,7 +27,7 @@
 * { box-sizing: border-box; font-family: var(--font); }
 
 html, body {
-  min-height: 100vh;
+  height: 100vh;
   overflow: auto;
   margin: 0;
   color: var(--ink);
@@ -112,7 +112,7 @@ html, body {
 .sticker-rail {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(5,1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -201,61 +201,64 @@ html, body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);  /* JS 會根據任務數覆寫 */
-  grid-auto-rows: minmax(min-content, 1fr);
-  gap: 10px;
-  overflow: hidden;
+  grid-template-columns: repeat(2, minmax(0, 1fr));  /* JS 會根據任務數覆寫 */
+  grid-auto-rows: minmax(300px, 1fr);
+  gap: 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;   /* 留一點空間給自繪捲軸的握把 */
 }
 
-/* 橫排卡片：圖在左，文字在右 */
+/* 直式卡片：圖在上，文字在下 */
 .task-card {
   display: flex;
-  flex-direction: row;
-  align-items: center;      /* body 相對圖片垂直置中 */
+  flex-direction: column;
+  align-items: stretch;
   background: var(--white);
   border-radius: var(--r);
   box-shadow: var(--sh);
-  border: 2.5px solid #EBEBEB;
+  border: 2px solid #EFEFEF;
   overflow: hidden;
   transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s;
 }
 .task-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: var(--sh-lg); }
 .task-icon { align-self: stretch; }   /* icon 彩色背景仍填滿卡片全高 */
 
-/* icon 區域：左側彩色背景 */
+/* icon 區域：上方彩色背景 */
 .task-icon {
-  flex: 0 0 38%;
+  flex: 1 1 46%;
+  min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  padding: 18px;
   overflow: hidden;
 }
 
 /* 每張卡片 icon 區用不同底色（nth-child 循環） */
-.tasks-grid .task-card:nth-child(6n+1) .task-icon { background:linear-gradient(150deg,#FFF3E8,#FFDAB9); }
-.tasks-grid .task-card:nth-child(6n+2) .task-icon { background:linear-gradient(150deg,#FFE8F2,#FFBCD9); }
-.tasks-grid .task-card:nth-child(6n+3) .task-icon { background:linear-gradient(150deg,#E8FFF5,#A8EDCA); }
-.tasks-grid .task-card:nth-child(6n+4) .task-icon { background:linear-gradient(150deg,#E8F4FF,#AACED9); }
-.tasks-grid .task-card:nth-child(6n+5) .task-icon { background:linear-gradient(150deg,#F3E8FF,#CEB0FA); }
-.tasks-grid .task-card:nth-child(6n+6) .task-icon { background:linear-gradient(150deg,#FFFAE8,#FFE97A); }
+.tasks-grid .task-card:nth-child(6n+1) .task-icon { background:linear-gradient(155deg,#FFF7F0,#FFE0C8); }
+.tasks-grid .task-card:nth-child(6n+2) .task-icon { background:linear-gradient(155deg,#FFF2F7,#FBD5E4); }
+.tasks-grid .task-card:nth-child(6n+3) .task-icon { background:linear-gradient(155deg,#F0FBF5,#CCEBDB); }
+.tasks-grid .task-card:nth-child(6n+4) .task-icon { background:linear-gradient(155deg,#F0F7FD,#CFE2F3); }
+.tasks-grid .task-card:nth-child(6n+5) .task-icon { background:linear-gradient(155deg,#F6F1FF,#DDCFF7); }
+.tasks-grid .task-card:nth-child(6n+6) .task-icon { background:linear-gradient(155deg,#FFFCF0,#F7E8BC); }
 
-/* 文字+按鈕區：右側 */
+/* 文字+按鈕區：下方 */
 .task-body {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
-  padding: 16px 20px 16px;
+  padding: 18px 20px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 10px;
-  border-left: 2px solid #F4F4F4;
+  justify-content: flex-start;
+  gap: 6px;
+  border-top: 2px solid #F4F4F4;
 }
 
 .task-title {
   margin: 0;
-  font-size: 2.6rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   font-family: "Nunito", "Microsoft JhengHei UI", "PingFang TC", sans-serif;
   line-height: 1.3;
   letter-spacing: 0.06em;
@@ -266,33 +269,34 @@ html, body {
 }
 .task-note {
   margin: 0;
-  font-size: 1.8rem;
-  color: #777;
+  font-size: 1.2rem;
+  color: #7A8494;
   font-weight: 700;
-  line-height: 1.8;
+  line-height: 1.65;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
 .task-ops {
   display: flex;
   flex-direction: column;   /* 垂直堆疊，每個按鈕全寬 */
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 .task-ops .btn {
   width: 100%;
-  font-size: 2rem;
-  padding: 32px 16px;
-  border-radius: 28px;
-  min-height: 100px;
+  font-size: 1.35rem;
+  padding: 14px 16px;
+  border-radius: 16px;
+  min-height: 58px;
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
 .task-ops .btn:active { transform: scale(0.95) !important; }
-.task-ops .start-btn  { background:linear-gradient(135deg,#3B9BF4,#5BC8F5); color:#fff; box-shadow:0 4px 14px rgba(59,155,244,.40); }
-.task-ops .done-btn   { background:#F2F2F2; color:#999; border:2px solid #E0E0E0; }
+.task-ops .start-btn  { background:linear-gradient(135deg,#3B9BF4,#5BC8F5); color:#fff; box-shadow:0 6px 18px rgba(59,155,244,.28); }
+.task-ops .done-btn   { background:#FFF; color:#9AA3B0; border:2px solid #E9ECF1; box-shadow:none; font-size:1.2rem; min-height:48px; padding:10px 16px; }
 
 /* 完成狀態 */
 .task-card.is-done { border-color:#2ECC9A; }
