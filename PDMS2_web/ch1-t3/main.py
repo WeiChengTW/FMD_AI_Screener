@@ -102,6 +102,11 @@ SIDE_ROI_H = _read_env_int("PDMS2_SIDE_ROI_H")
 # ================== 俯視圖 (TOP View) 分析 ==================
 CONF_TOP = 0.8
 
+# OFFSET_RATIO：判定「排列有對齊」的容忍度，相對於積木最長邊。
+# 中心點在 X 或 Y 其中一軸的標準差小於「積木最長邊 x 此比例」就算對齊。
+# 數值越大越寬鬆（原本寫死 1/8 = 0.125，對 3 歲小朋友太嚴）
+OFFSET_RATIO = 0.25
+
 def analyze_image_top(frame, model, initial_get_point=2):
     if TOP_ROI_W > 0 and TOP_ROI_H > 0:
         cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
@@ -146,22 +151,31 @@ def analyze_image_top(frame, model, initial_get_point=2):
                 rotate_ok_list.append(rotate_ok)
                 cv2.drawContours(cropped, [box], 0, (0, 255, 0) if rotate_ok else (0, 0, 255), 2)
 
-    offset = False
-    if len(centers) >= 2 and max_mask_side > 0:
-        threshold = max_mask_side // 8
-        offset = np.std([p[0] for p in centers]) < threshold or np.std([p[1] for p in centers]) < threshold
+    # === 暫時停用 offset(對齊) 判斷，只保留旋轉判斷 ===
+    # offset = False
+    # if len(centers) >= 2 and max_mask_side > 0:
+    #     threshold = max_mask_side * OFFSET_RATIO
+    #     std_x = np.std([p[0] for p in centers])
+    #     std_y = np.std([p[1] for p in centers])
+    #     offset = std_x < threshold or std_y < threshold
+    # print(f"[DEBUG] offset 檢查：積木最長邊={max_mask_side}, 容忍門檻={threshold:.2f} ({OFFSET_RATIO} 邊長), std_x={std_x:.2f}, std_y={std_y:.2f} -> {'對齊 OK' if offset else 'Offset NG'}", flush=True)
+    offset = True  # 停用中：一律視為對齊合格
 
     is_rotate_ng = not all(rotate_ok_list) if rotate_ok_list else False
     is_offset_ng = not offset
-    if is_offset_ng or is_rotate_ng: GET_POINT = 1
+    # if is_offset_ng or is_rotate_ng: GET_POINT = 1
+    if is_rotate_ng: GET_POINT = 1
     
-    summary = f"{'Offset !' if is_offset_ng else 'No Offset'} | {'Rotate !' if is_rotate_ng else 'No Rotate'}"
+    # summary = f"{'Offset !' if is_offset_ng else 'No Offset'} | {'Rotate !' if is_rotate_ng else 'No Rotate'}"
+    summary = f"{'Rotate !' if is_rotate_ng else 'No Rotate'}"
     cv2.putText(cropped, summary, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,0,255) if GET_POINT==1 else (0,0,0), 3)
     return cropped, summary, GET_POINT
 
 # ================== 側視圖 (SIDE View) 分析 ==================
 CONF_SIDE = 0.8
-GAP_THRESHOLD_RATIO = 0.85
+# GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
+# 注意：本關（階梯）有縫隙會扣分，此值調低會變嚴格（與 ch1-t2/t4 統一為 0.08）
+GAP_RATIO = 0.08
 
 def analyze_image_side(img_path, model):
     frame = cv2.imread(img_path)
@@ -214,9 +228,14 @@ def analyze_image_side(img_path, model):
             })
 
     layers = grouper.group_by_y(centroids, boxes=yolo_boxes)
-    avg_w = np.mean([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes) > 0 else 1.0
-    gap_checker = CheckGap(gap_threshold=GAP_THRESHOLD_RATIO*avg_w)
-    gap_pairs = gap_checker.check(layers)
+    # 用中位數而非平均，避免單一個偵測歪掉的框拉走整體寬度
+    avg_w = np.median([b[2]-b[0] for b in yolo_boxes]) if len(yolo_boxes) > 0 else 1.0
+    gap_checker = CheckGap(gap_ratio=GAP_RATIO)
+    gap_pairs = gap_checker.check(layers, avg_w)
+    if gap_pairs:
+        print(f"[DEBUG] 發現 {len(gap_pairs) // 2} 組縫隙，積木寬度: {avg_w:.2f}, 縫隙閾值: {GAP_RATIO * avg_w:.2f} ({GAP_RATIO:.2f} W)", flush=True)
+        for pair in gap_pairs[::2]:
+            print(f"[DEBUG]   縫隙寬 {pair[2]:.2f}px = {pair[2] / avg_w:.2f} W", flush=True)
     
     # 3. 為每一層隨機生成一種專屬顏色 (RGB)
     layer_colors = {}
