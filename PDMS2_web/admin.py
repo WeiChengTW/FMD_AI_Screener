@@ -1,7 +1,7 @@
 # run_admin.py
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from flask import Flask, send_from_directory, request, jsonify, session, redirect
+from flask import Flask, send_from_directory, request, jsonify, session, redirect, make_response
 import threading
 from datetime import datetime, date
 import os, queue
@@ -362,11 +362,8 @@ def view_compare():
         )
         cur_score = cur_row["score"] if cur_row else None
         cur_rater = (cur_row or {}).get("rater") or ""
-        labels = {0: "未達標準", 1: "部分達標", 2: "完全達標"}
         buttons = "".join(
-            f'<button class="m-btn m-{n}{" on" if cur_score == n else ""}" data-score="{n}">'
-            f'<span class="m-num">{n}</span><span class="m-label">{labels[n]}</span>'
-            f"</button>"
+            f'<button class="m-btn m-{n}{" on" if cur_score == n else ""}" data-score="{n}">{n}</button>'
             for n in (0, 1, 2)
         )
         state_text = (
@@ -377,6 +374,7 @@ def view_compare():
         manual_html = (
             f'<div class="manual-panel" data-rk="{row_key}">'
             f'<div class="manual-title">人工評分（PDMS-2）</div>'
+            f'<div class="manual-legend">0 未達標準　｜　1 部分達標　｜　2 完全達標</div>'
             f'<div class="manual-btns">{buttons}</div>'
             f'<div class="manual-state" id="manual-state">{state_text}</div>'
             f"</div>" + MANUAL_PANEL_JS
@@ -463,20 +461,18 @@ def view_compare():
             .box h3 {{ margin: 0 0 10px 0; color: #555; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }}
             img {{ max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #eee; }}
             .section-title {{ font-size: 18px; font-weight: bold; color: #2c3e50; margin: 10px 0; display: inline-block; background: #e0f2fe; padding: 5px 15px; border-radius: 20px; }}
-            .manual-panel {{ display: inline-block; margin-top: 36px; padding: 26px 40px; background: #fff; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.12); }}
-            .manual-title {{ font-size: 22px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; }}
-            .manual-btns {{ display: flex; gap: 24px; justify-content: center; }}
-            .m-btn {{ width: 150px; height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: inherit; cursor: pointer; border: 3px solid; border-radius: 18px; transition: transform 0.1s ease, box-shadow 0.1s ease; }}
-            .m-btn:hover {{ transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.16); }}
-            .m-num {{ font-size: 54px; font-weight: 900; line-height: 1; }}
-            .m-label {{ font-size: 17px; font-weight: 700; }}
-            .m-0 {{ background: #FFEEF2; border-color: #F0B8C6; color: #D04060; }}
-            .m-1 {{ background: #FFF3D6; border-color: #EBD08A; color: #B87800; }}
-            .m-2 {{ background: #E7F8F4; border-color: #9FDFD0; color: #0D9E85; }}
-            .m-0.on {{ background: #D04060; border-color: #A32B47; color: #fff; }}
-            .m-1.on {{ background: #B87800; border-color: #8F5D00; color: #fff; }}
-            .m-2.on {{ background: #0D9E85; border-color: #087A66; color: #fff; }}
-            .manual-state {{ margin-top: 18px; font-size: 16px; font-weight: 600; color: #555; }}
+            .manual-panel {{ max-width: 1200px; margin: 40px auto 30px; padding: 30px 40px 36px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); }}
+            .manual-title {{ font-size: 28px; font-weight: bold; color: #2c3e50; }}
+            .manual-legend {{ font-size: 18px; color: #777; margin: 8px 0 26px; }}
+            .manual-btns {{ display: flex; gap: 32px; justify-content: center; }}
+            .m-btn {{ flex: 1 1 0; min-width: 0; height: 220px; border-radius: 9999px; border: 8px solid transparent; color: #fff; font-family: inherit; font-size: 130px; font-weight: 900; line-height: 1; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; box-shadow: 0 6px 0 rgba(0,0,0,0.18); }}
+            .m-btn:hover {{ transform: translateY(-4px); }}
+            .m-btn:active {{ transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }}
+            .m-0 {{ background: #E8445F; }}
+            .m-1 {{ background: #EFA310; }}
+            .m-2 {{ background: #12B394; }}
+            .m-btn.on {{ border-color: #2c3e50; transform: scale(1.04); }}
+            .manual-state {{ margin-top: 24px; font-size: 18px; font-weight: 700; color: #2c3e50; }}
         </style>
     </head>
     <body>
@@ -487,7 +483,9 @@ def view_compare():
     </body>
     </html>
     """
-    return html
+    resp = make_response(html)
+    resp.headers["Cache-Control"] = "no-store, must-revalidate"
+    return resp
 
 
 # -------------------------
