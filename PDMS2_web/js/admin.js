@@ -12,6 +12,10 @@
       }
       userLevel = Number((js.user && js.user.level) || 0);
       if (userLevel < 3) document.getElementById('th-op')?.remove();
+      if (userLevel < 2) {
+        document.getElementById('th-manual')?.remove();
+        document.getElementById('th-diff')?.remove();
+      }
 
       // 按鈕文字隨身分調整：Level 2 開出來的是「新增受測者」，不是補登測驗成績
       const $btnAdd = document.getElementById('btn-add-record');
@@ -140,6 +144,16 @@
     }
   }
 
+  // 人工分數減 AI 分數：0 為一致，差 1 分黃、差 2 分紅，任一邊缺值就不比
+  function diffBadge(aiScore, manualScore) {
+    if (manualScore === null || manualScore === undefined) return '<span class="diff-badge diff-na" title="尚未人工評分">—</span>';
+    if (aiScore === null || aiScore === undefined || aiScore === -1) return '<span class="diff-badge diff-na" title="這次沒有有效的 AI 判讀結果">—</span>';
+    const d = manualScore - aiScore;
+    if (d === 0) return '<span class="diff-badge diff-same" title="AI 與人工評分一致">一致</span>';
+    const cls = Math.abs(d) === 1 ? 'diff-1' : 'diff-2';
+    return `<span class="diff-badge ${cls}" title="人工 ${manualScore} 分 − AI ${aiScore} 分">${d > 0 ? '+' : ''}${d}</span>`;
+  }
+
   function render() {
     if (!$tbody) return;
     let filtered = state.rows.filter(r =>
@@ -189,7 +203,7 @@
       }
     }
 
-    const colCount = userLevel === 3 ? 8 : 7;
+    const colCount = userLevel === 3 ? 10 : (userLevel === 2 ? 9 : 7);
     if (total === 0) {
       $tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">${state.historyDate ? '這天沒有測驗紀錄' : '目前沒有符合條件的測驗紀錄'}</td></tr>`;
       return;
@@ -213,6 +227,18 @@
         : sv === 1 ? '<span class="score-badge score-1" title="1 分：部分達標">1</span>'
         :            '<span class="score-badge score-2" title="2 分：完全達標">2</span>';
 
+      const mv = r.manual_score;
+      const scoreHref = `/manual-score?rk=${encodeURIComponent(r.row_key)}`;
+      const manualCell = (userLevel >= 2)
+        ? `<td>${(mv === null || mv === undefined)
+            ? `<a class="btn-view" href="${scoreHref}" target="_blank" title="開啟人工評分頁：只顯示原始照片，不顯示 AI 判讀結果">✎ 人工評分</a>`
+            : `<a class="score-badge score-${mv}" href="${scoreHref}" target="_blank" style="text-decoration:none;" title="人工評分 ${mv} 分，評分者 ${r.manual_rater || '—'}（點擊可改分）">${mv}</a>`}</td>`
+        : '';
+
+      const diffCell = (userLevel >= 2)
+        ? `<td>${diffBadge(sv, mv)}</td>`
+        : '';
+
       const imgCell = (r.compare_url || r.result_img_url)
         ? `<a href="${r.compare_url || r.result_img_url}" target="_blank" class="btn-view" title="開新分頁檢視這次測驗的原圖與 AI 判讀結果對比">🔍 檢視結果</a>`
         : '<span class="no-perm" title="這次測驗沒有留下結果圖">尚無圖片</span>';
@@ -224,6 +250,8 @@
           <td>${r.name || '—'}</td>
           <td style="font-weight:700;">${r.task_id || ''}</td>
           <td>${scoreCell}</td>
+          ${manualCell}
+          ${diffCell}
           <td style="font-weight:600; color:#7A6060;">${dateDisplay}</td>
           <td style="font-weight:600; color:#7A6060; font-variant-numeric:tabular-nums;">${timeDisplay}</td>
           <td>${imgCell}</td>
@@ -431,8 +459,28 @@
         es.onerror = () => { es.close(); setTimeout(connectSSE, 5000); };
       }
       connectSSE();
-      // 保留 60 秒保底輪詢，以防 SSE 連線中斷後靜默失敗
-      setInterval(reloadScores, 60 * 1000);
+
+      // 跨機器情境（例如在 Mac 拍照、這台看畫面）收不到 SSE，
+      // 改用輕量版本戳記輪詢：有變動才去重抓較重的 /scores。
+      let lastVersion = null;
+      let checking = false;
+      async function checkVersion() {
+        if (checking) return;
+        checking = true;
+        try {
+          const r = await fetch('/scores/version', { credentials: 'include' });
+          const js = await r.json();
+          if (js.ok) {
+            if (lastVersion !== null && js.version !== lastVersion) await reloadScores();
+            lastVersion = js.version;
+          }
+        } catch (e) {
+          console.error("版本檢查失敗", e);
+        } finally {
+          checking = false;
+        }
+      }
+      setInterval(checkVersion, 4000);
     }
   })();
 })();

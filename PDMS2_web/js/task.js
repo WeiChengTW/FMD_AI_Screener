@@ -44,6 +44,69 @@ async function getCurrentUid() {
 
 const SVG_ICONS = {
 
+  // 解鈕扣：披風敞開，鈕扣還縫在右門襟，左門襟只剩空扣眼
+  unbutton: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M66 86 C70 79 78 77 84 84 C79 89 72 84 66 86 Z" fill="#E8A94B" stroke="#3A2570" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M44 15 C34 17 26 22 22 29 C15 47 14 68 18 85 C23 89 28 83 33 87 C37 89 40 84 41 80 C39 58 40 33 44 15 Z" fill="#5A3FAE" stroke="#3A2570" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M53 15 C63 17 73 23 78 31 C85 49 87 70 84 85 C78 90 71 83 66 86 C61 89 57 84 56 80 C54 58 52 33 53 15 Z" fill="#7B5CD6" stroke="#3A2570" stroke-width="1.8" stroke-linejoin="round"/>
+    <g fill="none" stroke="#3A2570" stroke-width="1.1" opacity="0.28" stroke-linecap="round">
+      <path d="M30 33 C27 51 26 68 28 81"/>
+      <path d="M36 31 C34 51 34 68 35 79"/>
+      <path d="M70 34 C73 52 73 69 71 83"/>
+      <path d="M63 30 C64 52 63 69 62 81"/>
+    </g>
+    <path d="M44 15 C46 11 51 11 53 15 C51 19 46 19 44 15 Z" fill="#3A2570"/>
+    <g stroke="#3A2570" stroke-width="1.5" stroke-linecap="round" opacity="0.75">
+      <path d="M36 31 L36 38"/><path d="M35 51 L35 58"/><path d="M35 70 L35 77"/>
+    </g>
+    <g stroke="#8A6118" stroke-width="1.4">
+      <circle cx="62" cy="35" r="5.4" fill="#F2C244"/>
+      <circle cx="62" cy="55" r="5.4" fill="#F2C244"/>
+      <circle cx="61" cy="74" r="5.4" fill="#F2C244"/>
+    </g>
+    <g fill="#FFF0B8" opacity="0.85">
+      <path d="M59 32.6 C60 31.4 62 31.2 63.2 31.9 C61.4 31.9 60 32.6 59 33.8 Z"/>
+      <path d="M59 52.6 C60 51.4 62 51.2 63.2 51.9 C61.4 51.9 60 52.6 59 53.8 Z"/>
+      <path d="M58 71.6 C59 70.4 61 70.2 62.2 70.9 C60.4 70.9 59 71.6 58 72.8 Z"/>
+    </g>
+    <g fill="#8A6118">
+      <circle cx="60.4" cy="35" r="0.9"/><circle cx="63.6" cy="35" r="0.9"/>
+      <circle cx="60.4" cy="55" r="0.9"/><circle cx="63.6" cy="55" r="0.9"/>
+      <circle cx="59.4" cy="74" r="0.9"/><circle cx="62.6" cy="74" r="0.9"/>
+    </g>
+  </svg>`,
+
+  // 扣鈕扣：披風扣合垂順，最下面那顆鈕扣亮起來
+  button: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 86 C25 90 33 84 41 87 C34 81 24 79 18 86 Z" fill="#E8A94B" stroke="#3A2570" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M50 14 C40 15 28 21 24 29 C16 48 14 70 18 86 C25 90 33 84 41 87 C46 89 54 89 59 87 C67 84 75 90 82 86 C86 70 84 48 76 29 C72 21 60 15 50 14 Z" fill="#6B4FC4" stroke="#3A2570" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M50 16 C48 40 48 64 49 86" fill="none" stroke="#3A2570" stroke-width="1.2" opacity="0.45"/>
+    <g fill="none" stroke="#3A2570" stroke-width="1.1" opacity="0.26" stroke-linecap="round">
+      <path d="M31 32 C27 52 26 70 28 84"/>
+      <path d="M39 29 C37 52 37 70 38 85"/>
+      <path d="M69 32 C73 52 74 70 72 84"/>
+      <path d="M61 29 C63 52 63 70 62 85"/>
+    </g>
+    <path d="M50 14 C46 10 41 11 38 15 C42 18 47 18 50 16 Z" fill="#3A2570"/>
+    <path d="M50 14 C54 10 59 11 62 15 C58 18 53 18 50 16 Z" fill="#3A2570"/>
+    <circle cx="50" cy="73" r="13" fill="#FFF0B8" opacity="0.5"/>
+    <g stroke="#8A6118" stroke-width="1.4">
+      <circle cx="50" cy="36" r="5.4" fill="#F2C244"/>
+      <circle cx="50" cy="55" r="5.4" fill="#F2C244"/>
+      <circle cx="50" cy="73" r="6.2" fill="#FFDA5E"/>
+    </g>
+    <g fill="#FFF0B8" opacity="0.85">
+      <path d="M47 33.6 C48 32.4 50 32.2 51.2 32.9 C49.4 32.9 48 33.6 47 34.8 Z"/>
+      <path d="M47 52.6 C48 51.4 50 51.2 51.2 51.9 C49.4 51.9 48 52.6 47 53.8 Z"/>
+      <path d="M46.6 70.2 C47.7 68.9 50 68.7 51.4 69.5 C49.3 69.5 47.7 70.3 46.6 71.7 Z"/>
+    </g>
+    <g fill="#8A6118">
+      <circle cx="48.4" cy="36" r="0.9"/><circle cx="51.6" cy="36" r="0.9"/>
+      <circle cx="48.4" cy="55" r="0.9"/><circle cx="51.6" cy="55" r="0.9"/>
+      <circle cx="48.2" cy="73" r="1"/><circle cx="51.8" cy="73" r="1"/>
+    </g>
+  </svg>`,
+
   // 橋樑：增加拱形結構與水波紋，更有立體感
 
   bridge: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -743,6 +806,26 @@ const TASK_MAP = {
     img:"/video/ch5-t1.mp4",
 
     steps:[ "打開罐子", "一顆一顆放進去", "蓋緊蓋子" ]
+
+  },
+
+  "ch5-t2": { emoji:"unbutton", title:"解鈕扣：打開魔法披風",
+
+    desc:"把鈕扣條上的鈕扣解開，越快越好。",
+
+    img:"",
+
+    steps:[ "拿起鈕扣條", "把鈕扣一顆一顆解開", "三顆都解開就完成" ]
+
+  },
+
+  "ch5-t3": { emoji:"button", title:"扣鈕扣：穿上魔法披風",
+
+    desc:"把最下面的鈕扣扣好，越快越好。",
+
+    img:"",
+
+    steps:[ "拿起鈕扣條", "對準最下面的扣眼", "把鈕扣扣好" ]
 
   }
 

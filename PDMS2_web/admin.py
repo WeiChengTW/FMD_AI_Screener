@@ -1,7 +1,7 @@
 # run_admin.py
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from flask import Flask, send_from_directory, request, jsonify, session, redirect
+from flask import Flask, send_from_directory, request, jsonify, session, redirect, make_response
 import threading
 from datetime import datetime, date
 import os, queue
@@ -301,6 +301,165 @@ def images_files(filename):
     return send_from_directory(ROOT / "images", filename)
 
 
+# 人工評分面板的前端腳本（純字串，不做任何插值）
+MANUAL_PANEL_JS = """
+<script>
+(function () {
+  const panel = document.querySelector('.manual-panel');
+  if (!panel) return;
+  const state = document.getElementById('manual-state');
+  panel.querySelectorAll('.m-btn').forEach(b => b.addEventListener('click', async () => {
+    state.textContent = '儲存中...';
+    try {
+      const res = await fetch('/scores/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row_key: panel.dataset.rk, score: Number(b.dataset.score) })
+      });
+      const js = await res.json();
+      if (js.ok) {
+        panel.querySelectorAll('.m-btn').forEach(x => x.classList.remove('on'));
+        b.classList.add('on');
+        state.textContent = '已儲存：' + js.manual_score + ' 分（評分者 ' + js.manual_rater + '）';
+      } else {
+        state.textContent = '儲存失敗：' + (js.msg || '未知錯誤');
+      }
+    } catch (e) {
+      state.textContent = '儲存失敗：連線異常';
+    }
+  }));
+})();
+</script>
+"""
+
+
+@app.route("/manual-score")
+def manual_score_page():
+    """人工評分頁：只顯示原始照片，刻意不顯示 AI 判讀圖與 AI 分數，避免影響評分者判斷。"""
+    user = current_user()
+    if not user:
+        return "Unauthorized", 401
+    if user_level(user) < 2:
+        return "Forbidden", 403
+
+    row_key = request.args.get("rk", "")
+    parts = row_key.split("|", 3)
+    if len(parts) != 4 or not all(parts):
+        return "Missing rk", 400
+    uid, task_id, test_date, time_val = parts
+    if not can_access_uid(uid):
+        return "Forbidden", 403
+
+    table = task_id_to_table(task_id)
+    row = db_exec(
+        f"SELECT result_img_path FROM `{table}` WHERE uid=%s AND test_date=%s AND `time`=%s",
+        (uid, test_date, time_val),
+        fetch="one",
+    )
+    db_path = (row or {}).get("result_img_path") or ""
+    img_uid, filename = extract_uid_filename(db_path)
+    if img_uid and img_uid != uid:
+        filename = None
+
+    is_multi = task_id in {"Ch1-t2", "Ch1-t3", "Ch1-t4"}
+    if is_multi:
+        base = _extract_multi_view_base(filename, task_id) if filename else task_id
+        photos = [
+            ("側面視角", build_signed_image_url(uid, f"{base}-side.jpg")),
+            ("頂部視角", build_signed_image_url(uid, f"{base}-top.jpg")),
+        ]
+    else:
+        if filename:
+            stem, _ = os.path.splitext(filename)
+            for suffix in ("_detected", "_result"):
+                if stem.endswith(suffix):
+                    stem = stem[: -len(suffix)]
+                    break
+        else:
+            stem = task_id
+        photos = [("原始照片", build_signed_image_url(uid, f"{stem}.jpg"))]
+
+    photos_html = "".join(
+        f'<div class="box"><h3>{cap}</h3>'
+        f'<img src="{url}" onerror="this.onerror=null;this.src=&quot;/images/no_image.png&quot;;"></div>'
+        for cap, url in photos
+    )
+
+    cur_row = db_exec(
+        "SELECT score, rater FROM manual_score "
+        "WHERE uid=%s AND task_id=%s AND test_date=%s AND `time`=%s",
+        (uid, task_id, test_date, time_val),
+        fetch="one",
+    )
+    cur_score = cur_row["score"] if cur_row else None
+    cur_rater = (cur_row or {}).get("rater") or ""
+    buttons = "".join(
+        f'<button class="m-btn m-{n}{" on" if cur_score == n else ""}" data-score="{n}">{n}</button>'
+        for n in (0, 1, 2)
+    )
+    state_text = (
+        f"目前：{cur_score} 分（評分者 {cur_rater}）" if cur_score is not None else "尚未評分"
+    )
+
+    # 評完之後才給的入口，讓評分者自己決定要不要看 AI 判讀
+    compare_html = ""
+    if filename:
+        signed = build_signed_image_url(uid, filename)
+        compare_url = f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed, 'rk': row_key})}"
+        compare_html = f'<a class="compare-link" href="{compare_url}">評分完成後，檢視 AI 判讀結果對照 →</a>'
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <title>人工評分 - {uid} - {task_id}</title>
+        <style>
+            body {{ font-family: "Microsoft JhengHei", sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }}
+            h2 {{ color: #333; margin-bottom: 10px; }}
+            .sub-info {{ color: #666; margin-bottom: 24px; font-size: 0.95em; }}
+            .row {{ display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }}
+            .box {{ background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 45%; min-width: 300px; }}
+            .box h3 {{ margin: 0 0 10px 0; color: #555; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }}
+            img {{ max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #eee; }}
+            .back-link {{ position: fixed; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 9999px; background: #00B4D8; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; box-shadow: 0 4px 0 #0096B7; }}
+            .back-link:active {{ transform: translateY(2px); box-shadow: 0 2px 0 #0096B7; }}
+            .manual-panel {{ max-width: 1200px; margin: 30px auto 20px; padding: 30px 40px 36px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); }}
+            .manual-title {{ font-size: 28px; font-weight: bold; color: #2c3e50; }}
+            .manual-legend {{ font-size: 18px; color: #777; margin: 8px 0 26px; }}
+            .manual-btns {{ display: flex; gap: 32px; justify-content: center; }}
+            .m-btn {{ flex: 1 1 0; min-width: 0; height: 220px; border-radius: 9999px; border: 8px solid transparent; color: #fff; font-family: inherit; font-size: 130px; font-weight: 900; line-height: 1; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; box-shadow: 0 6px 0 rgba(0,0,0,0.18); }}
+            .m-btn:hover {{ transform: translateY(-4px); }}
+            .m-btn:active {{ transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }}
+            .m-0 {{ background: #E8445F; }}
+            .m-1 {{ background: #EFA310; }}
+            .m-2 {{ background: #12B394; }}
+            .m-btn.on {{ border-color: #2c3e50; transform: scale(1.04); }}
+            .manual-state {{ margin-top: 24px; font-size: 18px; font-weight: 700; color: #2c3e50; }}
+            .compare-link {{ display: inline-block; margin-bottom: 30px; color: #0096B7; font-size: 17px; font-weight: 700; }}
+        </style>
+    </head>
+    <body>
+        <a class="back-link" href="/html/admin.html">← 回到測驗紀錄總覽</a>
+        <h2>人工評分：{uid} / 關卡 {task_id}</h2>
+        <div class="sub-info">測驗時間 {test_date} {time_val}　｜　本頁不顯示 AI 判讀結果，請依 PDMS-2 量表自行評分</div>
+        <div class="row">{photos_html}</div>
+        <div class="manual-panel" data-rk="{row_key}">
+            <div class="manual-title">人工評分（PDMS-2）</div>
+            <div class="manual-legend">0 未達標準　｜　1 部分達標　｜　2 完全達標</div>
+            <div class="manual-btns">{buttons}</div>
+            <div class="manual-state" id="manual-state">{state_text}</div>
+        </div>
+        {compare_html}
+        {MANUAL_PANEL_JS}
+    </body>
+    </html>
+    """
+    resp = make_response(html)
+    resp.headers["Cache-Control"] = "no-store, must-revalidate"
+    return resp
+
+
 @app.route("/view-compare")
 def view_compare():
     user = current_user()
@@ -317,6 +476,7 @@ def view_compare():
         return "Forbidden", 403
 
     is_multi = task_id in {"Ch1-t2", "Ch1-t3", "Ch1-t4"}
+
 
     content_html = ""
     if is_multi:
@@ -398,16 +558,21 @@ def view_compare():
             .box h3 {{ margin: 0 0 10px 0; color: #555; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }}
             img {{ max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #eee; }}
             .section-title {{ font-size: 18px; font-weight: bold; color: #2c3e50; margin: 10px 0; display: inline-block; background: #e0f2fe; padding: 5px 15px; border-radius: 20px; }}
+            .back-link {{ position: fixed; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 9999px; background: #00B4D8; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; box-shadow: 0 4px 0 #0096B7; }}
+            .back-link:active {{ transform: translateY(2px); box-shadow: 0 2px 0 #0096B7; }}
         </style>
     </head>
     <body>
+        <a class="back-link" href="/html/admin.html">← 回到測驗紀錄總覽</a>
         <h2>使用者: {uid} / 關卡: {task_id}</h2>
         <div class=\"sub-info\">檢視模式: {"多視角" if is_multi else "單一視角"}</div>
         {content_html}
     </body>
     </html>
     """
-    return html
+    resp = make_response(html)
+    resp.headers["Cache-Control"] = "no-store, must-revalidate"
+    return resp
 
 
 # -------------------------
@@ -510,21 +675,28 @@ def list_scores():
         all_rows_raw = []
         db_tasks = db_exec("SELECT task_id, task_name FROM task_list", fetch="all") or []
         effective_map = {r["task_id"]: r["task_name"] for r in db_tasks} or TASK_MAP
+        # 17 張明細表併成一條 UNION ALL 一次撈完：跨機器查 DB 時往返次數才是瓶頸
+        sql_parts, params = [], []
         for task_id, table_name in effective_map.items():
             # 以任務明細表為主表：每次測驗都是獨立一筆，time 與 score 同源
-            sql = f"""
-                SELECT d.uid, u.name, %s AS task_id, t.task_name, d.score, d.result_img_path, d.test_date, d.time
+            part = f"""
+                SELECT d.uid, u.name, %s AS task_id, t.task_name, d.score, d.result_img_path, d.test_date, d.time,
+                       ms.score AS manual_score, ms.rater AS manual_rater
                 FROM `{table_name}` AS d
                 JOIN user_list AS u ON u.uid = d.uid
                 JOIN task_list AS t ON t.task_id = %s
+                LEFT JOIN manual_score AS ms
+                       ON ms.uid = d.uid AND ms.task_id = %s
+                      AND ms.test_date = d.test_date AND ms.time = d.time
                 WHERE 1 = 1
             """
-            params = [task_id, task_id]
+            params += [task_id, task_id, task_id]
             if level == 1:  # 🔐 家長過濾：帳號與 UID 綁定
-                sql += " AND d.uid = %s"
+                part += " AND d.uid = %s"
                 params.append(account)
-            rows = db_exec(sql, tuple(params), fetch="all") or []
-            all_rows_raw.extend(rows)
+            sql_parts.append(part)
+        if sql_parts:
+            all_rows_raw = db_exec(" UNION ALL ".join(sql_parts), tuple(params), fetch="all") or []
 
         def _date_to_str(rows):
             for r in rows or []:
@@ -558,7 +730,7 @@ def list_scores():
                 signed_img = build_signed_image_url(uid, img_filename)
                 r["result_img_url"] = signed_img
                 r["compare_url"] = (
-                    f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed_img})}"
+                    f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed_img, 'rk': r['row_key']})}"
                 )
             else:
                 r["result_img_url"] = None
@@ -575,7 +747,51 @@ def list_scores():
         )
         return jsonify(rows)
     except Exception as e:
+        write_to_console(f"[ERR] GET /scores\n{traceback.format_exc()}", "ERROR")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.get("/scores/version")
+def scores_version():
+    """輕量版本戳記：只做 COUNT/MAX/SUM，供前端輪詢判斷要不要重抓 /scores。"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"ok": False, "msg": "尚未登入"}), 401
+        level, account = int(user.get("level") or 0), user.get("account")
+        db_tasks = db_exec("SELECT task_id, task_name FROM task_list", fetch="all") or []
+        effective_map = {r["task_id"]: r["task_name"] for r in db_tasks} or TASK_MAP
+        # 17 張明細表併成一次 UNION ALL，避免每張表各一次連線往返
+        parts, params = [], []
+        for table_name in effective_map.values():
+            part = (
+                "SELECT COUNT(*) AS c, MAX(CONCAT(d.test_date, ' ', d.time)) AS m, "
+                f"COALESCE(SUM(d.score), 0) AS s FROM `{table_name}` AS d WHERE 1 = 1"
+            )
+            if level == 1:
+                part += " AND d.uid = %s"
+                params.append(account)
+            parts.append(part)
+        # 人工評分也要進版本戳記，否則同事剛評的分數在別台不會自動出現
+        manual_part = (
+            "SELECT COUNT(*) AS c, MAX(updated_at) AS m, COALESCE(SUM(score), 0) AS s "
+            "FROM manual_score WHERE 1 = 1"
+        )
+        if level == 1:
+            manual_part += " AND uid = %s"
+            params.append(account)
+        parts.append(manual_part)
+        rows = db_exec(" UNION ALL ".join(parts), tuple(params), fetch="all") or []
+        total, latest, score_sum = 0, "", 0
+        for row in rows:
+            total += int(row.get("c") or 0)
+            score_sum += float(row.get("s") or 0)
+            m = row.get("m")
+            if m and str(m) > latest:
+                latest = str(m)
+        return jsonify({"ok": True, "version": f"{total}|{latest}|{score_sum}"})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
 
 
 @app.get("/users")
@@ -685,6 +901,45 @@ def upsert_score():
         )
 
         return jsonify({"ok": True, "msg": "紀錄已更新"})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
+@app.post("/scores/manual")
+def upsert_manual_score():
+    """醫療人員對某一次測驗的人工評分（0/1/2），與 AI 分數分開存，互不覆蓋。"""
+    try:
+        user = current_user()
+        if user_level(user) < 2:
+            return jsonify({"ok": False, "msg": "只有醫療人員(等級2)以上可以人工評分"}), 403
+
+        data = request.get_json() or {}
+        row_key = (data.get("row_key") or "").strip()
+        parts = row_key.split("|", 3)
+        if len(parts) != 4 or not all(parts):
+            return jsonify({"ok": False, "msg": "row_key 格式錯誤"}), 400
+        uid, task_id, test_date, time_val = parts
+
+        try:
+            score = int(data.get("score"))
+        except (TypeError, ValueError):
+            score = -1
+        if score not in (0, 1, 2):
+            return jsonify({"ok": False, "msg": "分數只能是 0 / 1 / 2"}), 400
+
+        if not can_access_uid(uid):
+            return jsonify({"ok": False, "msg": "權限不足"}), 403
+        task_id_to_table(task_id)  # 驗證 task_id 存在，未知會丟 ValueError
+
+        rater = str(user.get("account") or "").strip()
+        db_exec(
+            "INSERT INTO manual_score (uid, task_id, test_date, `time`, rater, score) "
+            "VALUES (%s, %s, %s, %s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE score = VALUES(score), rater = VALUES(rater)",
+            (uid, task_id, test_date, time_val, rater, score),
+        )
+        _broadcast_score_updated()
+        return jsonify({"ok": True, "manual_score": score, "manual_rater": rater})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 

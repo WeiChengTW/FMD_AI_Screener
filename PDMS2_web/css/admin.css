@@ -234,6 +234,23 @@ select:focus, input:focus {
 .score-na { background: #F2F2F2; color: #C0C0C0; }
 .no-perm  { color: #DDDDDD; font-size: clamp(13px, 1.3vw, 16px); }
 
+/* AI 與人工的差異 */
+.diff-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 32px;
+  border-radius: 16px;
+  padding: 0 10px;
+  font-weight: 800;
+  font-size: clamp(13px, 1.3vw, 17px);
+}
+.diff-same { background: #E7F8F4; color: #0D9E85; }
+.diff-1    { background: #FFF3D6; color: #B87800; }
+.diff-2    { background: #FFEEF2; color: #D04060; }
+.diff-na   { background: #F2F2F2; color: #C0C0C0; }
+
 /* 檢視按鈕 */
 .btn-view {
   display: inline-flex;

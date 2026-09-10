@@ -80,7 +80,12 @@ const ID_TO_META = {
   "ch4-t1": {icon:"/images/fold1.jpg", title:"摺紙一摺：變出小飛毯"},
   "ch4-t2": {icon:"/images/fold2.jpg", title:"摺紙兩摺：更結實的飛毯"},
   "ch5-t1": {icon:"/images/beans.jpg", title:"豆豆裝罐子：完成任務"},
+  "ch5-t2": {icon:"/images/icons/ch5_unbutton.svg", title:"解鈕扣：打開魔法披風"},
+  "ch5-t3": {icon:"/images/icons/ch5_button.svg", title:"扣鈕扣：穿上魔法披風"},
 };
+
+// 鈕扣關：錄影而不是拍照
+const BUTTON_TASKS = ["ch5-t2", "ch5-t3"];
 
 const els = {
   taskIcon: document.getElementById("taskIcon"),
@@ -112,7 +117,7 @@ const TASK_ORDER = [
   "ch2-t1","ch2-t2","ch2-t3","ch2-t4","ch2-t5","ch2-t6",
   "ch3-t1","ch3-t2","ch3-t3","ch3-t4",
   "ch4-t1","ch4-t2",
-  "ch5-t1"
+  "ch5-t1","ch5-t2","ch5-t3"
 ];
 
 function goNext() {
@@ -154,6 +159,8 @@ function updateStatus(message, type = 'info') {
     if (els.placeholderText) {
       els.placeholderText.textContent = '遊戲準備中...';
     }
+  } else if (BUTTON_TASKS.includes(id)) {
+    els.shotBtn.textContent = "開始錄影";
   } else {
       els.shotBtn.textContent = "🎞️ 拍照、存檔並進下一關"; 
   }
@@ -503,11 +510,65 @@ async function closeCamera() {
   }
 }
 
+// 鈕扣關：開始錄影
+async function startRecording() {
+  try {
+    const uid = await getUid() || 'default';
+    updateStatus('正在開始錄影...', 'loading');
+    const response = await fetch('/opencv-camera/record/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: id, uid: uid })
+    });
+    const result = await response.json();
+    if (!result.success) {
+      updateStatus(`開始錄影失敗：${result.error || ''}`, 'error');
+      return;
+    }
+    els.shotBtn.style.display = 'none';
+    els.stopBtn.style.display = 'inline-block';
+    updateStatus('錄影中...', 'info');
+  } catch (err) {
+    console.error('開始錄影失敗:', err);
+    updateStatus('開始錄影失敗', 'error');
+  }
+}
+
+// 鈕扣關：停止錄影並關閉相機
+async function stopRecording() {
+  try {
+    els.stopBtn.disabled = true;
+    updateStatus('正在存檔...', 'loading');
+    const response = await fetch('/opencv-camera/record/stop', { method: 'POST' });
+    const result = await response.json();
+    await closeCamera();
+    if (result.success) {
+      updateStatus(`錄影完成：${result.filename}`, 'success');
+    } else {
+      updateStatus(`停止錄影失敗：${result.error || ''}`, 'error');
+    }
+  } catch (err) {
+    console.error('停止錄影失敗:', err);
+    updateStatus('停止錄影失敗', 'error');
+  } finally {
+    els.stopBtn.disabled = false;
+  }
+}
+
 function shotBtnClickHandler() {
+    if (BUTTON_TASKS.includes(id)) {
+      startRecording();
+      return;
+    }
     takeShot(); 
 }
 
 els.shotBtn.addEventListener("click", shotBtnClickHandler);
+if (els.stopBtn) {
+  els.stopBtn.addEventListener("click", () => {
+    if (BUTTON_TASKS.includes(id)) stopRecording();
+  });
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   cameraSetting = await loadCameraSetting();
