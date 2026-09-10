@@ -333,6 +333,133 @@ MANUAL_PANEL_JS = """
 """
 
 
+@app.route("/manual-score")
+def manual_score_page():
+    """人工評分頁：只顯示原始照片，刻意不顯示 AI 判讀圖與 AI 分數，避免影響評分者判斷。"""
+    user = current_user()
+    if not user:
+        return "Unauthorized", 401
+    if user_level(user) < 2:
+        return "Forbidden", 403
+
+    row_key = request.args.get("rk", "")
+    parts = row_key.split("|", 3)
+    if len(parts) != 4 or not all(parts):
+        return "Missing rk", 400
+    uid, task_id, test_date, time_val = parts
+    if not can_access_uid(uid):
+        return "Forbidden", 403
+
+    table = task_id_to_table(task_id)
+    row = db_exec(
+        f"SELECT result_img_path FROM `{table}` WHERE uid=%s AND test_date=%s AND `time`=%s",
+        (uid, test_date, time_val),
+        fetch="one",
+    )
+    db_path = (row or {}).get("result_img_path") or ""
+    img_uid, filename = extract_uid_filename(db_path)
+    if img_uid and img_uid != uid:
+        filename = None
+
+    is_multi = task_id in {"Ch1-t2", "Ch1-t3", "Ch1-t4"}
+    if is_multi:
+        base = _extract_multi_view_base(filename, task_id) if filename else task_id
+        photos = [
+            ("側面視角", build_signed_image_url(uid, f"{base}-side.jpg")),
+            ("頂部視角", build_signed_image_url(uid, f"{base}-top.jpg")),
+        ]
+    else:
+        if filename:
+            stem, _ = os.path.splitext(filename)
+            for suffix in ("_detected", "_result"):
+                if stem.endswith(suffix):
+                    stem = stem[: -len(suffix)]
+                    break
+        else:
+            stem = task_id
+        photos = [("原始照片", build_signed_image_url(uid, f"{stem}.jpg"))]
+
+    photos_html = "".join(
+        f'<div class="box"><h3>{cap}</h3>'
+        f'<img src="{url}" onerror="this.onerror=null;this.src=&quot;/images/no_image.png&quot;;"></div>'
+        for cap, url in photos
+    )
+
+    cur_row = db_exec(
+        "SELECT score, rater FROM manual_score "
+        "WHERE uid=%s AND task_id=%s AND test_date=%s AND `time`=%s",
+        (uid, task_id, test_date, time_val),
+        fetch="one",
+    )
+    cur_score = cur_row["score"] if cur_row else None
+    cur_rater = (cur_row or {}).get("rater") or ""
+    buttons = "".join(
+        f'<button class="m-btn m-{n}{" on" if cur_score == n else ""}" data-score="{n}">{n}</button>'
+        for n in (0, 1, 2)
+    )
+    state_text = (
+        f"目前：{cur_score} 分（評分者 {cur_rater}）" if cur_score is not None else "尚未評分"
+    )
+
+    # 評完之後才給的入口，讓評分者自己決定要不要看 AI 判讀
+    compare_html = ""
+    if filename:
+        signed = build_signed_image_url(uid, filename)
+        compare_url = f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed, 'rk': row_key})}"
+        compare_html = f'<a class="compare-link" href="{compare_url}">評分完成後，檢視 AI 判讀結果對照 →</a>'
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <title>人工評分 - {uid} - {task_id}</title>
+        <style>
+            body {{ font-family: "Microsoft JhengHei", sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }}
+            h2 {{ color: #333; margin-bottom: 10px; }}
+            .sub-info {{ color: #666; margin-bottom: 24px; font-size: 0.95em; }}
+            .row {{ display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }}
+            .box {{ background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 45%; min-width: 300px; }}
+            .box h3 {{ margin: 0 0 10px 0; color: #555; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }}
+            img {{ max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #eee; }}
+            .back-link {{ position: fixed; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 9999px; background: #00B4D8; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; box-shadow: 0 4px 0 #0096B7; }}
+            .back-link:active {{ transform: translateY(2px); box-shadow: 0 2px 0 #0096B7; }}
+            .manual-panel {{ max-width: 1200px; margin: 30px auto 20px; padding: 30px 40px 36px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); }}
+            .manual-title {{ font-size: 28px; font-weight: bold; color: #2c3e50; }}
+            .manual-legend {{ font-size: 18px; color: #777; margin: 8px 0 26px; }}
+            .manual-btns {{ display: flex; gap: 32px; justify-content: center; }}
+            .m-btn {{ flex: 1 1 0; min-width: 0; height: 220px; border-radius: 9999px; border: 8px solid transparent; color: #fff; font-family: inherit; font-size: 130px; font-weight: 900; line-height: 1; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; box-shadow: 0 6px 0 rgba(0,0,0,0.18); }}
+            .m-btn:hover {{ transform: translateY(-4px); }}
+            .m-btn:active {{ transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }}
+            .m-0 {{ background: #E8445F; }}
+            .m-1 {{ background: #EFA310; }}
+            .m-2 {{ background: #12B394; }}
+            .m-btn.on {{ border-color: #2c3e50; transform: scale(1.04); }}
+            .manual-state {{ margin-top: 24px; font-size: 18px; font-weight: 700; color: #2c3e50; }}
+            .compare-link {{ display: inline-block; margin-bottom: 30px; color: #0096B7; font-size: 17px; font-weight: 700; }}
+        </style>
+    </head>
+    <body>
+        <a class="back-link" href="/html/admin.html">← 回到測驗紀錄總覽</a>
+        <h2>人工評分：{uid} / 關卡 {task_id}</h2>
+        <div class="sub-info">測驗時間 {test_date} {time_val}　｜　本頁不顯示 AI 判讀結果，請依 PDMS-2 量表自行評分</div>
+        <div class="row">{photos_html}</div>
+        <div class="manual-panel" data-rk="{row_key}">
+            <div class="manual-title">人工評分（PDMS-2）</div>
+            <div class="manual-legend">0 未達標準　｜　1 部分達標　｜　2 完全達標</div>
+            <div class="manual-btns">{buttons}</div>
+            <div class="manual-state" id="manual-state">{state_text}</div>
+        </div>
+        {compare_html}
+        {MANUAL_PANEL_JS}
+    </body>
+    </html>
+    """
+    resp = make_response(html)
+    resp.headers["Cache-Control"] = "no-store, must-revalidate"
+    return resp
+
+
 @app.route("/view-compare")
 def view_compare():
     user = current_user()
@@ -349,36 +476,6 @@ def view_compare():
         return "Forbidden", 403
 
     is_multi = task_id in {"Ch1-t2", "Ch1-t3", "Ch1-t4"}
-
-    # 人工評分面板：醫療人員(等級2)以上、且由明細表帶了 rk(row_key) 進來才出現
-    manual_html = ""
-    row_key = request.args.get("rk", "")
-    if user_level(user) >= 2 and row_key.count("|") == 3 and all(row_key.split("|", 3)):
-        cur_row = db_exec(
-            "SELECT score, rater FROM manual_score "
-            "WHERE uid=%s AND task_id=%s AND test_date=%s AND `time`=%s",
-            tuple(row_key.split("|", 3)),
-            fetch="one",
-        )
-        cur_score = cur_row["score"] if cur_row else None
-        cur_rater = (cur_row or {}).get("rater") or ""
-        buttons = "".join(
-            f'<button class="m-btn m-{n}{" on" if cur_score == n else ""}" data-score="{n}">{n}</button>'
-            for n in (0, 1, 2)
-        )
-        state_text = (
-            f"目前：{cur_score} 分（評分者 {cur_rater}）"
-            if cur_score is not None
-            else "尚未評分"
-        )
-        manual_html = (
-            f'<div class="manual-panel" data-rk="{row_key}">'
-            f'<div class="manual-title">人工評分（PDMS-2）</div>'
-            f'<div class="manual-legend">0 未達標準　｜　1 部分達標　｜　2 完全達標</div>'
-            f'<div class="manual-btns">{buttons}</div>'
-            f'<div class="manual-state" id="manual-state">{state_text}</div>'
-            f"</div>" + MANUAL_PANEL_JS
-        )
 
 
     content_html = ""
@@ -461,25 +558,15 @@ def view_compare():
             .box h3 {{ margin: 0 0 10px 0; color: #555; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }}
             img {{ max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #eee; }}
             .section-title {{ font-size: 18px; font-weight: bold; color: #2c3e50; margin: 10px 0; display: inline-block; background: #e0f2fe; padding: 5px 15px; border-radius: 20px; }}
-            .manual-panel {{ max-width: 1200px; margin: 40px auto 30px; padding: 30px 40px 36px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.14); }}
-            .manual-title {{ font-size: 28px; font-weight: bold; color: #2c3e50; }}
-            .manual-legend {{ font-size: 18px; color: #777; margin: 8px 0 26px; }}
-            .manual-btns {{ display: flex; gap: 32px; justify-content: center; }}
-            .m-btn {{ flex: 1 1 0; min-width: 0; height: 220px; border-radius: 9999px; border: 8px solid transparent; color: #fff; font-family: inherit; font-size: 130px; font-weight: 900; line-height: 1; cursor: pointer; transition: transform 0.1s ease, box-shadow 0.1s ease; box-shadow: 0 6px 0 rgba(0,0,0,0.18); }}
-            .m-btn:hover {{ transform: translateY(-4px); }}
-            .m-btn:active {{ transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }}
-            .m-0 {{ background: #E8445F; }}
-            .m-1 {{ background: #EFA310; }}
-            .m-2 {{ background: #12B394; }}
-            .m-btn.on {{ border-color: #2c3e50; transform: scale(1.04); }}
-            .manual-state {{ margin-top: 24px; font-size: 18px; font-weight: 700; color: #2c3e50; }}
+            .back-link {{ position: fixed; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 9999px; background: #00B4D8; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; box-shadow: 0 4px 0 #0096B7; }}
+            .back-link:active {{ transform: translateY(2px); box-shadow: 0 2px 0 #0096B7; }}
         </style>
     </head>
     <body>
+        <a class="back-link" href="/html/admin.html">← 回到測驗紀錄總覽</a>
         <h2>使用者: {uid} / 關卡: {task_id}</h2>
         <div class=\"sub-info\">檢視模式: {"多視角" if is_multi else "單一視角"}</div>
         {content_html}
-        {manual_html}
     </body>
     </html>
     """
@@ -588,9 +675,11 @@ def list_scores():
         all_rows_raw = []
         db_tasks = db_exec("SELECT task_id, task_name FROM task_list", fetch="all") or []
         effective_map = {r["task_id"]: r["task_name"] for r in db_tasks} or TASK_MAP
+        # 17 張明細表併成一條 UNION ALL 一次撈完：跨機器查 DB 時往返次數才是瓶頸
+        sql_parts, params = [], []
         for task_id, table_name in effective_map.items():
             # 以任務明細表為主表：每次測驗都是獨立一筆，time 與 score 同源
-            sql = f"""
+            part = f"""
                 SELECT d.uid, u.name, %s AS task_id, t.task_name, d.score, d.result_img_path, d.test_date, d.time,
                        ms.score AS manual_score, ms.rater AS manual_rater
                 FROM `{table_name}` AS d
@@ -601,12 +690,13 @@ def list_scores():
                       AND ms.test_date = d.test_date AND ms.time = d.time
                 WHERE 1 = 1
             """
-            params = [task_id, task_id, task_id]
+            params += [task_id, task_id, task_id]
             if level == 1:  # 🔐 家長過濾：帳號與 UID 綁定
-                sql += " AND d.uid = %s"
+                part += " AND d.uid = %s"
                 params.append(account)
-            rows = db_exec(sql, tuple(params), fetch="all") or []
-            all_rows_raw.extend(rows)
+            sql_parts.append(part)
+        if sql_parts:
+            all_rows_raw = db_exec(" UNION ALL ".join(sql_parts), tuple(params), fetch="all") or []
 
         def _date_to_str(rows):
             for r in rows or []:
@@ -657,6 +747,7 @@ def list_scores():
         )
         return jsonify(rows)
     except Exception as e:
+        write_to_console(f"[ERR] GET /scores\n{traceback.format_exc()}", "ERROR")
         return jsonify({"success": False, "error": str(e)}), 500
 
 

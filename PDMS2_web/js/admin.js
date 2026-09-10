@@ -228,10 +228,11 @@
         :            '<span class="score-badge score-2" title="2 分：完全達標">2</span>';
 
       const mv = r.manual_score;
+      const scoreHref = `/manual-score?rk=${encodeURIComponent(r.row_key)}`;
       const manualCell = (userLevel >= 2)
         ? `<td>${(mv === null || mv === undefined)
-            ? '<span class="score-badge score-na" title="醫療人員尚未評分，請由「檢視結果」進入評分">—</span>'
-            : `<span class="score-badge score-${mv}" title="人工評分 ${mv} 分，評分者 ${r.manual_rater || '—'}">${mv}</span>`}</td>`
+            ? `<a class="btn-view" href="${scoreHref}" target="_blank" title="開啟人工評分頁：只顯示原始照片，不顯示 AI 判讀結果">✎ 人工評分</a>`
+            : `<a class="score-badge score-${mv}" href="${scoreHref}" target="_blank" style="text-decoration:none;" title="人工評分 ${mv} 分，評分者 ${r.manual_rater || '—'}（點擊可改分）">${mv}</a>`}</td>`
         : '';
 
       const diffCell = (userLevel >= 2)
