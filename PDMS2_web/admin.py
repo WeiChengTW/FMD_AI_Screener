@@ -855,6 +855,33 @@ def api_add_user():
         return jsonify({"ok": False, "msg": str(e)}), 500
 
 
+# 送出前確認用：讓前端先知道這個 uid 是新增還是覆蓋既有受測者
+@app.get("/api/user/lookup")
+def api_user_lookup():
+    try:
+        if int(session.get("user", {}).get("level", 0)) < 2:
+            return jsonify({"ok": False, "msg": "權限不足"}), 403
+        uid = request.args.get("uid", "").strip()
+        if not uid:
+            return jsonify({"ok": False, "msg": "UID 不可為空"}), 400
+        row = db_exec(
+            "SELECT name, birthday FROM user_list WHERE uid=%s", (uid,), fetch="one"
+        )
+        if not row:
+            return jsonify({"ok": True, "exists": False})
+        bd = row.get("birthday")
+        return jsonify(
+            {
+                "ok": True,
+                "exists": True,
+                "name": row.get("name") or "",
+                "birthday": bd.isoformat() if isinstance(bd, (date, datetime)) else (bd or ""),
+            }
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
 # 🔐 Level 3 專用：手動修改紀錄
 @app.post("/scores/upsert")
 def upsert_score():

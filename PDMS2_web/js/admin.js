@@ -301,6 +301,37 @@
       const task_id = $f_level ? $f_level.value : '';
       if (!uid) return alert('系統提示：請務必填寫受測者編號 (UID)');
 
+
+      // 送出前確認：uid 是主鍵又連著家長帳號，打錯事後幾乎救不回來
+      if (userLevel === 2) {
+        const nameVal = $f_name.value.trim();
+        const bdVal = $f_birthday?.value || '';
+        let info = { exists: false };
+        try {
+          const lr = await fetch('/api/user/lookup?uid=' + encodeURIComponent(uid), { credentials: 'include' });
+          info = await lr.json().catch(() => ({ exists: false }));
+        } catch (err) { info = { exists: false }; }
+
+        const lines = [
+          '請確認以下資料無誤：', '',
+          '受測者編號：' + uid,
+          '姓名：' + (nameVal || '(未填)'),
+          '出生日期：' + (bdVal || '(未填)'), ''
+        ];
+        if (info.exists) {
+          lines.push('【注意】這個編號已經有資料，送出會覆蓋成上面的內容。');
+          lines.push('原姓名：' + (info.name || '(空白)'));
+          lines.push('原出生日期：' + (info.birthday || '(空白)'));
+          if (bdVal && info.birthday && bdVal !== info.birthday) {
+            lines.push('');
+            lines.push('出生日期有異動，家長的登入密碼會一併改成新的出生日期。');
+          }
+        } else {
+          lines.push('這個編號目前不存在，送出會建立一位新的受測者。');
+          lines.push('編號送出後無法修改，請再確認一次是否正確。');
+        }
+        if (!confirm(lines.join('\n'))) return;
+      }
       const btnSave = e.target;
       const originalText = btnSave.textContent;
       btnSave.textContent = '資料處理中...';
