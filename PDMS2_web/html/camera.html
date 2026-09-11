@@ -136,6 +136,14 @@
         <div id="placeholderText" style="color:#666; text-align:center; line-height:400px;">
           等等相機畫面會顯示在這裡 ~
         </div>
+        <div id="goBanner"
+          style="display: none; margin-top: 24px; text-align: center; color: #2f9e44; font-size: 64px; font-weight: 900; letter-spacing: 4px;">
+          開始了！
+        </div>
+        <div id="doneBanner"
+          style="display: none; margin-top: 24px; text-align: center; color: #f59f00; font-size: 64px; font-weight: 900; letter-spacing: 4px;">
+          完成了，你真棒
+        </div>
         <div id="gameInfo"
           style="display: none; margin-top: 30px; text-align: center; font-size: 32px; font-weight: bold;">
           <p>豆豆數量：<span id="beanCount" style="color: #ff6b6b; font-size: 56px;">0</span> / <span id="targetBeanCount"
@@ -155,7 +163,10 @@
     <a id="backLink" href="/html/index.html" class="btn ghost pill">← 先回主頁</a>
   </div>
 
-  <script src="/js/camera.js?v=1" defer></script>
+  <!-- Ch5-t1 開始時的提示語音 -->
+  <audio id="startVoice" src="/voice_guide/ch5-t1_start.mp3" preload="auto"></audio>
+
+  <script src="/js/camera.js?v=5" defer></script>
   <script src="/js/custom-scrollbar.js"></script>
 </body>
 

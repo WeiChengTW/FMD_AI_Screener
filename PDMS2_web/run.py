@@ -1493,22 +1493,37 @@ def run_analysis_in_background(
             if timed_out:
                 raise TimeoutError("Ch5-t1 遊戲執行逾時（600 秒）")
 
-            score = returncode if returncode in (0, 1, 2) else 0
-            write_to_console(f"[Ch5-t1] 遊戲完成，分數: {score}", "INFO")
-            
-            # 從狀態 JSON 讀取確認分數
+            # 分數只認 main.py 印出的結果摘要或狀態檔，不看 exit code。
+            # 子程序崩潰時 exit code 會是 1，跟「得 1 分」長得一樣，不能當分數用。
             state_file = ROOT / "kid" / uid / "Ch5-t1_state.json"
-            final_score = score
             state = {}
             if state_file.exists():
                 try:
                     with open(state_file, "r", encoding="utf-8") as f:
                         state = json.load(f)
-                        if state.get("score", -1) >= 0:
-                            final_score = state["score"]
-                            write_to_console(f"[Ch5-t1] 從狀態檔讀取分數: {final_score}", "INFO")
                 except Exception as e:
                     write_to_console(f"[Ch5-t1] 讀取狀態檔失敗: {e}", "WARN")
+
+            final_score = -1
+            score_source = None
+            if isinstance(summary.get("score"), int):
+                final_score = summary["score"]
+                score_source = "結果摘要"
+            elif isinstance(state.get("score"), int):
+                final_score = state["score"]
+                score_source = "狀態檔"
+
+            if final_score >= 0:
+                write_to_console(
+                    f"[Ch5-t1] 遊戲完成，分數: {final_score}（來源：{score_source}）", "INFO"
+                )
+            else:
+                fail_reason = (
+                    summary.get("end_reason")
+                    or state.get("error")
+                    or f"未取得有效分數（exit code={returncode}）"
+                )
+                write_to_console(f"[Ch5-t1] 執行失敗：{fail_reason}", "ERROR")
             
             # 這一刻的日期時間同時用於 DB 與大 JSON，之後才抓得回同一筆
             now = datetime.now()
@@ -1543,6 +1558,10 @@ def run_analysis_in_background(
                 )
             except Exception as e:
                 write_to_console(f"[Ch5-t1] 寫入紀錄檔失敗: {e}", "ERROR")
+
+            # 沒有有效分數就中止：紀錄檔已留存，但不可以寫進 DB
+            if final_score < 0:
+                raise RuntimeError(f"Ch5-t1 執行失敗：{fail_reason}")
 
             # 寫入 DB
             try:
@@ -2160,8 +2179,10 @@ def get_game_state(uid):
         state_file = ROOT / "kid" / uid / "Ch5-t1_state.json"
         if not state_file.exists():
             return jsonify({"success": False, "error": "狀態檔案不存在"}), 404
-        with open(state_file, "r", encoding="utf-8") as f:
-            state = json.load(f)
+        # 盡快放掉檔案 handle 再解析：Windows 上只要這個檔被開著，
+        # 遊戲端的 os.replace 就會失敗（WinError 5）
+        raw = state_file.read_bytes()
+        state = json.loads(raw.decode("utf-8"))
         return jsonify({"success": True, "state": state})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -2178,6 +2199,7 @@ def clear_game_state():
         state_file = ROOT / "kid" / uid / "Ch5-t1_state.json"
         initial_state = {
             "running": False,
+            "started": False,
             "bean_count": 0,
             "remaining_time": 60,
             "target_bean_count": 10,
