@@ -99,7 +99,7 @@ def point_to_segment_dist(px, py, dot1, dot2):
 def main():
     if len(sys.argv) < 3:
         print("用法：python main.py <uid> <img_id>", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     uid = sys.argv[1]
     img_id = sys.argv[2]
@@ -112,17 +112,17 @@ def main():
     print("開始 AI 紙張裁切...")
     if not perform_crop(origin_path, cropped_path):
         print("裁切失敗", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     img = cv2.imread(cropped_path)
     if img is None:
         print(f"裁切圖讀取失敗：{cropped_path}", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     # 2. 載入紅線模型
     if not os.path.exists(LINE_MODEL_PATH):
         print(f"找不到紅線模型：{LINE_MODEL_PATH}", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = smp.Unet(encoder_name="resnet34", in_channels=3, classes=1, activation='sigmoid')
@@ -167,4 +167,9 @@ def main():
     return_score(score)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # 沒接住的例外結束碼是 1，會被當成 1 分，所以要攔下來回報失敗
+        print(f"[ERROR] ch2-t6 執行失敗: {e}", file=sys.stderr)
+        return_score(-1)
