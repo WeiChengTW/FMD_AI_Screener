@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import re
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -23,6 +24,7 @@ RESULT_MARKER = "##CH5T1_RESULT##"
 
 game_state = {
     "running": False,
+    "started": False,      # Arduino 回報 [GO!] 之後為 True，前端用來顯示「開始了！」
     "bean_count": 0,
     "remaining_time": 60,
     "target_bean_count": 10,
@@ -103,14 +105,33 @@ def save_game_state(uid, state_data, force=False):
     _last_state_save = now
 
     state_file = Path(__file__).parent.parent / "kid" / uid / "Ch5-t1_state.json"
+    tmp_file = state_file.parent / (state_file.name + ".tmp")
     try:
         state_file.parent.mkdir(parents=True, exist_ok=True)
-        tmp_file = state_file.parent / (state_file.name + ".tmp")
         with open(tmp_file, 'w', encoding='utf-8') as f:
             json.dump(state_data, f, ensure_ascii=False)
-        os.replace(tmp_file, state_file)
+
+        # Windows 上只要前端正在讀這個檔，os.replace 就會丟 WinError 5，
+        # 對方放掉 handle 之後就能成功，所以短暫重試幾次。
+        last_error = None
+        for attempt in range(6):
+            try:
+                os.replace(tmp_file, state_file)
+                return
+            except PermissionError as e:
+                last_error = e
+                time.sleep(0.02 * (attempt + 1))
+
+        # 重試仍失敗：這次狀態放掉就好（下一個 tick 會再寫），但要清掉暫存檔
+        print(f"儲存狀態失敗（重試後仍被佔用）: {last_error}", flush=True)
     except Exception as e:
         print(f"儲存狀態失敗: {e}", flush=True)
+    finally:
+        if tmp_file.exists():
+            try:
+                tmp_file.unlink()
+            except OSError:
+                pass
 
 
 def main(CAMERA_INDEX, UID):
@@ -209,6 +230,14 @@ def main(CAMERA_INDEX, UID):
                         started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         save_game_state(UID, game_state, force=True)
                         log("遊戲正式開始！")
+
+                    # A-2. Arduino 回報 [GO!] 才是真正開始計時，通知前端顯示「開始了！」
+                    if "[GO!]" in line:
+                        game_state["started"] = True
+                        target_match = re.search(r"目標\s*(\d+)\s*顆", line)
+                        if target_match:
+                            game_state["target_bean_count"] = int(target_match.group(1))
+                        save_game_state(UID, game_state, force=True)
 
                     # B. 解析進度與警告
                     if "進度:" in line:
@@ -309,6 +338,20 @@ if __name__ == "__main__":
     (BASE_DIR / "kid" / UID).mkdir(parents=True, exist_ok=True)
 
     # 啟動主程式；log 走 stdout，最後印一行摘要給 run.py 收進大 JSON
-    score, end_reason, started_at = main(CAMERA_INDEX, UID)
+    started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        score, end_reason, started_at = main(CAMERA_INDEX, UID)
+    except Exception as e:
+        # 任何未預期的錯誤也要留下 -1 的摘要，run.py 才知道這次是失敗而不是 0 分
+        score, end_reason = -1, f"程式異常：{e}"
+        traceback.print_exc()
+
+    if score < 0:
+        game_state["score"] = -1
+        game_state["game_over"] = True
+        save_game_state(
+            UID, {**game_state, "error": end_reason or "執行失敗"}, force=True
+        )
+
     emit_result(score, end_reason, started_at)
     return_score(score)

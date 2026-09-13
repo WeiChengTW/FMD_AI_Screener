@@ -97,6 +97,9 @@ const els = {
   stopBtn: document.getElementById("stopBtn"),
   // Ch5-t1 專用元素
   gameInfo: document.getElementById("gameInfo"),
+  goBanner: document.getElementById("goBanner"),
+  doneBanner: document.getElementById("doneBanner"),
+  startVoice: document.getElementById("startVoice"),
   beanCount: document.getElementById("beanCount"),
   timeRemaining: document.getElementById("timeRemaining"),
   targetBeanCount: document.getElementById("targetBeanCount"),
@@ -228,8 +231,34 @@ async function openCamera() {
 }
 
 // 輪詢遊戲狀態（Ch5-t1 專用）
+// 開始語音只播一次；輪詢每 0.5 秒會一直進來，所以要自己記住播過了
+let startVoicePlayed = false;
+
+function playStartVoice() {
+  if (startVoicePlayed || !els.startVoice) return;
+  startVoicePlayed = true;
+
+  const attempt = () => {
+    const p = els.startVoice.play();
+    if (p && typeof p.catch === "function") {
+      p.catch(() => {
+        // 瀏覽器擋掉自動播放，等使用者第一次碰畫面再補播
+        const kick = () => {
+          document.removeEventListener("pointerdown", kick);
+          document.removeEventListener("keydown", kick);
+          els.startVoice.play().catch(() => {});
+        };
+        document.addEventListener("pointerdown", kick);
+        document.addEventListener("keydown", kick);
+      });
+    }
+  };
+  attempt();
+}
+
 async function pollGameState(uid) {
   console.log('[遊戲狀態] 開始輪詢，UID:', uid);
+  startVoicePlayed = false;   // 同一頁重開一局時語音要能再播
   
   if (gameStateInterval) {
     clearInterval(gameStateInterval);
@@ -263,6 +292,23 @@ async function pollGameState(uid) {
           console.log('[遊戲狀態] 目標豆豆數量:', state.target_bean_count);
         }
         
+        // 已經開始就不用再顯示「遊戲準備中...」
+        if (els.placeholderText && (state.started || state.game_over)) {
+          els.placeholderText.style.display = "none";
+        }
+
+        // Arduino 喊 [GO!] 了，畫面上顯示綠色的「開始了！」並播放提示語音
+        if (els.goBanner) {
+          els.goBanner.style.display = (state.started && !state.game_over) ? "block" : "none";
+        }
+        if (state.started && !state.game_over) {
+          playStartVoice();
+        }
+        // 結束後換成橘黃色的「完成了，你真棒」
+        if (els.doneBanner) {
+          els.doneBanner.style.display = state.game_over ? "block" : "none";
+        }
+
         // 警告提示
         if (state.warning) {
           updateStatus('⚠️ 注意：檢測到作弊行為！', 'error');

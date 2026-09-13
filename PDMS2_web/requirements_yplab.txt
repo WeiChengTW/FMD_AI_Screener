@@ -133,6 +133,7 @@ pyparsing==3.2.5
 pypdf==6.11.0
 PyPika==0.51.1
 pyproject_hooks==1.2.0
+pyserial==3.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 pytz==2025.2
@@ -148,6 +149,8 @@ safetensors==0.7.0
 scikit-image==0.24.0
 scikit-learn==1.6.1
 scipy==1.13.1
+# SAM 官方套件未發佈到 PyPI，模組名稱為 segment_anything
+segment-anything @ git+https://github.com/facebookresearch/segment-anything.git
 segmentation_models_pytorch==0.5.0
 sentence-transformers==5.1.2
 shellingham==1.5.4
