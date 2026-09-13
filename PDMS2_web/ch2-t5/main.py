@@ -15,7 +15,7 @@ ROOT = BASE_DIR.parent
 def main():
     if len(sys.argv) < 3:
         print("用法：python main.py <uid> <img_id>", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(-1)
 
     uid = sys.argv[1]
     img_id = sys.argv[2]
@@ -30,13 +30,13 @@ def main():
         print("裁切失敗，使用原圖", file=sys.stderr)
         img_orig = cv2.imread(origin_path)
         if img_orig is None:
-            sys.exit(0)
+            sys.exit(-1)
         cv2.imwrite(cropped_path, img_orig)
 
     img = cv2.imread(cropped_path)
     if img is None:
         print(f"裁切圖讀取失敗：{cropped_path}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(-1)
 
     # 2. 偵測兩條水平基準線
     y_top, y_bot = detect_horizontal_lines(img)
@@ -50,7 +50,7 @@ def main():
         score, result_img = analyze_paint(img, y_top, y_bot)
     except Exception as e:
         print(f"[Error] 分析過程發生錯誤: {e}", file=sys.stderr)
-        score = 0
+        score = -1
         result_img = img
 
     # 4. 儲存結果圖
@@ -63,4 +63,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"[ERROR] ch2-t5 執行失敗: {e}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(-1)

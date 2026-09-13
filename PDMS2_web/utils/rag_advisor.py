@@ -195,7 +195,8 @@ class PDMS2Advisor:
                     table_name = task['task_name']
                     cur.execute(f"SELECT score, test_date FROM `{table_name}` WHERE uid=%s ORDER BY test_date DESC LIMIT 1", (uid,))
                     row = cur.fetchone()
-                    if row:
+                    # score = -1 是分析失敗，不算這關的表現
+                    if row and row['score'] != -1:
                         performance.append({
                             "task_id": task['task_id'], "task_name": table_name,
                             "score": row['score'], "date": row['test_date']

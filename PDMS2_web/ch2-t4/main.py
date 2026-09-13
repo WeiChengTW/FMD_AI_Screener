@@ -120,7 +120,7 @@ def evaluate_pdms2(red_points, y_black):
 def main():
     if len(sys.argv) < 3:
         print("用法：python main.py <uid> <img_id>", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     uid = sys.argv[1]
     img_id = sys.argv[2]
@@ -133,17 +133,17 @@ def main():
     print("開始 AI 紙張裁切...")
     if not perform_crop(origin_path, cropped_path):
         print("裁切失敗", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     img = cv2.imread(cropped_path)
     if img is None:
         print(f"裁切圖讀取失敗：{cropped_path}", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     # 2. 載入紅線模型
     if not os.path.exists(LINE_MODEL_PATH):
         print(f"找不到紅線模型：{LINE_MODEL_PATH}", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = smp.Unet(encoder_name="resnet34", in_channels=3, classes=1, activation='sigmoid')
@@ -187,4 +187,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"[ERROR] ch2-t4 執行失敗: {e}", file=sys.stderr)
-        return_score(0)
+        return_score(-1)
