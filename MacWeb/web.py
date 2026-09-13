@@ -94,6 +94,7 @@ ANALYSIS_KID_ROOT = ANALYSIS_ROOT / "kid"
 UID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 FILE_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+VIDEO_EXTENSIONS = {".mp4"}
 
 # Pattern to detect / strip embedded timestamps like _20260507_233320
 _TS_PATTERN = re.compile(r"_\d{8}_\d{6}")
@@ -128,6 +129,8 @@ TASK_MAP = {
     "Ch4-t1": "one_fold",
     "Ch4-t2": "two_fold",
     "Ch5-t1": "collect_raisins",
+    "Ch5-t2": "unbutton",
+    "Ch5-t3": "button",
 }
 
 app = Flask(__name__, static_folder="public", static_url_path="")
@@ -583,8 +586,8 @@ def get_image(uid: str, filename: str) -> object:
     if not is_valid_uid(uid) or not is_valid_filename(filename):
         return "Bad request.", 400
 
-    if get_extension(filename) not in ALLOWED_EXTENSIONS:
-        return "Only image files are allowed.", 400
+    if get_extension(filename) not in ALLOWED_EXTENSIONS | VIDEO_EXTENSIONS:
+        return "Only image or video files are allowed.", 400
 
     absolute_path = resolve_image_path(uid, filename)
     if absolute_path is None:
@@ -749,6 +752,52 @@ def api_submit_analysis():
     except Exception as e:
         logger.exception("[Submit] Analysis error: %s", e)
         return jsonify({"ok": False, "msg": f"分析失敗: {e}"}), 500
+
+
+@app.post("/api/video/submit")
+def api_submit_video():
+    """接收鈕扣關錄影：存到 DATA_ROOT 並寫一筆待人工評分（score = NULL）的紀錄"""
+    uid = (request.form.get("uid") or "").strip()
+    task_id = (request.form.get("task_id") or "").strip()
+    file = request.files.get("video")
+    if not uid or not task_id or file is None:
+        return jsonify({"ok": False, "msg": "缺少參數"}), 400
+    if not is_valid_uid(uid):
+        return jsonify({"ok": False, "msg": "無效的 UID"}), 400
+    normalized_id = task_id[0].upper() + task_id[1:]
+    try:
+        table = task_id_to_table(normalized_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+    now = datetime.now()
+    filename = f"{task_id.lower()}_{now.strftime('%Y%m%d_%H%M%S')}.mp4"
+    uid_dir = DATA_ROOT / uid
+    uid_dir.mkdir(parents=True, exist_ok=True)
+    save_path = uid_dir / filename
+    file.save(save_path)
+    logger.info("[Video] Saved %s (%d bytes)", save_path, save_path.stat().st_size)
+
+    test_date = now.date()
+    now_time = now.strftime("%H:%M:%S")
+    try:
+        upsert_row(
+            "score_list",
+            {"uid": uid, "task_id": normalized_id, "test_date": test_date, "time": now_time},
+            update_columns=["test_date", "time"],
+        )
+        upsert_row(
+            table,
+            {
+                "uid": uid, "test_date": test_date, "time": now_time, "score": None,
+                "result_img_path": f"kid/{uid}/{filename}", "data1": None,
+            },
+            update_columns=["score", "result_img_path", "data1"],
+        )
+    except Exception as e:
+        logger.exception("[Video] DB write failed: %s", e)
+        return jsonify({"ok": False, "msg": f"寫入資料庫失敗: {e}"}), 500
+    return jsonify({"ok": True, "filename": filename})
 
 
 if __name__ == "__main__":

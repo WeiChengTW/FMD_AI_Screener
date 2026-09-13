@@ -221,8 +221,11 @@
         : '';
 
       const sv = r.score;
+      const isVideo = /\.mp4$/i.test(r.result_img_path || '');
       const scoreCell = (sv === null || sv === undefined)
-        ? '<span class="score-badge score-na" title="尚未測驗">—</span>'
+        ? (isVideo
+            ? '<span class="score-badge score-na" title="影片已上傳，等待人工評分">待評分</span>'
+            : '<span class="score-badge score-na" title="尚未測驗">—</span>')
         : sv === -1 ? '<span class="score-badge score-na" title="AI 分析失敗（例如找不到紙張），請重拍或人工評分">分析失敗</span>'
         : sv === 0 ? '<span class="score-badge score-0" title="0 分：未達標準">0</span>'
         : sv === 1 ? '<span class="score-badge score-1" title="1 分：部分達標">1</span>'
@@ -241,7 +244,7 @@
         : '';
 
       const imgCell = (r.compare_url || r.result_img_url)
-        ? `<a href="${r.compare_url || r.result_img_url}" target="_blank" class="btn-view" title="開新分頁檢視這次測驗的原圖與 AI 判讀結果對比">🔍 檢視結果</a>`
+        ? `<a href="${r.compare_url || r.result_img_url}" target="_blank" class="btn-view" title="開新分頁檢視這次測驗的原圖與 AI 判讀結果對比">${isVideo ? '播放影片' : '🔍 檢視結果'}</a>`
         : '<span class="no-perm" title="這次測驗沒有留下結果圖">尚無圖片</span>';
 
       return `

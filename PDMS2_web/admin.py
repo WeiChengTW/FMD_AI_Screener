@@ -379,11 +379,18 @@ def manual_score_page():
             stem = task_id
         photos = [("原始照片", build_signed_image_url(uid, f"{stem}.jpg"))]
 
-    photos_html = "".join(
-        f'<div class="box"><h3>{cap}</h3>'
-        f'<img src="{url}" onerror="this.onerror=null;this.src=&quot;/images/no_image.png&quot;;"></div>'
-        for cap, url in photos
-    )
+    is_video = bool(filename) and filename.lower().endswith(".mp4")
+    if is_video:
+        photos_html = (
+            f'<div class="box" style="width:80%;"><h3>錄影</h3>'
+            f'<video src="{build_signed_image_url(uid, filename)}" controls preload="metadata" style="max-width:100%;"></video></div>'
+        )
+    else:
+        photos_html = "".join(
+            f'<div class="box"><h3>{cap}</h3>'
+            f'<img src="{url}" onerror="this.onerror=null;this.src=&quot;/images/no_image.png&quot;;"></div>'
+            for cap, url in photos
+        )
 
     cur_row = db_exec(
         "SELECT score, rater FROM manual_score "
@@ -403,7 +410,7 @@ def manual_score_page():
 
     # 評完之後才給的入口，讓評分者自己決定要不要看 AI 判讀
     compare_html = ""
-    if filename:
+    if filename and not is_video:
         signed = build_signed_image_url(uid, filename)
         compare_url = f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed, 'rk': row_key})}"
         compare_html = f'<a class="compare-link" href="{compare_url}">評分完成後，檢視 AI 判讀結果對照 →</a>'
@@ -476,10 +483,19 @@ def view_compare():
         return "Forbidden", 403
 
     is_multi = task_id in {"Ch1-t2", "Ch1-t3", "Ch1-t4"}
+    video_uid, video_file = extract_uid_filename(img_path)
+    is_video = video_uid == uid and bool(video_file) and video_file.lower().endswith(".mp4")
 
 
     content_html = ""
-    if is_multi:
+    if is_video:
+        # 鈕扣關錄影：沒有 AI 判讀圖，直接播放影片
+        content_html = f"""
+        <div class=\"row\">
+            <div class=\"box\" style=\"width:80%;\"><h3>錄影</h3><video src=\"{build_signed_image_url(uid, video_file)}\" controls preload=\"metadata\" style=\"max-width:100%;\"></video></div>
+        </div>
+        """
+    elif is_multi:
         # ── 取得帶時間戳的真實基底名稱 ──────────────────────────────────────
         # 優先從 URL 參數 img（scores 列表頁傳來的已簽名 URL）中提取
         view_base = task_id  # fallback
