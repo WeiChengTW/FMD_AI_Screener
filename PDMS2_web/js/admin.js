@@ -221,8 +221,9 @@
         : '';
 
       const sv = r.score;
-      const scoreCell = (sv === null || sv === undefined || sv === -1)
-        ? '<span class="score-badge score-na" title="尚未測驗，或該次未取得有效判讀結果">—</span>'
+      const scoreCell = (sv === null || sv === undefined)
+        ? '<span class="score-badge score-na" title="尚未測驗">—</span>'
+        : sv === -1 ? '<span class="score-badge score-na" title="AI 分析失敗（例如找不到紙張），請重拍或人工評分">分析失敗</span>'
         : sv === 0 ? '<span class="score-badge score-0" title="0 分：未達標準">0</span>'
         : sv === 1 ? '<span class="score-badge score-1" title="1 分：部分達標">1</span>'
         :            '<span class="score-badge score-2" title="2 分：完全達標">2</span>';

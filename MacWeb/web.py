@@ -633,7 +633,8 @@ def run_remote_analysis(uid: str, img_id: str, script_path: Path) -> int:
     result.stdout.close()
     return_code = result.wait()
 
-    score = return_code if return_code in (0, 1, 2) else 0
+    # 0/1/2 以外的結束碼一律視為分析失敗，記 -1（管理端顯示「分析失敗」）
+    score = return_code if return_code in (0, 1, 2) else -1
     logger.info("[Analysis] Done: uid=%s, img_id=%s, score=%s", uid, img_id, score)
     return score
 
