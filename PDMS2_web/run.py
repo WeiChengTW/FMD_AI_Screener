@@ -1577,7 +1577,8 @@ def run_analysis_in_background(
                     test_date=test_date,
                     score=final_score,
                     result_img_path=result_img_path,
-                    data1=None,
+                    # 整筆紀錄（摘要＋log）存進 DB，Mac 上的管理端才讀得到，不必去現場機找大 JSON
+                    data1=json.dumps(record, ensure_ascii=False),
                     test_time=record_time,
                 )
                 write_to_console(f"[Ch5-t1] 分數已寫入 DB: {final_score}", "INFO")
@@ -2040,8 +2041,9 @@ def _record_loop(fps: int):
     """錄影中唯一的讀幀者：寫檔的同時把最新幀快取起來給預覽用。"""
     global recording, latest_frame_jpg
     writer = None
-    interval = 1.0 / fps
-    next_t = time.time()
+    # 從按下開始錄影就起算，建檔延遲的空檔會用第一幀補上
+    start_t = time.time()
+    written = 0
     try:
         while recording:
             with camera_lock:
@@ -2053,22 +2055,30 @@ def _record_loop(fps: int):
             frame = crop_center(frame, current_camera_index)
             if writer is None:
                 h, w = frame.shape[:2]
-                writer = cv2.VideoWriter(
-                    str(recording_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
-                )
-                if not writer.isOpened():
+                # avc1(H.264) 瀏覽器才播得了，建不起來才退回 mp4v
+                for fourcc in ("avc1", "mp4v"):
+                    writer = cv2.VideoWriter(
+                        str(recording_path), cv2.VideoWriter_fourcc(*fourcc), fps, (w, h)
+                    )
+                    if writer.isOpened():
+                        write_to_console(f"[錄影] 編碼: {fourcc}", "INFO")
+                        break
+                    writer.release()
+                    writer = None
+                if writer is None:
                     write_to_console(f"[錄影] 影片檔建立失敗: {recording_path}", "ERROR")
                     break
-            writer.write(frame)
+            # 讀幀跟不上 fps 時重複寫入同一幀，讓影片長度等於實際經過時間
+            due = int((time.time() - start_t) * fps) + 1
+            while written < due:
+                writer.write(frame)
+                written += 1
             ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             if ok:
                 latest_frame_jpg = buf.tobytes()
-            next_t += interval
-            wait = next_t - time.time()
+            wait = start_t + written / fps - time.time()
             if wait > 0:
                 time.sleep(wait)
-            else:
-                next_t = time.time()
     finally:
         if writer is not None:
             writer.release()
@@ -2103,16 +2113,42 @@ def start_opencv_recording():
     return jsonify({"success": True, "filename": recording_path.name})
 
 
+def _upload_recording(path: Path):
+    """鈕扣關：把 kid/<uid>/<task_id>.mp4 傳給 MacWeb，由它存檔並寫一筆待人工評分的紀錄"""
+    url = f"{_macweb_base_url().rstrip('/')}/api/video/submit"
+    try:
+        with open(path, "rb") as f:
+            resp = requests.post(
+                url,
+                data={"uid": path.parent.name, "task_id": path.stem},
+                files={"video": (path.name, f, "video/mp4")},
+                timeout=300,
+            )
+        payload = resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else {}
+        if resp.status_code != 200 or not payload.get("ok"):
+            write_to_console(f"[錄影] 上傳失敗 (HTTP {resp.status_code}): {resp.text[:200]}", "ERROR")
+            return
+        write_to_console(f"[錄影] 已上傳: {payload.get('filename')}", "INFO")
+        _notify_admin_score_updated()
+    except Exception as e:
+        write_to_console(f"[錄影] 上傳失敗: {e}", "ERROR")
+
+
 @app.post("/opencv-camera/record/stop")
 def stop_opencv_recording():
     global recording, recording_thread
     if not recording:
         return jsonify({"success": False, "error": "目前沒有在錄影"}), 400
     recording = False
+    finished = True
     if recording_thread is not None:
         recording_thread.join(timeout=5)
+        finished = not recording_thread.is_alive()
         recording_thread = None
     write_to_console(f"[錄影] 結束: {recording_path}", "INFO")
+    # 影片檔要等錄影執行緒 release 完才完整，沒收完就不上傳
+    if finished and recording_path is not None and recording_path.exists():
+        Thread(target=_upload_recording, args=(recording_path,), daemon=True).start()
     return jsonify(
         {"success": True, "filename": recording_path.name if recording_path else None}
     )

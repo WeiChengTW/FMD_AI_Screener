@@ -432,3 +432,67 @@ input[type=range]::-webkit-slider-runnable-track {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ── 手機版（醫師用手機看管理端）──────────────────────────────── */
+@media (max-width: 768px) {
+  .header { padding: 12px 16px; flex-wrap: wrap; gap: 6px; }
+  .header .user-info { gap: 12px; flex-wrap: wrap; font-size: 14px; }
+
+  .wrap { margin: 16px auto; padding: 0 12px; }
+  .card { margin-bottom: 16px; }
+  .card-header { flex-wrap: wrap; gap: 6px; }
+
+  /* 篩選列：每個控制項佔滿一行（HTML 有寫死 width，要 !important 蓋掉） */
+  .toolbar { padding: 14px; }
+  .toolbar-group { flex-wrap: wrap; width: 100%; }
+  .toolbar-group select,
+  .toolbar-group input[type="date"] { width: 100% !important; }
+  .toolbar-sep { display: none; }
+  #btn-add-record { width: 100%; }
+
+  /* 總覽表：每筆紀錄變一張卡片，欄名由 td 的 data-label 補上 */
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; }
+  .table tbody { padding: 12px; }
+  .table tr {
+    background: #fff;
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .table tr:last-child { margin-bottom: 0; }
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    text-align: right;
+    font-size: 16px;
+  }
+  .table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    font-weight: 700;
+    font-size: 14px;
+    color: #B5651D;
+  }
+  .table tbody tr:nth-child(even) td,
+  .table tbody tr:hover td { background-color: transparent; }
+  .table tr td:last-child { border-bottom: none; }
+  .table td.empty { display: block; text-align: center; padding: 40px 16px; }
+  .table td.empty::before { content: none; }
+
+  .pagination { flex-wrap: wrap; padding: 14px 12px; }
+
+  dialog { max-width: calc(100vw - 24px); }
+  .dialog-body { padding: 18px; }
+  .dialog-footer { padding: 14px 18px; }
+  .dialog-footer .btn { flex: 1; }
+  .chart-dialog-body { padding: 16px; }
+
+  /* custom-scrollbar.js 的加粗捲軸在手機上會蓋住右側按鈕，手機直接用手指滑 */
+  .cscroll-track { display: none !important; }
+}

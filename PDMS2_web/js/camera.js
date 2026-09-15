@@ -589,7 +589,9 @@ async function stopRecording() {
     const result = await response.json();
     await closeCamera();
     if (result.success) {
-      updateStatus(`錄影完成：${result.filename}`, 'success');
+      updateStatus('錄影完成！準備進下一關...', 'success');
+      await new Promise(r => setTimeout(r, 800));
+      goNext();
     } else {
       updateStatus(`停止錄影失敗：${result.error || ''}`, 'error');
     }
