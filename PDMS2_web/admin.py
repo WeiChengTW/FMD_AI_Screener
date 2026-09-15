@@ -410,7 +410,7 @@ def manual_score_page():
 
     # 評完之後才給的入口，讓評分者自己決定要不要看 AI 判讀
     compare_html = ""
-    if filename and not is_video:
+    if filename:
         signed = build_signed_image_url(uid, filename)
         compare_url = f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'img': signed, 'rk': row_key})}"
         compare_html = f'<a class="compare-link" href="{compare_url}">評分完成後，檢視 AI 判讀結果對照 →</a>'
