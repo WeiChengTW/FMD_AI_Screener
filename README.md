@@ -22,7 +22,7 @@
 
 ## 介紹影片
 
-[運用AI技術判別精細動作之早期遲緩篩檢系統介紹影片](https://www.youtube.com/watch?v=FlGjlvIecec&feature=youtu.be)
+[運用AI技術判別精細動作之早期遲緩篩檢系統介紹影片](https://youtu.be/uQO-JEKr7U0?si=VP1qGB04YD8S2ogn)
 
 ## 獲得的獎項
 
