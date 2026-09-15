@@ -420,6 +420,7 @@ def manual_score_page():
     <html lang="zh-TW">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>人工評分 - {uid} - {task_id}</title>
         <style>
             body {{ font-family: "Microsoft JhengHei", sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }}
@@ -444,6 +445,18 @@ def manual_score_page():
             .m-btn.on {{ border-color: #2c3e50; transform: scale(1.04); }}
             .manual-state {{ margin-top: 24px; font-size: 18px; font-weight: 700; color: #2c3e50; }}
             .compare-link {{ display: inline-block; margin-bottom: 30px; color: #0096B7; font-size: 17px; font-weight: 700; }}
+            @media (max-width: 768px) {{
+                body {{ padding: 12px; }}
+                h2 {{ font-size: 20px; }}
+                .back-link {{ position: static; padding: 10px 20px; font-size: 16px; margin-bottom: 12px; }}
+                .box {{ width: 100% !important; min-width: 0; box-sizing: border-box; }}
+                .manual-panel {{ margin: 20px auto; padding: 20px 16px 24px; }}
+                .manual-title {{ font-size: 22px; }}
+                .manual-legend {{ font-size: 15px; margin-bottom: 18px; }}
+                .manual-btns {{ gap: 12px; }}
+                .m-btn {{ height: 96px; font-size: 56px; border-width: 5px; }}
+                .manual-state {{ font-size: 16px; }}
+            }}
         </style>
     </head>
     <body>
@@ -564,6 +577,7 @@ def view_compare():
     <html lang=\"zh-TW\">
     <head>
         <meta charset=\"UTF-8\">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>作答結果比對 - {uid} - {task_id}</title>
         <style>
             body {{ font-family: \"Microsoft JhengHei\", sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }}
@@ -576,6 +590,13 @@ def view_compare():
             .section-title {{ font-size: 18px; font-weight: bold; color: #2c3e50; margin: 10px 0; display: inline-block; background: #e0f2fe; padding: 5px 15px; border-radius: 20px; }}
             .back-link {{ position: fixed; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 9999px; background: #00B4D8; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; box-shadow: 0 4px 0 #0096B7; }}
             .back-link:active {{ transform: translateY(2px); box-shadow: 0 2px 0 #0096B7; }}
+            @media (max-width: 768px) {{
+                body {{ padding: 12px; }}
+                h2 {{ font-size: 20px; }}
+                .back-link {{ position: static; padding: 10px 20px; font-size: 16px; margin-bottom: 12px; }}
+                .box {{ width: 100% !important; min-width: 0; box-sizing: border-box; }}
+                .section-title {{ font-size: 16px; }}
+            }}
         </style>
     </head>
     <body>

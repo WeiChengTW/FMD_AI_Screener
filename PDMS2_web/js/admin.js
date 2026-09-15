@@ -214,7 +214,7 @@
       const timeDisplay = r.time || '—';
 
       const opTd = (userLevel === 3)
-        ? `<td><div style="display:flex; gap:8px;">
+        ? `<td data-label="操作區塊"><div style="display:flex; gap:8px;">
              <button class="btn btn-sm" data-action="edit">編輯</button>
              <button class="btn btn-sm danger" data-action="del">刪除</button>
            </div></td>`
@@ -234,13 +234,13 @@
       const mv = r.manual_score;
       const scoreHref = `/manual-score?rk=${encodeURIComponent(r.row_key)}`;
       const manualCell = (userLevel >= 2)
-        ? `<td>${(mv === null || mv === undefined)
+        ? `<td data-label="人工評分">${(mv === null || mv === undefined)
             ? `<a class="btn-view" href="${scoreHref}" target="_blank" title="開啟人工評分頁：只顯示原始照片，不顯示 AI 判讀結果">✎ 人工評分</a>`
             : `<a class="score-badge score-${mv}" href="${scoreHref}" target="_blank" style="text-decoration:none;" title="人工評分 ${mv} 分，評分者 ${r.manual_rater || '—'}（點擊可改分）">${mv}</a>`}</td>`
         : '';
 
       const diffCell = (userLevel >= 2)
-        ? `<td>${diffBadge(sv, mv)}</td>`
+        ? `<td data-label="差異">${diffBadge(sv, mv)}</td>`
         : '';
 
       const imgCell = (r.compare_url || r.result_img_url)
@@ -250,15 +250,15 @@
       return `
         <tr data-key="${r.row_key}" data-uid="${r.uid}" data-name="${r.name || ''}">
           ${opTd}
-          <td style="font-weight:700; color:#5C4E4E;">${r.uid}</td>
-          <td>${r.name || '—'}</td>
-          <td style="font-weight:700;">${r.task_id || ''}</td>
-          <td>${scoreCell}</td>
+          <td data-label="受測者編號" style="font-weight:700; color:#5C4E4E;">${r.uid}</td>
+          <td data-label="受測者姓名">${r.name || '—'}</td>
+          <td data-label="測驗項目" style="font-weight:700;">${r.task_id || ''}</td>
+          <td data-label="AI 評分">${scoreCell}</td>
           ${manualCell}
           ${diffCell}
-          <td style="font-weight:600; color:#7A6060;">${dateDisplay}</td>
-          <td style="font-weight:600; color:#7A6060; font-variant-numeric:tabular-nums;">${timeDisplay}</td>
-          <td>${imgCell}</td>
+          <td data-label="測驗日期" style="font-weight:600; color:#7A6060;">${dateDisplay}</td>
+          <td data-label="測驗時間" style="font-weight:600; color:#7A6060; font-variant-numeric:tabular-nums;">${timeDisplay}</td>
+          <td data-label="圖片檢視">${imgCell}</td>
         </tr>`;
     }).join('');
   }
