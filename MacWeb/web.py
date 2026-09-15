@@ -754,6 +754,28 @@ def api_submit_analysis():
         return jsonify({"ok": False, "msg": f"分析失敗: {e}"}), 500
 
 
+def _faststart_mp4(path: Path) -> None:
+    """把 mp4 的 moov 搬到檔頭：OpenCV 寫在檔尾，瀏覽器得先讀到檔尾才能播，慢速連線會一直轉圈。
+    ffmpeg 不可用或失敗就保留原檔，不影響上傳。"""
+    tmp_path = path.with_name(path.stem + "_faststart.mp4")
+    try:
+        import subprocess
+        import imageio_ffmpeg
+
+        result = subprocess.run(
+            [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(path),
+             "-c", "copy", "-movflags", "+faststart", str(tmp_path)],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode != 0 or not tmp_path.exists():
+            raise RuntimeError(result.stderr.strip()[:200])
+        tmp_path.replace(path)
+        logger.info("[Video] faststart done: %s", path)
+    except Exception as exc:
+        tmp_path.unlink(missing_ok=True)
+        logger.warning("[Video] faststart skipped (%s): %s", path, exc)
+
+
 @app.post("/api/video/submit")
 def api_submit_video():
     """接收鈕扣關錄影：存到 DATA_ROOT 並寫一筆待人工評分（score = NULL）的紀錄"""
@@ -777,6 +799,7 @@ def api_submit_video():
     save_path = uid_dir / filename
     file.save(save_path)
     logger.info("[Video] Saved %s (%d bytes)", save_path, save_path.stat().st_size)
+    _faststart_mp4(save_path)
 
     test_date = now.date()
     now_time = now.strftime("%H:%M:%S")
