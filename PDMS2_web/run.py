@@ -1577,7 +1577,8 @@ def run_analysis_in_background(
                     test_date=test_date,
                     score=final_score,
                     result_img_path=result_img_path,
-                    data1=None,
+                    # 整筆紀錄（摘要＋log）存進 DB，Mac 上的管理端才讀得到，不必去現場機找大 JSON
+                    data1=json.dumps(record, ensure_ascii=False),
                     test_time=record_time,
                 )
                 write_to_console(f"[Ch5-t1] 分數已寫入 DB: {final_score}", "INFO")
