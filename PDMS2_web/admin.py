@@ -15,6 +15,8 @@ from werkzeug.exceptions import HTTPException
 import pymysql
 from urllib.parse import urlencode, urlparse
 import re
+import json
+from html import escape
 
 from utils.rag_advisor import advisor
 
@@ -480,6 +482,144 @@ def manual_score_page():
     return resp
 
 
+_CH5_T1_TICK = re.compile(r"剩餘:\s*(\d+)s\s*\|\s*重量:\s*([\d.]+)g\s*\|\s*進度:\s*(\d+)/(\d+)")
+
+_CH5_T1_CHART_JS = """
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const D = __DATA__;
+  new Chart(document.getElementById('bean-chart'), {
+    type: 'line',
+    data: {
+      labels: D.sec,
+      datasets: [
+        { label: '顆數', data: D.count, stepped: true, borderColor: '#FF9F43', backgroundColor: '#FF9F43', yAxisID: 'y', pointRadius: 0, borderWidth: 3 },
+        { label: '重量 (g)', data: D.weight, borderColor: '#48CAE4', backgroundColor: '#48CAE4', yAxisID: 'y1', pointRadius: 0, borderWidth: 2 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { title: { display: true, text: '第幾秒' } },
+        y: { min: 0, max: D.target, ticks: { stepSize: 1 }, title: { display: true, text: '顆數' } },
+        y1: { position: 'right', min: 0, grid: { drawOnChartArea: false }, title: { display: true, text: '重量 (g)' } }
+      }
+    }
+  });
+})();
+</script>
+"""
+
+
+def _render_ch5_t1_result(data1: Optional[str]) -> str:
+    """撿豆子（Ch5-t1）結果：從 data1 的紀錄 JSON 解析摘要、每秒進度與每顆豆子的放入時間。"""
+    try:
+        record = json.loads(data1) if data1 else None
+    except ValueError:
+        record = None
+    if not isinstance(record, dict):
+        return '<div class="row"><div class="box" style="width:80%;"><h3>撿豆子結果</h3><p>這筆是舊紀錄，沒有詳細數據。</p></div></div>'
+
+    def _secs(t: str) -> int:
+        h, m, s = (int(x) for x in t.split(":"))
+        return h * 3600 + m * 60 + s
+
+    ticks = []  # (第幾秒, 重量, 顆數)，Arduino 每秒印一行
+    go_t = end_t = None
+    for line in record.get("log") or []:
+        text = line.get("text", "")
+        if "[GO!]" in text:
+            go_t = line.get("t")
+        elif "遊戲結束原因" in text:
+            end_t = line.get("t")
+        m = _CH5_T1_TICK.search(text)
+        if m:
+            ticks.append((60 - int(m.group(1)), float(m.group(2)), int(m.group(3))))
+
+    duration = (_secs(end_t) - _secs(go_t)) % 86400 if go_t and end_t else None
+    score = record.get("score")
+    target = record.get("target_bean_count") or 10
+    end_reason = record.get("end_reason") or ""
+    violation = "違規" in end_reason
+    n = record.get("bean_count")
+    if not isinstance(n, int):
+        n = ticks[-1][2] if ticks else 0
+    if "達成目標" in end_reason:
+        # 放滿時遊戲立刻結束，最後一行進度與 bean_count 都停在 target-1
+        n = target
+
+    # 每顆豆子的放入時間：顆數變多的那一秒
+    beans, last_count, last_sec = [], 0, 0
+    for sec, _, count in ticks:
+        if count > last_count:
+            beans.append((count, sec, sec - last_sec if beans else None))
+            last_count, last_sec = count, sec
+    # 放滿最後一顆時遊戲立刻結束，Arduino 不會再印那一秒，用結束時間補上
+    if not violation and duration is not None and n > last_count:
+        beans.append((n, duration, duration - last_sec if beans else None))
+
+    used = f"用時 {duration} 秒" if duration is not None else "用時不明"
+    if violation:
+        criteria = f"違規：一次放入超過一顆，違規前已放入 {n} 顆（依目前設定判 0 分）"
+    elif not ticks:
+        criteria = f"log 不完整，無法對照標準（紀錄分數 {score}）"
+    elif score == 2:
+        criteria = f"放入 {n} 顆，{used}：符合「30 秒內完成放進 10 顆」，2 分"
+    elif score == 1:
+        criteria = f"放入 {n} 顆，{used}：符合「31-60 秒內放入 5-10 顆」，1 分"
+    elif score == 0:
+        criteria = f"放入 {n} 顆，{used}：符合「超過 60 秒才放完，或只放入 4 顆以下」，0 分"
+    else:
+        criteria = "沒有有效分數"
+
+    reason_color = "#D04060" if violation else "#2c3e50"
+    cards = (
+        f'<div class="bean-card"><div class="bean-label">分數</div><div class="bean-value">{escape(str(score))}</div></div>'
+        f'<div class="bean-card"><div class="bean-label">放入顆數</div><div class="bean-value">{n} / {target}</div></div>'
+        f'<div class="bean-card"><div class="bean-label">用時</div><div class="bean-value">{duration if duration is not None else "—"} 秒</div></div>'
+        f'<div class="bean-card"><div class="bean-label">結束原因</div><div class="bean-value" style="font-size:18px;color:{reason_color};">{escape(end_reason) or "—"}</div></div>'
+    )
+    bean_rows = "".join(
+        f"<tr><td>第 {c} 顆</td><td>第 {s} 秒</td><td>{'—' if gap is None else f'{gap} 秒'}</td></tr>"
+        for c, s, gap in beans
+    ) or '<tr><td colspan="3">沒有放入任何豆子</td></tr>'
+    chart_data = json.dumps({
+        "sec": [t[0] for t in ticks],
+        "count": [t[2] for t in ticks],
+        "weight": [t[1] for t in ticks],
+        "target": target,
+    })
+
+    return f"""
+    <style>
+      .bean-cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }}
+      .bean-card {{ background: #FFFAF5; border: 2px solid #F0E6D2; border-radius: 12px; padding: 12px; }}
+      .bean-label {{ color: #9E8F8F; font-size: 14px; font-weight: 700; }}
+      .bean-value {{ color: #2c3e50; font-size: 26px; font-weight: 800; margin-top: 4px; }}
+      .bean-criteria {{ font-size: 17px; font-weight: 700; padding: 12px; border-radius: 10px; background: {"#FFEEF2" if violation else "#E7F8F4"}; color: {"#D04060" if violation else "#0D7A66"}; }}
+      .bean-chart-wrap {{ position: relative; height: 320px; }}
+      .bean-table {{ width: 100%; border-collapse: collapse; font-size: 16px; }}
+      .bean-table th, .bean-table td {{ padding: 8px; border-bottom: 1px solid #eee; }}
+      .bean-table th {{ background: #FFFAF5; color: #B5651D; }}
+    </style>
+    <div class="row"><div class="box" style="width:80%;">
+      <h3>摘要</h3>
+      <div class="bean-cards">{cards}</div>
+      <div class="bean-criteria">{escape(criteria)}</div>
+    </div></div>
+    <div class="row"><div class="box" style="width:80%;">
+      <h3>進度曲線</h3>
+      <div class="bean-chart-wrap"><canvas id="bean-chart"></canvas></div>
+    </div></div>
+    <div class="row"><div class="box" style="width:80%;">
+      <h3>每顆豆子放入時間</h3>
+      <table class="bean-table"><thead><tr><th>顆數</th><th>放入時間</th><th>距上一顆</th></tr></thead><tbody>{bean_rows}</tbody></table>
+    </div></div>
+    """ + _CH5_T1_CHART_JS.replace("__DATA__", chart_data)
+
+
 @app.route("/view-compare")
 def view_compare():
     user = current_user()
@@ -501,7 +641,19 @@ def view_compare():
 
 
     content_html = ""
-    if is_video:
+    if task_id == "Ch5-t1":
+        # 撿豆子沒有圖片：用 rk 找到這一筆，結果在 data1
+        rk_parts = request.args.get("rk", "").split("|", 3)
+        data1 = None
+        if len(rk_parts) == 4 and rk_parts[0] == uid:
+            row = db_exec(
+                f"SELECT data1 FROM `{task_id_to_table(task_id)}` WHERE uid=%s AND test_date=%s AND `time`=%s",
+                (uid, rk_parts[2], rk_parts[3]),
+                fetch="one",
+            )
+            data1 = (row or {}).get("data1")
+        content_html = _render_ch5_t1_result(data1)
+    elif is_video:
         # 鈕扣關錄影：沒有 AI 判讀圖，直接播放影片
         content_html = f"""
         <div class=\"row\">
@@ -602,7 +754,7 @@ def view_compare():
     <body>
         <a class="back-link" href="/html/admin.html">← 回到測驗紀錄總覽</a>
         <h2>使用者: {uid} / 關卡: {task_id}</h2>
-        <div class=\"sub-info\">檢視模式: {"多視角" if is_multi else "單一視角"}</div>
+        <div class=\"sub-info\">檢視模式: {"撿豆子紀錄" if task_id == "Ch5-t1" else "多視角" if is_multi else "單一視角"}</div>
         {content_html}
     </body>
     </html>
@@ -757,6 +909,12 @@ def list_scores():
             if not can_access_uid(uid):
                 r["result_img_url"] = None
                 r["compare_url"] = None
+                continue
+
+            if task_id == "Ch5-t1":
+                # 撿豆子沒有圖片，結果存在 data1：一律給檢視按鈕，由對照頁讀 DB
+                r["result_img_url"] = None
+                r["compare_url"] = f"/view-compare?{urlencode({'uid': uid, 'task_id': task_id, 'rk': r['row_key']})}"
                 continue
 
             db_path = (r.get("result_img_path") or "").strip()
