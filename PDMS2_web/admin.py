@@ -241,10 +241,10 @@ def extract_uid_filename(path_or_url: str):
         clean_path = raw
 
     parts = [p for p in clean_path.strip("/").split("/") if p]
-    if len(parts) >= 3 and parts[0] in ("kid", "images"):
-        return parts[1], parts[2]
+    # 永遠取最後兩段當 uid/檔名：MACWEB_BASE_URL 可能帶路徑前綴（如 Funnel 的 /images），
+    # 網址會變成 /images/images/<uid>/<file>，取開頭幾段會把 uid 拆成 "images"
     if len(parts) >= 2:
-        return parts[0], parts[1]
+        return parts[-2], parts[-1]
     return None, None
 
 
