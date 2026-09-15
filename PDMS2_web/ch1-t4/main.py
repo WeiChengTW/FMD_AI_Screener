@@ -94,10 +94,13 @@ CONF_TOP = 0.6
 OFFSET_RATIO = 0.25
 
 def analyze_image_top(frame, model):
-    if TOP_ROI_W > 0 and TOP_ROI_H > 0:
-        cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
-    else:
-        cropped = frame.copy()
+    # === 暫時停用俯視圖 ROI 裁切，直接分析整張原圖 ===
+    # 要恢復裁切：把下面四行的註解拿掉，並移除 cropped = frame.copy()
+    # if TOP_ROI_W > 0 and TOP_ROI_H > 0:
+    #     cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
+    # else:
+    #     cropped = frame.copy()
+    cropped = frame.copy()
 
     results = model.predict(source=cropped, conf=CONF_TOP, verbose=False)
     yolo_boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
@@ -152,7 +155,7 @@ def analyze_image_top(frame, model):
     return cropped, summary, GET_POINT
 
 # ================== 側視圖 (SIDE View) 分析 ==================
-CONF_SIDE = 0.7
+CONF_SIDE = 0.75
 # GAP_RATIO：縫隙需超過積木寬度的幾成才算「有縫隙」，數值越大越不敏感
 # 注意：本關有縫隙會扣分，此值調低會變嚴格（與 ch1-t2/t3 統一為 0.08）
 GAP_RATIO = 0.08

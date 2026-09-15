@@ -107,10 +107,13 @@ CONF_TOP = 0.8
 OFFSET_RATIO = 0.25
 
 def analyze_image_top(frame, initial_get_point=2):
-    if TOP_ROI_W > 0 and TOP_ROI_H > 0:
-        cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
-    else:
-        cropped = frame.copy()
+    # === 暫時停用俯視圖 ROI 裁切，直接分析整張原圖 ===
+    # 要恢復裁切：把下面四行的註解拿掉，並移除 cropped = frame.copy()
+    # if TOP_ROI_W > 0 and TOP_ROI_H > 0:
+    #     cropped = frame[TOP_ROI_Y:TOP_ROI_Y+TOP_ROI_H, TOP_ROI_X:TOP_ROI_X+TOP_ROI_W].copy()
+    # else:
+    #     cropped = frame.copy()
+    cropped = frame.copy()
 
     results = yolo_model.predict(source=cropped, conf=CONF_TOP, verbose=False)
     yolo_boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
@@ -169,7 +172,7 @@ def analyze_image_top(frame, initial_get_point=2):
     return cropped, summary, GET_POINT
 
 # ================== 側視圖 (SIDE View) 分析 ==================
-CONF_SIDE = 0.8
+CONF_SIDE = 0.75
 
 
 def analyze_image_side(img_path, model):
