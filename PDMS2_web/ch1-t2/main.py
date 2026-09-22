@@ -9,11 +9,10 @@ def safe_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = safe_load
 
-from ultralytics import YOLO
+from ultralytics import YOLO, SAM
 import os
 import sys
 from pathlib import Path
-from segment_anything import sam_model_registry, SamPredictor
 
 # 載入側視圖分析模組
 try:
@@ -30,29 +29,29 @@ except ImportError as e:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR.parent / ".env"
-MODEL_PATH = BASE_DIR / "toybrick_side.pt"
-SAM_CHECKPOINT = BASE_DIR / "sam_vit_b_01ec64.pth"
-SAM_TYPE = "vit_b"
+TOP_MODEL_PATH = BASE_DIR / "cube_top.pt"    # 俯視圖模型
+SIDE_MODEL_PATH = BASE_DIR / "cube_side.pt"  # 側視圖模型
+SAM_CHECKPOINT = BASE_DIR / "sam2_b.pt"
 
 print(f"[DEBUG] 目前使用設備: {device}", flush=True)
 
 # 初始化 YOLO
 try:
-    print(f"[DEBUG] 開始加載 YOLO 模型: {MODEL_PATH}", flush=True)
-    yolo_model = YOLO(str(MODEL_PATH))
+    print(f"[DEBUG] 開始加載 YOLO 模型: top={TOP_MODEL_PATH} side={SIDE_MODEL_PATH}", flush=True)
+    yolo_top = YOLO(str(TOP_MODEL_PATH))
+    yolo_side = YOLO(str(SIDE_MODEL_PATH))
     print("[DEBUG] YOLO 模型加載完成", flush=True)
 except Exception as e:
     print(f"[ERROR] YOLO 模型加載失敗：{e}", flush=True)
     sys.exit(-1)
 
-# 初始化 SAM
+# 初始化 SAM2 (ultralytics)
 try:
-    print(f"[DEBUG] 開始加載 SAM 模型: {SAM_CHECKPOINT}", flush=True)
-    sam = sam_model_registry[SAM_TYPE](checkpoint=str(SAM_CHECKPOINT)).to(device)
-    sam_predictor = SamPredictor(sam)
-    print("[DEBUG] SAM 模型加載完成", flush=True)
+    print(f"[DEBUG] 開始加載 SAM2 模型: {SAM_CHECKPOINT}", flush=True)
+    sam_model = SAM(str(SAM_CHECKPOINT))
+    print("[DEBUG] SAM2 模型加載完成", flush=True)
 except Exception as e:
-    print(f"[ERROR] SAM 模型加載失敗：{e}", flush=True)
+    print(f"[ERROR] SAM2 模型加載失敗：{e}", flush=True)
     sys.exit(-1)
 
 # 設定分析模式 (0=階梯, 1=金字塔)
@@ -63,14 +62,19 @@ def return_score(score):
 
 # ================== 通用 SAM 輔助函數 ==================
 def get_sam_masks_from_boxes(frame, boxes):
+    """ 根據 YOLO 的 boxes 使用 SAM2 生成高品質 Mask，回傳 list[bool HxW] """
     if len(boxes) == 0: return []
-    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    sam_predictor.set_image(img_rgb)
-    
+    bboxes = np.asarray(boxes, dtype=float)
+    results = sam_model.predict(source=frame, bboxes=bboxes, device=device, verbose=False)
     sam_masks = []
-    for box in boxes:
-        m, _, _ = sam_predictor.predict(box=np.array(box), multimask_output=False)
-        sam_masks.append(m[0])
+    if len(results) > 0 and results[0].masks is not None:
+        h, w = frame.shape[:2]
+        for m in results[0].masks.data.cpu().numpy():
+            mask = m > 0.5
+            if mask.shape[:2] != (h, w):
+                mask = cv2.resize(mask.astype(np.uint8), (w, h),
+                                  interpolation=cv2.INTER_NEAREST).astype(bool)
+            sam_masks.append(mask)
     return sam_masks
 
 # ================== ROI 裁切設定 (從 .env 載入) ==================
@@ -99,7 +103,7 @@ SIDE_ROI_W = _read_env_int("PDMS2_SIDE_ROI_W")
 SIDE_ROI_H = _read_env_int("PDMS2_SIDE_ROI_H")
 
 # ================== 俯視圖 (TOP View) 分析 ==================
-CONF_TOP = 0.8
+CONF_TOP = 0.75
 
 # OFFSET_RATIO：判定「排列有對齊」的容忍度，相對於積木最長邊。
 # 中心點在 X 或 Y 其中一軸的標準差小於「積木最長邊 x 此比例」就算對齊。
@@ -115,7 +119,7 @@ def analyze_image_top(frame, initial_get_point=2):
     #     cropped = frame.copy()
     cropped = frame.copy()
 
-    results = yolo_model.predict(source=cropped, conf=CONF_TOP, verbose=False)
+    results = yolo_top.predict(source=cropped, conf=CONF_TOP, verbose=False)
     yolo_boxes = results[0].boxes.xyxy.cpu().numpy() if results[0].boxes is not None else []
     masks = get_sam_masks_from_boxes(cropped, yolo_boxes)
 
@@ -319,7 +323,7 @@ if __name__ == "__main__":
         top_path = sys.argv[3] if len(sys.argv) > 3 else None
 
         print(f"[TEST] 分析側視圖：{side_path}", flush=True)
-        ann_side, mask_side, s_side = analyze_image_side(side_path, yolo_model)
+        ann_side, mask_side, s_side = analyze_image_side(side_path, yolo_side)
         print(f"[TEST] 側視圖得分：{s_side}", flush=True)
         combined_side = np.hstack((cv2.resize(ann_side, (0, 0), fx=0.5, fy=0.5),
                                    cv2.resize(mask_side, (0, 0), fx=0.5, fy=0.5)))
@@ -349,7 +353,7 @@ if __name__ == "__main__":
     try:
         # 1. 側視圖分析
         print(f"[DEBUG] 分析側視圖: {SIDE_IMG_PATH}", flush=True)
-        ann_side, mask_side, s_side = analyze_image_side(SIDE_IMG_PATH, yolo_model)
+        ann_side, mask_side, s_side = analyze_image_side(SIDE_IMG_PATH, yolo_side)
         
         # 儲存側視圖結果 (合併原圖遮罩與純遮罩)
         combined_side = np.hstack((cv2.resize(ann_side, (0,0), fx=0.5, fy=0.5), 
