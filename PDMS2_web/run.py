@@ -538,25 +538,114 @@ def _open_camera_capture(camera_index: int):
     return cv2.VideoCapture(camera_index)
 
 
+_BUILTIN_CAMERA_HINTS = (
+    "facetime",
+    "built-in",
+    "builtin",
+    "internal",
+    "isight",
+    "integrated",
+)
+
+
+def _classify_camera(name: str, model_id: str = "") -> str:
+    """判斷是電腦自帶鏡頭還是外接鏡頭。"""
+    haystack = f"{name} {model_id}".lower()
+    if "apple camera" in haystack:
+        return "builtin"
+    if any(hint in haystack for hint in _BUILTIN_CAMERA_HINTS):
+        return "builtin"
+    if "continuity" in haystack or "iphone" in haystack or "ipad" in haystack:
+        return "continuity"
+    return "external"
+
+
+_CAMERA_KIND_LABEL = {
+    "builtin": "電腦自帶",
+    "external": "外接鏡頭",
+    "continuity": "接續互通",
+    "unknown": "未知來源",
+}
+
+
+def _scan_camera_devices_macos() -> list:
+    """
+    macOS：用 system_profiler 列出實際存在的相機，不主動開啟任何裝置。
+    system_profiler 的排序與 OpenCV AVFoundation 的 index 排序一致，
+    所以第 n 台相機就是 index n。
+    """
+    try:
+        result = subprocess.run(
+            ["system_profiler", "-json", "SPCameraDataType"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        entries = json.loads(result.stdout).get("SPCameraDataType", [])
+    except Exception as exc:
+        write_to_console(f"[CAM] system_profiler 讀取相機清單失敗: {exc}", "WARN")
+        return []
+
+    raw = []
+    for index, entry in enumerate(entries):
+        name = str(entry.get("_name") or f"相機 {index}").strip()
+        model_id = str(entry.get("spcamera_model-id") or "")
+        raw.append((index, name, _classify_camera(name, model_id)))
+
+    # 兩台同型號的相機（例如兩支 AVerMedia）名稱會一模一樣，加序號才分得出來
+    name_counts = {}
+    for _, name, _kind in raw:
+        name_counts[name] = name_counts.get(name, 0) + 1
+    seen = {}
+
+    devices = []
+    for index, name, kind in raw:
+        display = name
+        if name_counts[name] > 1:
+            seen[name] = seen.get(name, 0) + 1
+            display = f"{name} #{seen[name]}"
+        devices.append(
+            {
+                "index": index,
+                "name": display,
+                "kind": kind,
+                "kind_label": _CAMERA_KIND_LABEL[kind],
+                "label": f"{display}（{_CAMERA_KIND_LABEL[kind]}）",
+            }
+        )
+
+    write_to_console(
+        f"[CAM] macOS 偵測到 {len(devices)} 台相機：" +
+        ", ".join(f"{d['index']}={d['name']}" for d in devices),
+        "INFO",
+    )
+    return devices
+
+
 def scan_camera_devices(max_index: Optional[int] = None) -> list:
     """
     掃描相機清單：
-    - macOS: 採取被動模式，提供索引建議，避免掃描時喚醒 iPhone。
-    - Windows/其他: 採取主動模式，自動偵測並列出實體存在的相機。
+    - macOS: 用 system_profiler 被動列舉，不會喚醒 iPhone 接續互通相機。
+    - Windows/其他: 主動開啟 index 偵測實體存在的相機。
+    回傳每台相機的 index / name / kind（builtin | external）/ label。
     """
-    devices = []
-
     if sys.platform == "darwin":
-        write_to_console("[CAM] macOS 偵測到，切換至安全手動模式 (避免觸發接續互通相機)", "INFO")
-        # macOS 採取索引建議方式
-        for i in range(7):
-            label = f"相機索引 {i}"
-            if i == 0:
-                label += " (⚠️ 可能觸發 iPhone)"
-            elif i >= 1 and i <= 4:
-                label += " (⭐ 建議測試 - AVerMedia 可能在此)"
-            devices.append({"index": i, "label": label})
-        return devices
+        devices = _scan_camera_devices_macos()
+        if devices:
+            return devices
+        write_to_console("[CAM] macOS 列舉失敗，回傳預設索引供手動選擇", "WARN")
+        return [
+            {
+                "index": i,
+                "name": f"相機索引 {i}",
+                "kind": "unknown",
+                "kind_label": _CAMERA_KIND_LABEL["unknown"],
+                "label": f"相機索引 {i}（未知來源）",
+            }
+            for i in range(3)
+        ]
+
+    devices = []
 
     # Windows 或其他系統：執行主動掃描
     if max_index is None:
@@ -571,22 +660,40 @@ def scan_camera_devices(max_index: Optional[int] = None) -> list:
                 capture = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
             else:
                 capture = cv2.VideoCapture(camera_index)
-                
+
             if capture is not None and capture.isOpened():
-                # 取得基本資訊 (如果 Windows 有支援的話)
-                label = f"攝影機 {camera_index}"
-                devices.append({"index": camera_index, "label": label})
+                name = f"攝影機 {camera_index}"
+                # 掃描不到型號名稱時，只能用「index 0 通常是內建」這個慣例推測
+                kind = "builtin" if camera_index == 0 else "external"
+                devices.append(
+                    {
+                        "index": camera_index,
+                        "name": name,
+                        "kind": kind,
+                        "kind_label": _CAMERA_KIND_LABEL[kind],
+                        "label": f"{name}（{_CAMERA_KIND_LABEL[kind]}）",
+                    }
+                )
                 write_to_console(f"[CAM] 偵測到可用相機：Index {camera_index}", "INFO")
         except Exception:
             pass
         finally:
             if capture is not None:
                 capture.release()
-                
+
     if not devices:
         write_to_console("[CAM] 未掃描到任何實體相機，回傳預設索引供手動選擇", "WARN")
-        return [{"index": i, "label": f"攝影機 {i}"} for i in range(3)]
-        
+        return [
+            {
+                "index": i,
+                "name": f"攝影機 {i}",
+                "kind": "unknown",
+                "kind_label": _CAMERA_KIND_LABEL["unknown"],
+                "label": f"攝影機 {i}（未知來源）",
+            }
+            for i in range(3)
+        ]
+
     return devices
 
 
@@ -605,6 +712,7 @@ SIDE_ROI_Y = _app_setting["side_roi_y"]
 SIDE_ROI_W = _app_setting["side_roi_w"]
 SIDE_ROI_H = _app_setting["side_roi_h"]
 current_camera_index = TOP  # 追蹤目前啟動的相機
+current_camera_role = None  # 設定頁預覽時用來指定要套哪一組 ROI（top / side）
 # ====================
 
 # =========================
@@ -1775,21 +1883,30 @@ def release_camera():
 
 # ★★★★★ 修正 2：相機初始化改用 DSHOW + 自動切換 ★★★★★
 def init_camera(camera_index=TOP):
-    global camera, camera_active
+    global camera, camera_active, current_camera_index
     try:
         with camera_lock:
             release_camera()
 
             print(f"[相機] 嘗試開啟相機 Index: {camera_index}...")
             camera = _open_camera_capture(camera_index)
+            opened_index = camera_index
 
             # 如果還是打不開，且原本不是 0，嘗試強制切回 0 (預設)
             if not camera.isOpened() and camera_index != 0:
                 print("[相機] 指定鏡頭失敗，嘗試切換回預設鏡頭 (Index 0)...")
+                write_to_console(
+                    f"[相機] Index {camera_index} 開啟失敗，已退回 Index 0，畫面不是你選的那一台",
+                    "WARN",
+                )
                 camera = _open_camera_capture(0)
+                opened_index = 0
 
             if not camera.isOpened():
                 raise Exception(f"無法開啟任何相機 (Index: {camera_index})")
+
+            # 記錄實際開成功的那一台，裁切才會套到對的 ROI
+            current_camera_index = opened_index
 
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, LIVE_CAMERA_WIDTH)
             camera.set(cv2.CAP_PROP_FRAME_HEIGHT, LIVE_CAMERA_HEIGHT)
@@ -1828,29 +1945,50 @@ def select_camera_roi():
         role = data.get("role", "top")
         
         write_to_console(f"[ROI] 準備開啟相機 Index {camera_index} 進行 ROI 選取", "INFO")
-        
+
+        # 先擋掉不存在的 index：預覽會偷偷退回 index 0，ROI 不會，
+        # 之前側面鏡頭設成不存在的編號就是卡在這裡
+        devices = scan_camera_devices()
+        available = {device["index"] for device in devices}
+        if available and camera_index not in available:
+            usable = "、".join(f"{d['index']}（{d['label']}）" for d in devices)
+            return jsonify({
+                "success": False,
+                "error": f"Index {camera_index} 沒有對應的實體相機。目前可用：{usable}",
+                "fallback": "select",
+                "devices": devices,
+            })
+
         # 暫時停止目前可能正在運行的相機預覽
         release_camera()
         time.sleep(0.5)
         cap = _open_camera_capture(camera_index)
         if not cap or not cap.isOpened():
+            if cap is not None:
+                cap.release()
             return jsonify({
                 "success": False,
-                "error": f"無法開啟相機 Index {camera_index}",
+                "error": f"無法開啟相機 Index {camera_index}（可能被其他程式佔用）",
                 "fallback": "manual",
             })
 
         # 設定與實際預覽一致的解析度，避免框選座標與最後顯示不一致
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, LIVE_CAMERA_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, LIVE_CAMERA_HEIGHT)
-        
-        ret, frame = cap.read()
+
+        # AVFoundation 剛開啟時前幾幀常常是空的，多試幾次再放棄
+        ret, frame = False, None
+        for _ in range(10):
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                break
+            time.sleep(0.2)
         cap.release()
 
         if not ret or frame is None:
             return jsonify({
                 "success": False,
-                "error": "讀取影像失敗",
+                "error": f"相機 Index {camera_index} 已開啟但讀不到畫面",
                 "fallback": "manual",
             })
 
@@ -1936,13 +2074,16 @@ def list_machine_configs():
         return jsonify({"success": False, "configs": [], "error": str(e)}), 500
 
 
-def crop_center(frame, camera_idx=None):
+def crop_center(frame, camera_idx=None, role=None):
     """
     裁切影像：優先使用 .env 中的 ROI 座標。
+    role 指定時以 role 為準（設定頁還沒按儲存時，camera_idx 還對不上 SIDE）。
     """
     h, w = frame.shape[:2]
-    
-    if camera_idx == SIDE:
+
+    use_side = (role == "side") if role in ("top", "side") else (camera_idx == SIDE)
+
+    if use_side:
         # 使用側面鏡頭的 ROI
         if SIDE_ROI_W > 0 and SIDE_ROI_H > 0:
             x1, y1 = max(0, SIDE_ROI_X), max(0, SIDE_ROI_Y)
@@ -1975,7 +2116,7 @@ def get_frame():
                 return None
 
             # 套用對應鏡頭的裁切
-            frame = crop_center(frame, current_camera_index)
+            frame = crop_center(frame, current_camera_index, current_camera_role)
 
             _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             return buffer.tobytes()
@@ -1994,9 +2135,12 @@ def start_opencv_camera():
     try:
         data = request.get_json() or {}
         cam_index = data.get("camera_index", TOP)
-        global current_task_id, camera_active, current_camera_index
+        global current_task_id, camera_active, current_camera_index, current_camera_role
         current_task_id = (data.get("task_id") or "").strip()
         current_camera_index = int(cam_index)
+        # 只有設定頁會帶 role；其他頁面沿用「index 等於 SIDE 就套側面 ROI」的判斷
+        requested_role = (data.get("role") or "").strip().lower()
+        current_camera_role = requested_role if requested_role in ("top", "side") else None
 
         if DEMO_MODE:
             write_to_console(f"[DEMO] 啟動示範模式，關卡: {current_task_id}", "INFO")
@@ -2004,8 +2148,14 @@ def start_opencv_camera():
             return jsonify({"success": True})
 
         if init_camera(cam_index):
-            return jsonify({"success": True})
-        return jsonify({"success": False}), 500
+            return jsonify(
+                {
+                    "success": True,
+                    "requested_index": int(cam_index),
+                    "camera_index": current_camera_index,
+                }
+            )
+        return jsonify({"success": False, "error": f"無法開啟相機 Index {cam_index}"}), 500
     except Exception:
         return jsonify({"success": False}), 500
 
@@ -2052,7 +2202,7 @@ def _record_loop(fps: int):
                 ret, frame = camera.read()
             if not ret:
                 continue
-            frame = crop_center(frame, current_camera_index)
+            frame = crop_center(frame, current_camera_index, current_camera_role)
             if writer is None:
                 h, w = frame.shape[:2]
                 # avc1(H.264) 瀏覽器才播得了，建不起來才退回 mp4v

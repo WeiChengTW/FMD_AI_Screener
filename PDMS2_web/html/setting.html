@@ -159,6 +159,57 @@
             font-weight: 700;
         }
 
+        .device-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .device-stats {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.4;
+            border: 1px solid transparent;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-badge.total {
+            background: #28323b;
+            color: #fff;
+        }
+
+        .stat-badge.external {
+            background: #e7f3ff;
+            border-color: #b9dafa;
+            color: #1c5d99;
+        }
+
+        .stat-badge.builtin {
+            background: #fff4e0;
+            border-color: #f5d49a;
+            color: #8a5300;
+        }
+
+        .stat-badge.continuity,
+        .stat-badge.unknown {
+            background: #f1f3f5;
+            border-color: #d9dee3;
+            color: #56626d;
+        }
+
         .device-empty {
             padding: 12px 14px;
             border-radius: 16px;
@@ -185,13 +236,29 @@
             place-items: center;
         }
 
+        /* 用 auto + max-* 讓 <img> 保持裁切後的原始長寬比，
+           框會跟著畫面變高變矮，才看得出 ROI 實際的比例 */
         .preview-image {
-            width: 100%;
-            height: 100%;
-            max-height: 240px;
-            object-fit: cover;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 320px;
+            object-fit: contain;
             display: none;
             background: #000;
+        }
+
+        .preview-size {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            display: none;
         }
 
         .preview-placeholder {
@@ -341,12 +408,15 @@
             <div class="device-panel">
                 <div class="device-head">
                     <div>
-                        <h2 class="device-title">目前讀取到的鏡頭</h2>
+                        <div class="device-title-row">
+                            <h2 class="device-title">偵測到的鏡頭</h2>
+                            <div class="device-stats" id="deviceStats" aria-live="polite"></div>
+                        </div>
                         <p class="device-note" id="deviceSummary">正在掃描可用攝影機...</p>
                     </div>
                     <button id="refreshDevicesBtn" class="btn ghost fat pill" type="button">↻ 重新掃描</button>
                 </div>
-                <div id="deviceList" class="device-list"></div>
+                <div id="deviceAlert" class="device-empty" style="display:none"></div>
             </div>
 
             <div class="form-grid">
@@ -356,8 +426,9 @@
                     <select id="topCamera" aria-label="上方攝影機選擇"></select>
                     <div class="preview-shell">
                         <div class="preview-frame" aria-live="polite">
-                            <div class="preview-pill">上方預覽</div>
+                            <div class="preview-pill" id="topPreviewPill">上方預覽</div>
                             <img id="topPreviewImage" class="preview-image" alt="上方攝影機預覽畫面" />
+                            <div class="preview-size" id="topPreviewSize"></div>
                             <div id="topPreviewPlaceholder" class="preview-placeholder">按下「預覽上方」就能看到實際畫面，方便確認這台攝影機是哪一個。
                             </div>
                         </div>
@@ -381,14 +452,16 @@
                     <select id="sideCamera" aria-label="旁邊攝影機選擇"></select>
                     <div class="preview-shell">
                         <div class="preview-frame" aria-live="polite">
-                            <div class="preview-pill">旁邊預覽</div>
+                            <div class="preview-pill" id="sidePreviewPill">旁邊預覽</div>
                             <img id="sidePreviewImage" class="preview-image" alt="旁邊攝影機預覽畫面" />
+                            <div class="preview-size" id="sidePreviewSize"></div>
                             <div id="sidePreviewPlaceholder" class="preview-placeholder">按下「預覽旁邊」就能看到實際畫面，方便確認這台攝影機是哪一個。
                             </div>
                         </div>
                         <div class="preview-actions">
                             <button id="previewSideBtn" class="btn secondary fat pill" type="button">👀 預覽旁邊</button>
                             <button id="setRoiSideBtn" class="btn ghost fat pill" type="button">📐 設定裁切區域</button>
+                            <button id="stopPreviewSideBtn" class="btn ghost fat pill" type="button">⏹ 停止預覽</button>
                         </div>
                         <label
                             style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; color:var(--text-muted);">
@@ -476,7 +549,8 @@
         const px2cmInput = document.getElementById("px2cmInput");
         const standardAreaInput = document.getElementById("standardAreaInput");
         const deviceSummary = document.getElementById("deviceSummary");
-        const deviceList = document.getElementById("deviceList");
+        const deviceStats = document.getElementById("deviceStats");
+        const deviceAlert = document.getElementById("deviceAlert");
         const refreshDevicesBtn = document.getElementById("refreshDevicesBtn");
         const topPreviewImage = document.getElementById("topPreviewImage");
         const sidePreviewImage = document.getElementById("sidePreviewImage");
@@ -485,6 +559,11 @@
         const previewTopBtn = document.getElementById("previewTopBtn");
         const previewSideBtn = document.getElementById("previewSideBtn");
         const stopPreviewBtn = document.getElementById("stopPreviewBtn");
+        const stopPreviewSideBtn = document.getElementById("stopPreviewSideBtn");
+        const topPreviewPill = document.getElementById("topPreviewPill");
+        const sidePreviewPill = document.getElementById("sidePreviewPill");
+        const topPreviewSize = document.getElementById("topPreviewSize");
+        const sidePreviewSize = document.getElementById("sidePreviewSize");
         const setRoiTopBtn = document.getElementById("setRoiTopBtn");
         const setRoiSideBtn = document.getElementById("setRoiSideBtn");
         const forceGuiRoiTop = document.getElementById("forceGuiRoiTop");
@@ -510,42 +589,67 @@
             return detectedDevices.length > 0;
         }
 
+        function deviceFor(index) {
+            return detectedDevices.find((device) => Number(device.index) === Number(index)) || null;
+        }
+
         function deviceLabelFor(index) {
-            const found = detectedDevices.find((device) => Number(device.index) === Number(index));
+            const found = deviceFor(index);
             return found ? found.label : `攝影機 ${index}`;
         }
 
-        function renderDeviceList() {
-            deviceList.innerHTML = "";
+        function optionLabelFor(device) {
+            return `${device.name}（${device.kindLabel} · Index ${device.index}）`;
+        }
+
+        // 鏡頭清單不再整排列出來，只留一行摘要，實際內容顯示在兩個預覽框裡
+        const KIND_ORDER = ["external", "builtin", "continuity", "unknown"];
+        const KIND_ICON = { external: "🔌", builtin: "💻", continuity: "📱", unknown: "❔" };
+
+        function makeStatBadge(className, text) {
+            const badge = document.createElement("span");
+            badge.className = `stat-badge ${className}`;
+            badge.textContent = text;
+            return badge;
+        }
+
+        function renderDeviceSummary() {
+            deviceStats.innerHTML = "";
 
             if (!detectedDevices.length) {
-                const empty = document.createElement("div");
-                empty.className = "device-empty";
-                empty.textContent = "目前沒有偵測到可用攝影機。請確認相機已接上，再按右上角重新掃描。";
-                deviceList.appendChild(empty);
                 deviceSummary.textContent = "未偵測到任何攝影機";
+                deviceAlert.style.display = "block";
+                deviceAlert.textContent = "目前沒有偵測到可用攝影機。請確認相機已接上，再按右上角重新掃描。";
+                updatePreviewPills();
                 return;
             }
 
-            deviceSummary.textContent = `已偵測到 ${detectedDevices.length} 台攝影機，請從下拉選單選擇編號。`;
+            deviceAlert.style.display = "none";
 
-            detectedDevices.forEach((device, index) => {
-                const chip = document.createElement("div");
-                chip.className = "device-chip";
-                chip.textContent = `${device.label}（Index ${device.index}）`;
-                chip.dataset.index = String(device.index);
-                deviceList.appendChild(chip);
+            const groups = {};
+            detectedDevices.forEach((device) => {
+                const kind = KIND_ORDER.includes(device.kind) ? device.kind : "unknown";
+                groups[kind] = groups[kind] || { label: device.kindLabel, count: 0 };
+                groups[kind].count += 1;
             });
+
+            deviceStats.appendChild(makeStatBadge("total", `共 ${detectedDevices.length} 台`));
+            KIND_ORDER.filter((kind) => groups[kind]).forEach((kind) => {
+                deviceStats.appendChild(
+                    makeStatBadge(kind, `${KIND_ICON[kind]} ${groups[kind].label} ${groups[kind].count}`),
+                );
+            });
+
+            deviceSummary.textContent = "在下方分別指定上方與旁邊鏡頭，按「預覽」確認畫面。";
+            updatePreviewPills();
         }
 
-        function markCurrentDevices(setting) {
-            const chips = deviceList.querySelectorAll(".device-chip");
-            chips.forEach((chip) => chip.classList.remove("current"));
-            chips.forEach((chip) => {
-                const index = Number(chip.dataset.index);
-                if (index === Number(setting.top) || index === Number(setting.side)) {
-                    chip.classList.add("current");
-                }
+        function updatePreviewPills() {
+            [[topPreviewPill, topCamera, "上方預覽"],
+             [sidePreviewPill, sideCamera, "旁邊預覽"]].forEach(([pill, select, base]) => {
+                if (!pill) return;
+                const device = deviceFor(Number.parseInt(select.value, 10));
+                pill.textContent = device ? `${base}｜${device.name}（${device.kindLabel}）` : base;
             });
         }
 
@@ -558,6 +662,9 @@
 
             return result.devices.map((device) => ({
                 index: Number(device.index),
+                name: device.name || device.label || `攝影機 ${device.index}`,
+                kind: device.kind || "unknown",
+                kindLabel: device.kind_label || "未知來源",
                 label: device.label || `攝影機 ${device.index}`,
             }));
         }
@@ -571,9 +678,19 @@
             return Number.parseInt(role === "side" ? sideCamera.value : topCamera.value, 10);
         }
 
+        [[topPreviewImage, topPreviewSize], [sidePreviewImage, sidePreviewSize]].forEach(([imageEl, sizeEl]) => {
+            imageEl.addEventListener("load", () => {
+                if (!imageEl.naturalWidth) return;
+                const ratio = (imageEl.naturalWidth / imageEl.naturalHeight).toFixed(2);
+                sizeEl.textContent = `${imageEl.naturalWidth} × ${imageEl.naturalHeight}（${ratio}:1）`;
+                sizeEl.style.display = "block";
+            });
+        });
+
         function setPreviewState(role, active, label) {
             const imageEl = role === PREVIEW_SIDE ? sidePreviewImage : topPreviewImage;
             const placeholderEl = role === PREVIEW_SIDE ? sidePreviewPlaceholder : topPreviewPlaceholder;
+            const sizeEl = role === PREVIEW_SIDE ? sidePreviewSize : topPreviewSize;
 
             if (active) {
                 imageEl.style.display = "block";
@@ -583,10 +700,22 @@
                 imageEl.style.display = "none";
                 placeholderEl.style.display = "block";
                 imageEl.src = "";
+                sizeEl.textContent = "";
+                sizeEl.style.display = "none";
             }
         }
 
-        async function stopPreview() {
+        // role 省略代表兩邊都停；指定 role 時只有那一側在預覽才會真的關相機
+        async function stopPreview(role, options = {}) {
+            const { silent = false } = options;
+
+            if (role && previewTarget && previewTarget !== role) {
+                setPreviewState(role, false);
+                return;
+            }
+
+            const wasPreviewing = previewTarget !== null;
+
             if (previewStreamInterval) {
                 clearInterval(previewStreamInterval);
                 previewStreamInterval = null;
@@ -600,10 +729,19 @@
                 console.warn("停止預覽失敗", error);
             }
 
-            setPreviewState(PREVIEW_TOP, false);
-            setPreviewState(PREVIEW_SIDE, false);
-            statusText.textContent = "預覽已停止。";
-            statusText.className = "status ok";
+            if (role) {
+                setPreviewState(role, false);
+            } else {
+                setPreviewState(PREVIEW_TOP, false);
+                setPreviewState(PREVIEW_SIDE, false);
+            }
+
+            if (!silent) {
+                statusText.textContent = wasPreviewing
+                    ? `${role === PREVIEW_SIDE ? "旁邊" : role === PREVIEW_TOP ? "上方" : ""}預覽已停止。`
+                    : "目前沒有正在進行的預覽。";
+                statusText.className = "status ok";
+            }
         }
 
         async function startPreview(role) {
@@ -636,16 +774,25 @@
                 const response = await fetch("/opencv-camera/start", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ camera_index: cameraIndex }),
+                    body: JSON.stringify({ camera_index: cameraIndex, role }),
                 });
 
-                if (!response.ok) {
-                    throw new Error("無法開啟攝影機");
+                const startResult = await response.json().catch(() => ({}));
+                if (!response.ok || startResult.success === false) {
+                    throw new Error(startResult.error || "無法開啟攝影機");
                 }
 
                 previewTarget = role;
                 setPreviewState(otherRole, false);
                 setPreviewState(role, true, `${role === PREVIEW_SIDE ? "旁邊" : "上方"}攝影機預覽畫面`);
+
+                // 後端開不到指定鏡頭時會退回 Index 0，別讓使用者以為看到的是選的那一台
+                const openedIndex = Number(startResult.camera_index);
+                if (Number.isFinite(openedIndex) && openedIndex !== cameraIndex) {
+                    statusText.textContent =
+                        `注意：Index ${cameraIndex} 開啟失敗，目前顯示的是 ${deviceLabelFor(openedIndex)}（Index ${openedIndex}）。請重新掃描後改選其他鏡頭。`;
+                    statusText.className = "status warn";
+                }
 
                 previewStreamInterval = setInterval(async () => {
                     try {
@@ -764,7 +911,7 @@
             detectedDevices.forEach((device) => {
                 const option = document.createElement("option");
                 option.value = String(device.index);
-                option.textContent = `${device.label}（Index ${device.index}）`;
+                option.textContent = optionLabelFor(device);
                 if (Number(device.index) === Number(selectedValue)) {
                     option.selected = true;
                 }
@@ -796,7 +943,7 @@
                 px2cmInput.value = String(nextPx2cm);
                 standardAreaInput.value = String(nextStandardArea);
                 updateSummary({ top: nextTop, side: nextSide, px2cm: nextPx2cm, standardArea: nextStandardArea });
-                markCurrentDevices({ top: nextTop, side: nextSide });
+                updatePreviewPills();
                 return;
             }
 
@@ -805,7 +952,9 @@
                     nextTop = validIndexes[0];
                 }
                 if (!validIndexes.includes(nextSide)) {
-                    nextSide = validIndexes[Math.min(1, validIndexes.length - 1)];
+                    // 補的編號要避開上方，不然會直接撞到「不能是同一台」而存不了
+                    const spare = validIndexes.find((index) => index !== nextTop);
+                    nextSide = spare !== undefined ? spare : validIndexes[0];
                 }
             }
 
@@ -814,7 +963,7 @@
             px2cmInput.value = String(nextPx2cm);
             standardAreaInput.value = String(nextStandardArea);
             updateSummary({ top: nextTop, side: nextSide, px2cm: nextPx2cm, standardArea: nextStandardArea });
-            markCurrentDevices({ top: nextTop, side: nextSide });
+            updatePreviewPills();
         }
 
         function getFormSetting() {
@@ -829,6 +978,7 @@
         function syncAndRender() {
             const setting = getFormSetting();
             updateSummary(setting);
+            updatePreviewPills();
         }
 
         topCamera.addEventListener("change", syncAndRender);
@@ -919,7 +1069,8 @@
 
         previewTopBtn.addEventListener("click", () => startPreview(PREVIEW_TOP));
         previewSideBtn.addEventListener("click", () => startPreview(PREVIEW_SIDE));
-        stopPreviewBtn.addEventListener("click", stopPreview);
+        stopPreviewBtn.addEventListener("click", () => stopPreview(PREVIEW_TOP));
+        stopPreviewSideBtn.addEventListener("click", () => stopPreview(PREVIEW_SIDE));
 
         async function triggerRoiSelector(role) {
             const cameraIndex = getSelectedCameraIndex(role);
@@ -930,6 +1081,15 @@
             }
 
             const forceGui = role === PREVIEW_TOP ? !!forceGuiRoiTop?.checked : !!forceGuiRoiSide?.checked;
+
+            if (hasDetectedDevices() && !getDetectedIndexes().includes(cameraIndex)) {
+                statusText.textContent = `所選 Index ${cameraIndex} 不在目前偵測到的清單中，無法設定裁切區域。請先改選可用鏡頭。`;
+                statusText.className = "status err";
+                return;
+            }
+
+            // 後端會把相機釋放掉拿去框選，前端還在輪詢的話會一直拿到錯誤
+            await stopPreview(undefined, { silent: true });
 
             try {
                 statusText.textContent = "正在啟動 ROI 選取視窗，請查看電腦原生視窗...";
@@ -942,6 +1102,27 @@
                 });
 
                 const result = await response.json();
+
+                if (!result.success && result.fallback === "select") {
+                    // 相機根本不存在，手動輸入座標也沒有意義
+                    if (Array.isArray(result.devices) && result.devices.length) {
+                        detectedDevices = result.devices.map((device) => ({
+                            index: Number(device.index),
+                            name: device.name || device.label || `攝影機 ${device.index}`,
+                            kind: device.kind || "unknown",
+                            kindLabel: device.kind_label || "未知來源",
+                            label: device.label || `攝影機 ${device.index}`,
+                        }));
+                        renderDeviceSummary();
+                        renderOptions(topCamera, Number.parseInt(topCamera.value, 10));
+                        renderOptions(sideCamera, Number.parseInt(sideCamera.value, 10));
+                        applyForm(await readSetting());
+                    }
+                    statusText.textContent = `無法設定裁切區域：${result.error}`;
+                    statusText.className = "status err";
+                    return;
+                }
+
                 if (result.success) {
                     const remoteSynced = result.remote_sync?.synced !== false;
                     const remoteError = result.remote_sync?.error;
@@ -1033,7 +1214,7 @@
             }
 
             const initialSetting = await readSetting();
-            renderDeviceList();
+            renderDeviceSummary();
             renderOptions(topCamera, initialSetting.top);
             renderOptions(sideCamera, initialSetting.side);
             applyForm(initialSetting);
@@ -1050,7 +1231,7 @@
 
             try {
                 detectedDevices = await readDevices();
-                renderDeviceList();
+                renderDeviceSummary();
                 renderOptions(topCamera, Number.parseInt(topCamera.value, 10));
                 renderOptions(sideCamera, Number.parseInt(sideCamera.value, 10));
                 if (hasDetectedDevices()) {
