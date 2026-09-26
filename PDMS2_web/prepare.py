@@ -1,6 +1,6 @@
 """
-ch2 畫圖三關共用 —— 分類「之前」的所有前處理（與 fix_draw/flow.py 同一套）：
-  影像 -> paper 模型 bbox + SAM2 找紙張(純 YOLO，無 CV 保底)
+ch2 畫圖三關共用 —— 分類「之前」的所有前處理：
+  影像 -> paper 模型 bbox + SAM2 找紙張
        -> 在紙張 mask 範圍內用 CV 圈出手繪圖形
        -> 切正方形 -> 轉黑底白線 binary(224)
 
@@ -39,12 +39,15 @@ def pick_device(arg=None):
 
 # ---------------- step1: 找白紙 (paper 模型 bbox + SAM2) ----------------
 def get_paper_bbox(frame, yolo, device, conf):
-    """用 paper 模型取信心最高的紙張 bbox (x1,y1,x2,y2)，找不到回 None。"""
+    """用 paper 模型取紙張 bbox (x1,y1,x2,y2)，找不到回 None。
+    紙張是畫面中最大的物件，故取「面積最大」的框（不是信心最高），
+    避免挑到邊緣的高信心小雜訊框。"""
     res = yolo.predict(source=frame, conf=conf, device=device, verbose=False)[0]
     if res.boxes is None or len(res.boxes) == 0:
         return None
-    best = int(np.argmax(res.boxes.conf.cpu().numpy()))
-    return res.boxes.xyxy.cpu().numpy()[best]
+    boxes = res.boxes.xyxy.cpu().numpy()
+    areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    return boxes[int(np.argmax(areas))]
 
 
 def sam_mask_from_bbox(frame, sam, bbox, device):
@@ -62,16 +65,34 @@ def sam_mask_from_bbox(frame, sam, bbox, device):
 
 
 def locate_paper(frame, yolo, sam, device, conf):
-    """paper 模型 bbox -> SAM2 精修出紙張 mask（純 YOLO，無 CV 保底）。回傳 mask 或 None。"""
+    """paper 模型 bbox -> SAM2 精修出紙張 mask。回傳 mask 或 None。"""
     bbox = get_paper_bbox(frame, yolo, device, conf)
     if bbox is None:
         return None
     return sam_mask_from_bbox(frame, sam, bbox, device)
 
 
+def paper_mask_cv(frame):
+    """[備用] CV 亮色最大區塊當紙張 mask；prepare 目前用 YOLO+SAM2，此函式供相容/備援。"""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    th = cv2.morphologyEx(th, cv2.MORPH_CLOSE,
+                          cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15)))
+    cnts, _ = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None
+    c = max(cnts, key=cv2.contourArea)
+    m = np.zeros_like(gray)
+    cv2.drawContours(m, [c], -1, 255, cv2.FILLED)
+    return m
+
+
 # ---------------- step2: 紙內用 CV 找圖形 ----------------
-def find_shape_bbox(frame, paper_mask, min_area_ratio=0.0005):
-    """在紙張 mask 範圍內用 OpenCV 找手繪圖形外接框。回傳 (x1,y1,x2,y2) 或 None。"""
+def find_shape_bbox(frame, paper_mask, min_area_ratio=0.0005, ink_margin=45):
+    """在紙張 mask 範圍內用 OpenCV 找手繪圖形外接框。回傳 (x1,y1,x2,y2) 或 None。
+    偵測方式：比紙張白階暗 ink_margin 以上的像素才算筆跡（粗細筆畫通吃、緩陰影不誤抓）。
+    (舊版用 adaptiveThreshold 對粗筆畫只抓到邊緣、經形態學會被清掉→找不到十字，故改此法)"""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     paper_area = int((paper_mask > 0).sum())
     if paper_area == 0:
@@ -80,14 +101,12 @@ def find_shape_bbox(frame, paper_mask, min_area_ratio=0.0005):
     inner = cv2.erode(paper_mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     if int((inner > 0).sum()) == 0:
         return None
-    blk = max(15, int(0.06 * np.sqrt(paper_area)) | 1)
-    adap = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                 cv2.THRESH_BINARY_INV, blk, 12)
-    ink = ((adap > 0) & (inner > 0)).astype(np.uint8) * 255
+    white = np.median(gray[inner > 0])            # 紙張白階
+    ink = ((gray < white - ink_margin) & (inner > 0)).astype(np.uint8) * 255
     ink = cv2.morphologyEx(ink, cv2.MORPH_CLOSE,
                            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
     ink = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
-                           cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+                           cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)))
     contours, _ = cv2.findContours(ink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     min_area = min_area_ratio * paper_area
     cand = []
