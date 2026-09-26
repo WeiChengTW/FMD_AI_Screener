@@ -1,46 +1,18 @@
-# 裁切圖形 + 得出px->cm -> 分類圖形(圓 橢圓 其他) -> 標示端點&算距離
-
+# ch2-t1：YOLO+SAM2 找紙張 -> 該範圍內 CV 圈出圖形 -> 4類分類(circle) -> check_point 評分
+import os
+import sys
 import cv2
 import numpy as np
-from skimage.morphology import skeletonize
-import math
-import json
-from Analyze_graphics import Analyze_graphics
-import glob
-from PIL import Image
-import os
-from check_point import check_point
-from circle_or_oval import ImageClassifier
-import shutil
 from pathlib import Path
-import sys
-import os
-from datetime import datetime
+from check_point import check_point
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR.parent / ".env"
-
-def _read_env_float(key, default):
-    if not ENV_PATH.exists():
-        return default
-    try:
-        for raw_line in ENV_PATH.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in raw_line:
-                continue
-            current_key, value = raw_line.split("=", 1)
-            if current_key.strip() == key:
-                parsed = float(value.strip())
-                return parsed if parsed > 0 else default
-    except Exception:
-        return default
-    return default
-from pathlib import Path
-from datetime import datetime
-
-BASE_DIR = Path(__file__).resolve().parent
-target_dir = BASE_DIR.parent / "ch2-t1"
-MODEL_PATH = BASE_DIR.parent / "ch2-t1" / "model" / "circle_detect.h5"
+target_dir = BASE_DIR
+# 共用模組：prepare(分類前) + classify(分類)
+sys.path.insert(0, str(BASE_DIR.parent))
+from prepare import Preparer
+from classify import Classifier
 
 
 def return_score(score):
@@ -141,77 +113,19 @@ def get_pixel_per_cm_from_a4(
     return pixel_per_cm, None, cropped_path
 
 
-def read_all_images_from_folder(folder_path):
-    """讀取資料夾中所有圖片（包含子資料夾）"""
-
-    # 支援的圖片格式
-    image_extensions = ["jpg", "jpeg", "png", "bmp", "gif", "tiff", "webp"]
-
-    all_images = []
-
-    # 使用 ** 進行遞迴搜尋
-    for ext in image_extensions:
-        # 搜尋當前資料夾
-        pattern1 = os.path.join(folder_path, f"*.{ext}")
-        pattern2 = os.path.join(folder_path, f"*.{ext.upper()}")
-
-        # 搜尋所有子資料夾（遞迴）
-        pattern3 = os.path.join(folder_path, "**", f"*.{ext}")
-        pattern4 = os.path.join(folder_path, "**", f"*.{ext.upper()}")
-
-        all_images.extend(glob.glob(pattern1))
-        all_images.extend(glob.glob(pattern2))
-        all_images.extend(glob.glob(pattern3, recursive=True))
-        all_images.extend(glob.glob(pattern4, recursive=True))
-
-    # 去除重複
-    all_images = list(set(all_images))
-
-    print(f"找到 {len(all_images)} 張圖片")
-
-    # 處理每張圖片
-    for image_path in all_images:
-        try:
-            image = Image.open(image_path)
-            print(f"讀取: {os.path.basename(image_path)} - 尺寸: {image.size}")
-
-            # 在這裡處理你的圖片
-            # image.show()  # 顯示圖片
-
-        except Exception as e:
-            print(f"無法讀取 {image_path}: {e}")
-
-    return all_images
-
-
 def main(img_path):
     # ==參數==#
     real_width_cm = 29.7
     SCALE = 2
-
-    CLASS_NAMES = ["Other", "circle_or_oval"]
+    TARGET = "circle"  # ch2-t1 目標形狀
     # ==參數==#
 
-    # 讀取資料夾內所有圖片
-    # all_images = read_all_images_from_folder(input_folder)
-
-    # 建立分類資料夾（只建立一次）
-    circle_dir = target_dir / "circle_or_oval"
-    other_dir = target_dir / "Other"
-    os.makedirs(circle_dir, exist_ok=True)
-    os.makedirs(other_dir, exist_ok=True)
-
-    classifier = ImageClassifier(MODEL_PATH, CLASS_NAMES)
     cp = check_point(SCALE=SCALE)
-
-    # 初始化空間
-    segmenter = Analyze_graphics()
-    segmenter.initialize_workspace()
 
     # 單張處理
     print(f"\n=== 處理 {img_path} ===\n")
 
-    # 得出 px->cm
+    # 得出 px->cm（評分尺度，維持原本 A4 量測不變）
     try:
         pixel_per_cm, _, cropped_path = get_pixel_per_cm_from_a4(
             img_path,
@@ -224,82 +138,72 @@ def main(img_path):
         print(f"跳過 {img_path}：{e}")
         return -1, cv2.imread(img_path)
 
-    # 裁切圖形
-    print("\n==裁切圖形==")
-    segmenter = Analyze_graphics()
+    # prepare：找紙張 + CV 圈選 + binary
+    print("\n==prepare 前處理==")
+    prep = Preparer()
+    stem = os.path.splitext(os.path.basename(img_path))[0]
+    r = prep.prepare(img_path, target_dir / "ready", stem)
+    if not r["ok"]:
+        print(f"未圈到圖形（{r['reason']}）")
+        return -1, r.get("vis")
 
-    ready = segmenter.infer_and_draw(img_path)
+    # classify：4 類分類
+    print("\n==classify 分類==")
+    clf = Classifier()
+    label, conf = clf.classify(r["binary_bgr"])
+    print(f"{img_path} → {label} ({conf*100:.2f}%)")
 
-    # 分類圖形(圓 橢圓 其他)
-    print("\n==分類圖形==\n")
-    result = {}
+    # 非目標形狀 -> 0 分
+    if label != TARGET:
+        img = cv2.imread(r["color_path"])
+        cv2.putText(img, "Other !", (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 0, 255), 2)
+        print(f"{img_path} is {label}!")
+        return 0, img
 
-    for rb in ready:
-        if "binary" in rb:
-            predicted_class_name, conf = classifier.predict(rb)
-            url = rb.replace("_binary", "")
-            print(f"{url} → {predicted_class_name} ({conf*100:.2f}%)")
-            result[url] = predicted_class_name
-
-            # 直接分類存檔
-            if predicted_class_name == "circle_or_oval":
-                shutil.copy(url, circle_dir / os.path.basename(url))
-            else:
-                # 讀取圖片並加上標記
-                img = cv2.imread(url)
-                cv2.putText(
-                    img,
-                    "Other !",
-                    (30, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 0, 255),
-                    2,
-                )
-                save_path = other_dir / os.path.basename(url)
-                cv2.imwrite(str(save_path), img)  # 直接存檔，不用手動關視窗
-                print(f"{url} 已存入 Other 資料夾並加上標記")
-
-    # 計算端點距離 & 複製到對應資料夾
+    # 圓形 -> 計算端點距離評分（評分邏輯不變）
+    # 注意：check_point 內部用全域 Otsu，直接吃彩色 crop 會把底部陰影當筆跡→骨架長毛刺。
+    # 改餵 prepare 的乾淨 binary(黑底白線)的反相版(白底黑線)，正好是 check_point 期待的輸入。
     print("\n==計算端點距離==\n")
-    for url, u_type in result.items():
-        if u_type == "circle_or_oval":
-            px, result_img = cp.check_point(url)
-            offset = px / pixel_per_cm
-            cv2.putText(
-                result_img,
-                f"Offset : {float(offset):.2f} cm",
-                (20, 50),
-                cv2.FONT_HERSHEY_COMPLEX,
-                0.8,
-                (0, 255, 0),
-                1,
-            )
-            if px == 0.0:
-                print(f"{url} : Perfect!")
-                return 2, result_img
-            else:
-                print(f"{url} : {offset}cm")
-                if offset <= 1.2:
-                    return 2, result_img
-                elif offset > 1.2 and offset <= 2.5:
-                    return 1, result_img
-                else:
-                    return 0, result_img
-
-        else:
-            img = cv2.imread(url)
-            cv2.putText(
-                img, "Other !", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2
-            )
-
-            # cv2.imshow('Other', img)
-            print(f"{url} is {result[url]}!")
-            return 0, img
-    return -1, None
+    clean = cv2.imread(r["binary_path"], cv2.IMREAD_GRAYSCALE)
+    inv_path = os.path.splitext(r["binary_path"])[0] + "_inv.jpg"
+    cv2.imwrite(inv_path, 255 - clean)  # 白底黑線
+    px, result_img = cp.check_point(inv_path)
+    offset = px / pixel_per_cm
+    cv2.putText(
+        result_img,
+        f"Offset : {float(offset):.2f} cm",
+        (20, 50),
+        cv2.FONT_HERSHEY_COMPLEX,
+        0.8,
+        (0, 255, 0),
+        1,
+    )
+    if px == 0.0:
+        print(f"{img_path} : Perfect!")
+        return 2, result_img
+    print(f"{img_path} : {offset}cm")
+    if offset <= 1.2:
+        return 2, result_img
+    elif offset <= 2.5:
+        return 1, result_img
+    else:
+        return 0, result_img
 
 
 if __name__ == "__main__":
+    # 測試模式：python main.py --img 照片路徑  (讀照片->跑流程->印分數->存 _result 圖)
+    if len(sys.argv) > 2 and sys.argv[1] == "--img":
+        image_path = sys.argv[2]
+        score, result_img = main(image_path)
+        if result_img is None:
+            result_img = cv2.imread(image_path)
+        out = os.path.splitext(image_path)[0] + "_result.jpg"
+        if result_img is not None:
+            cv2.imwrite(out, result_img)
+        print(f"score = {score}  (結果圖: {out})")
+        sys.exit(0)
+
     if len(sys.argv) > 2:
         # 使用傳入的 uid 和 id 作為圖片路徑
         uid = sys.argv[1]
