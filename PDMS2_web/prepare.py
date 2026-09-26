@@ -1,7 +1,7 @@
 """
-ch2 畫圖三關共用 —— 分類「之前」的所有前處理（與 fix_draw/flow.py 同一套）：
-  影像 -> paper 模型 bbox + SAM2 找紙張(純 YOLO，無 CV 保底)
-       -> 在紙張 mask 範圍內用 CV 圈出手繪圖形
+ch2 畫圖三關共用 —— 分類「之前」的所有前處理：
+  影像 -> paper 模型 bbox + SAM2 找紙張
+       -> 在紙張 mask 範圍內用 shape 模型(YOLO) 圈出手繪圖形（CV 保底）
        -> 切正方形 -> 轉黑底白線 binary(224)
 
 用法：
@@ -25,6 +25,7 @@ import numpy as np
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 DEFAULT_PAPER_WEIGHTS = MODELS_DIR / "paper_seg.pt"
 DEFAULT_SAM_WEIGHTS = MODELS_DIR / "sam2_b.pt"
+DEFAULT_SHAPE_WEIGHTS = MODELS_DIR / "shape.pt"
 
 
 def pick_device(arg=None):
@@ -39,12 +40,15 @@ def pick_device(arg=None):
 
 # ---------------- step1: 找白紙 (paper 模型 bbox + SAM2) ----------------
 def get_paper_bbox(frame, yolo, device, conf):
-    """用 paper 模型取信心最高的紙張 bbox (x1,y1,x2,y2)，找不到回 None。"""
+    """用 paper 模型取紙張 bbox (x1,y1,x2,y2)，找不到回 None。
+    紙張是畫面中最大的物件，故取「面積最大」的框（不是信心最高），
+    避免挑到邊緣的高信心小雜訊框。"""
     res = yolo.predict(source=frame, conf=conf, device=device, verbose=False)[0]
     if res.boxes is None or len(res.boxes) == 0:
         return None
-    best = int(np.argmax(res.boxes.conf.cpu().numpy()))
-    return res.boxes.xyxy.cpu().numpy()[best]
+    boxes = res.boxes.xyxy.cpu().numpy()
+    areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    return boxes[int(np.argmax(areas))]
 
 
 def sam_mask_from_bbox(frame, sam, bbox, device):
@@ -62,16 +66,64 @@ def sam_mask_from_bbox(frame, sam, bbox, device):
 
 
 def locate_paper(frame, yolo, sam, device, conf):
-    """paper 模型 bbox -> SAM2 精修出紙張 mask（純 YOLO，無 CV 保底）。回傳 mask 或 None。"""
+    """paper 模型 bbox -> SAM2 精修出紙張 mask。回傳 mask 或 None。"""
     bbox = get_paper_bbox(frame, yolo, device, conf)
     if bbox is None:
         return None
     return sam_mask_from_bbox(frame, sam, bbox, device)
 
 
-# ---------------- step2: 紙內用 CV 找圖形 ----------------
+def paper_mask_cv(frame):
+    """[備用] CV 亮色最大區塊當紙張 mask；prepare 目前用 YOLO+SAM2，此函式供相容/備援。"""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    th = cv2.morphologyEx(th, cv2.MORPH_CLOSE,
+                          cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15)))
+    cnts, _ = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None
+    c = max(cnts, key=cv2.contourArea)
+    m = np.zeros_like(gray)
+    cv2.drawContours(m, [c], -1, 255, cv2.FILLED)
+    return m
+
+
+# ---------------- step2: 紙內用 shape 模型(YOLO) 找圖形 ----------------
+def find_shape_bbox_yolo(frame, shape_yolo, paper_mask, device, conf=0.25):
+    """在紙張 mask 範圍內用 shape 模型(YOLO) 找手繪圖形。
+    只留「框中心落在紙張內」的偵測（濾掉定位標記等紙外雜訊），
+    同區重疊時取信心最高者。回傳 (bbox, label, det_conf) 或 None。
+      bbox = (x1,y1,x2,y2) int
+      label = 'circle'/'cross'/'diamond'/'rectangle'/'triangle'
+    """
+    res = shape_yolo.predict(source=frame, conf=conf, device=device, verbose=False)[0]
+    if res.boxes is None or len(res.boxes) == 0:
+        return None
+    H, W = paper_mask.shape[:2]
+    boxes = res.boxes.xyxy.cpu().numpy()
+    confs = res.boxes.conf.cpu().numpy()
+    clss = res.boxes.cls.cpu().numpy().astype(int)
+    names = shape_yolo.names
+    cand = []  # (conf, bbox, label)
+    for (x1, y1, x2, y2), cf, ci in zip(boxes, confs, clss):
+        cx = int(round((x1 + x2) / 2))
+        cy = int(round((y1 + y2) / 2))
+        if not (0 <= cx < W and 0 <= cy < H):
+            continue
+        if paper_mask[cy, cx] == 0:  # 框中心不在紙上 -> 丟棄
+            continue
+        cand.append((float(cf), (int(x1), int(y1), int(x2), int(y2)), names[ci]))
+    if not cand:
+        return None
+    cf, bbox, label = max(cand, key=lambda t: t[0])
+    return bbox, label, cf
+
+
+# ---------------- step2(備用): 紙內用 CV 找圖形 ----------------
 def find_shape_bbox(frame, paper_mask, min_area_ratio=0.0005):
-    """在紙張 mask 範圍內用 OpenCV 找手繪圖形外接框。回傳 (x1,y1,x2,y2) 或 None。"""
+    """在紙張 mask 範圍內用 OpenCV(adaptiveThreshold) 找手繪圖形外接框。
+    回傳 (x1,y1,x2,y2) 或 None。"""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     paper_area = int((paper_mask > 0).sum())
     if paper_area == 0:
@@ -146,20 +198,24 @@ def to_binary(bgr):
 
 
 class Preparer:
-    """分類前的前處理：找紙張 -> CV 找圖形 -> 切圖 -> binary。"""
+    """分類前的前處理：找紙張 -> shape 模型(YOLO) 找圖形（CV 保底）-> 切圖 -> binary。"""
 
     def __init__(self, paper_weights=DEFAULT_PAPER_WEIGHTS,
                  sam_weights=DEFAULT_SAM_WEIGHTS, device=None,
-                 paper_conf=0.4, pad=30, size=224):
+                 paper_conf=0.4, pad=30, size=224,
+                 shape_weights=DEFAULT_SHAPE_WEIGHTS, shape_conf=0.25):
         from ultralytics import YOLO, SAM
         self.device = pick_device(device)
         self.paper = YOLO(str(paper_weights))
         self.sam = SAM(str(sam_weights))
+        self.shape = YOLO(str(shape_weights))
         self.paper_conf = paper_conf
+        self.shape_conf = shape_conf
         self.pad = pad
         self.size = size
         print(f"[prepare] device={self.device}")
         print(f"[prepare] paper(yolo bbox)={paper_weights} + SAM2={sam_weights}")
+        print(f"[prepare] shape(yolo)={shape_weights}  classes={self.shape.names}")
 
     def prepare(self, img_path, out_dir, stem):
         """跑分類前流程。回傳 dict（見模組 docstring）。"""
@@ -177,8 +233,14 @@ class Preparer:
         cnts, _ = cv2.findContours(paper_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(vis, cnts, -1, (255, 128, 0), 2)
 
-        # step2: 紙內 CV 找圖形
-        bbox = find_shape_bbox(frame, paper_mask)
+        # step2: 紙內用 shape 模型(YOLO) 找圖形，找不到再退回 CV
+        det_label, det_conf = None, None
+        hit = find_shape_bbox_yolo(frame, self.shape, paper_mask,
+                                   self.device, self.shape_conf)
+        if hit is not None:
+            bbox, det_label, det_conf = hit
+        else:
+            bbox = find_shape_bbox(frame, paper_mask)
         if bbox is None:
             return {"ok": False, "reason": "no_shape", "vis": vis}
 
@@ -198,5 +260,6 @@ class Preparer:
         cv2.imwrite(vis_path, vis)
 
         return {"ok": True, "reason": "", "vis": vis, "bbox": sq,
+                "det_label": det_label, "det_conf": det_conf,
                 "binary_bgr": bin_bgr, "color224": color224, "binary224": binary224,
                 "color_path": color_path, "binary_path": binary_path, "vis_path": vis_path}
