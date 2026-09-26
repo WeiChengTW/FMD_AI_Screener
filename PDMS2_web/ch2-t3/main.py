@@ -1,27 +1,19 @@
-# 裁切圖形 + 得出px->cm -> 分類圖形(圓 橢圓 其他) -> 標示端點&算距離
+# ch2-t3：YOLO+SAM2 找紙張 -> 該範圍內 CV 圈出圖形 -> 4類分類(cross) -> CrossScorer 評分
+import os
+import sys
+import glob
 import cv2
 import numpy as np
-from skimage.morphology import skeletonize
-import math
-
-from Analyze_graphics import Analyze_graphics
-import glob
-from PIL import Image
-import os
-from cross_or_other import ImageClassifier
-import shutil
-from cross_detect import CrossScorer
-import sys
-import os
 from pathlib import Path
+from cross_detect import CrossScorer
 
 BASE_DIR = Path(__file__).resolve().parent
-# target_dir = BASE_DIR.parent / "ch2-t3"
 target_dir = os.path.join(BASE_DIR.parent, "ch2-t3")
-
-# MODEL_PATH = BASE_DIR.parent / "ch2-t3" / "model" / "cross_final.h5"
-MODEL_PATH = os.path.join(BASE_DIR.parent, "ch2-t3", "model", "cross_final.h5")
 ENV_PATH = BASE_DIR.parent / ".env"
+# 共用模組：prepare(分類前) + classify(分類)
+sys.path.insert(0, str(BASE_DIR.parent))
+from prepare import Preparer
+from classify import Classifier
 
 def _read_env_float(key):
     if not ENV_PATH.exists():
@@ -137,76 +129,13 @@ def get_pixel_per_cm_from_a4(
     return pixel_per_cm, None, cropped_path
 
 
-def read_all_images_from_folder(folder_path):
-    """讀取資料夾中所有圖片（包含子資料夾）"""
-
-    # 支援的圖片格式
-    image_extensions = ["jpg", "jpeg", "png", "bmp", "gif", "tiff", "webp"]
-
-    all_images = []
-
-    # 使用 ** 進行遞迴搜尋
-    for ext in image_extensions:
-        # 搜尋當前資料夾
-        pattern1 = os.path.join(folder_path, f"*.{ext}")
-        pattern2 = os.path.join(folder_path, f"*.{ext.upper()}")
-
-        # 搜尋所有子資料夾（遞迴）
-        pattern3 = os.path.join(folder_path, "**", f"*.{ext}")
-        pattern4 = os.path.join(folder_path, "**", f"*.{ext.upper()}")
-
-        all_images.extend(glob.glob(pattern1))
-        all_images.extend(glob.glob(pattern2))
-        all_images.extend(glob.glob(pattern3, recursive=True))
-        all_images.extend(glob.glob(pattern4, recursive=True))
-
-    # 去除重複
-    all_images = list(set(all_images))
-
-    print(f"找到 {len(all_images)} 張圖片")
-
-    # 處理每張圖片
-    for image_path in all_images:
-        try:
-            image = Image.open(image_path)
-            print(f"讀取: {os.path.basename(image_path)} - 尺寸: {image.size}")
-
-            # 在這裡處理你的圖片
-            # image.show()  # 顯示圖片
-
-        except Exception as e:
-            print(f"無法讀取 {image_path}: {e}")
-
-    return all_images
-
-
 def main(img_path):
     # ==參數==#
     real_width_cm = 29.7
     SCORE = -1
 
-    CLASS_NAMES = ["cross", "other"]
-
+    TARGET = "cross"  # ch2-t3 目標形狀
     # ==參數==#
-
-    # 讀取資料夾內所有圖片
-    # all_images = read_all_images_from_folder(input_folder)
-
-    ## 先建立分類資料夾
-    cross_dir = os.path.join(target_dir, "Cross")
-
-    other_dir = os.path.join(target_dir, "other")
-
-    os.makedirs(os.path.join(cross_dir, "Cross"), exist_ok=True)
-    os.makedirs(os.path.join(other_dir, "other"), exist_ok=True)
-
-    classifier = ImageClassifier(MODEL_PATH, CLASS_NAMES)
-
-    
-
-    # 初始化空間
-    segmenter = Analyze_graphics()
-    segmenter.initialize_workspace()
 
     # 得出 px->cm
     try:
@@ -238,51 +167,33 @@ def main(img_path):
         max_spread_cm=0.6,
     )
     
-    # 單張處理
-    print(f"\n=== 處理 {cropped_path} ===\n")
+    # prepare：找紙張 + CV 圈選 + binary
+    print(f"\n=== 處理 {img_path} ===\n")
+    print("\n==prepare 前處理==")
+    prep = Preparer()
+    stem = os.path.splitext(os.path.basename(img_path))[0]
+    r = prep.prepare(img_path, os.path.join(target_dir, "ready"), stem)
+    if not r["ok"]:
+        print(f"未圈到圖形（{r['reason']}）")
+        return SCORE, r.get("vis")
 
-    # 裁切圖形
-    print("\n==裁切圖形==")
-    # print(cropped_path)
-    ready = segmenter.infer_and_draw(cropped_path)
+    # classify：4 類分類
+    print("\n==classify 分類==")
+    clf = Classifier()
+    label, conf = clf.classify(r["binary_bgr"])
+    print(f"{img_path} → {label} ({conf*100:.2f}%)")
 
-    # 分類圖形
-    print("\n==分類圖形==\n")
-    result = {}
-    print(ready)
+    # 十字 -> CrossScorer 評分（評分邏輯不變，吃 binary crop）
+    if label == TARGET:
+        results, result_img, _, _, _ = cs.score_image(r["binary_path"])
+        return results["score"], result_img
 
-    for rb in ready:
-        if "binary" in rb:
-            predicted_class_name, conf = classifier.predict(rb)
-            # url = rb.replace("_binary", "")
-            url = rb
-            print(f"{url} → {predicted_class_name} ({conf*100:.2f}%)")
-            result[url] = predicted_class_name
-
-            # 直接分類存檔
-            if predicted_class_name == "cross":
-                shutil.copy(url, os.path.join(cross_dir, os.path.basename(url)))
-                results, result_img, _, _, _ = cs.score_image(url)
-                return results["score"], result_img
-
-            else:
-                # 讀取圖片並加上標記
-                img = cv2.imread(url)
-                cv2.putText(
-                    img,
-                    "Other !",
-                    (30, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 0, 255),
-                    2,
-                )
-                save_path = os.path.join(other_dir, os.path.basename(url))
-                cv2.imwrite(save_path, img)  # 直接存檔，不用手動關視窗
-                print(f"{url} 已存入 Other 資料夾並加上標記")
-                return 0, img
-
-    return SCORE, None
+    # 非目標形狀 -> 0 分
+    img = cv2.imread(r["color_path"])
+    cv2.putText(img, "Other !", (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                0.6, (0, 0, 255), 2)
+    print(f"{img_path} is {label}!")
+    return 0, img
 
 
 def test_folder(folder=None, show=False):
@@ -358,6 +269,18 @@ def test_folder(folder=None, show=False):
 
 
 if __name__ == "__main__":
+    # 測試模式：python main.py --img 照片路徑
+    if len(sys.argv) > 2 and sys.argv[1] == "--img":
+        image_path = sys.argv[2]
+        score, result_img = main(image_path)
+        if result_img is None:
+            result_img = cv2.imread(image_path)
+        out = os.path.splitext(image_path)[0] + "_result.jpg"
+        if result_img is not None:
+            cv2.imwrite(out, result_img)
+        print(f"score = {score}  (結果圖: {out})")
+        sys.exit(0)
+
     # ===== 測試模式: python main.py --test [資料夾或圖片路徑] [--show] =====
     if len(sys.argv) > 1 and sys.argv[1] in ("--test", "-t"):
         args = sys.argv[2:]
