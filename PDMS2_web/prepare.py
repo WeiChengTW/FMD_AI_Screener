@@ -62,7 +62,15 @@ def sam_mask_from_bbox(frame, sam, bbox, device):
     if mask.shape[:2] != frame.shape[:2]:
         mask = cv2.resize(mask, (frame.shape[1], frame.shape[0]),
                           interpolation=cv2.INTER_NEAREST)
-    return mask * 255
+    mask = mask * 255
+    # SAM 有時會把紙上深色筆跡當成非紙區域、在紙內挖出洞，導致 shape 框中心
+    # 落在洞上被誤濾。取最大外輪廓填實，紙張區域維持實心（外邊界不變）。
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if cnts:
+        filled = np.zeros_like(mask)
+        cv2.drawContours(filled, [max(cnts, key=cv2.contourArea)], -1, 255, cv2.FILLED)
+        mask = filled
+    return mask
 
 
 def locate_paper(frame, yolo, sam, device, conf):
@@ -101,6 +109,12 @@ def find_shape_bbox_yolo(frame, shape_yolo, paper_mask, device, conf=0.25):
     if res.boxes is None or len(res.boxes) == 0:
         return None
     H, W = paper_mask.shape[:2]
+    # 對 SAM mask 的不完美（邊緣偏緊、殘留小洞）留容忍度：膨脹一小圈再判斷，
+    # 膨脹量取紙張大小的 ~2%，過濾紙外雜訊的用意仍在，但不會誤刪紙邊圖形。
+    paper_area = int((paper_mask > 0).sum())
+    k = max(5, int(0.02 * np.sqrt(paper_area)) | 1) if paper_area else 5
+    mask_tol = cv2.dilate(paper_mask,
+                          cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     boxes = res.boxes.xyxy.cpu().numpy()
     confs = res.boxes.conf.cpu().numpy()
     clss = res.boxes.cls.cpu().numpy().astype(int)
@@ -111,7 +125,13 @@ def find_shape_bbox_yolo(frame, shape_yolo, paper_mask, device, conf=0.25):
         cy = int(round((y1 + y2) / 2))
         if not (0 <= cx < W and 0 <= cy < H):
             continue
-        if paper_mask[cy, cx] == 0:  # 框中心不在紙上 -> 丟棄
+        # 中心在(膨脹後)紙上，或框與紙重疊夠多，就保留（兩者其一即可）。
+        center_ok = mask_tol[cy, cx] > 0
+        bx1, by1 = max(0, int(x1)), max(0, int(y1))
+        bx2, by2 = min(W, int(x2)), min(H, int(y2))
+        sub = paper_mask[by1:by2, bx1:bx2]
+        overlap = (sub > 0).mean() if sub.size else 0.0
+        if not (center_ok or overlap >= 0.3):  # 都不符 -> 視為紙外雜訊丟棄
             continue
         cand.append((float(cf), (int(x1), int(y1), int(x2), int(y2)), names[ci]))
     if not cand:
