@@ -25,7 +25,7 @@ import numpy as np
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 DEFAULT_PAPER_WEIGHTS = MODELS_DIR / "paper_seg.pt"
 DEFAULT_SAM_WEIGHTS = MODELS_DIR / "sam2_b.pt"
-DEFAULT_SHAPE_WEIGHTS = MODELS_DIR / "shape.pt"
+DEFAULT_SHAPE_WEIGHTS = MODELS_DIR / "shape_det.pt"
 
 
 def pick_device(arg=None):
