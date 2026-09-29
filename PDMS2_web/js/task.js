@@ -647,7 +647,7 @@ const TASK_MAP = {
 
     desc:"把方塊疊成樓梯，繼續前往魔法王國。",
 
-    img: () => Math.random() < 0.5 ? "/video/ch1-t3-L.mp4" : "/video/ch1-t3-R.mp4",
+    img: "/video/ch1-t3.mp4",
 
     steps:[ "排出一階一階的形狀", "確認每格都踩得到", "小心地走上去！" ]
 
