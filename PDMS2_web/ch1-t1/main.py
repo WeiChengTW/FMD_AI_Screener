@@ -9,22 +9,21 @@ def safe_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = safe_load
 
-from ultralytics import YOLO
+from ultralytics import YOLO, SAM
 import sys
 import os
 from pathlib import Path
-from segment_anything import sam_model_registry, SamPredictor
 
 # ================== 核心設定 ==================
-CONF = 0.5
+CONF = 0.75
 BASE_DIR = Path(__file__).resolve().parent
 
 # ================== 初始化模型 ==================
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"[DEBUG] 目前使用設備: {device}", flush=True)
 
-# 1. YOLO 模型 (僅用於提供 Box)
-MODEL_PATH = BASE_DIR / "toybrick_top.pt"
+# 1. YOLO 模型 (俯視圖，僅用於提供 Box)
+MODEL_PATH = BASE_DIR / "cube_top.pt"
 try:
     print(f"[DEBUG] 開始加載 YOLO 模型: {MODEL_PATH}", flush=True)
     yolo_model = YOLO(str(MODEL_PATH))
@@ -33,16 +32,14 @@ except Exception as e:
     print(f"[ERROR] YOLO 模型加載失敗：{e}", flush=True)
     sys.exit(-1)
 
-# 2. SAM 模型 (用於精細分割)
-SAM_CHECKPOINT = BASE_DIR / "sam_vit_b_01ec64.pth"
+# 2. SAM2 模型 (ultralytics，用於精細分割)
+SAM_CHECKPOINT = BASE_DIR / "sam2_b.pt"
 try:
-    print(f"[DEBUG] 開始加載 SAM 模型: {SAM_CHECKPOINT}", flush=True)
-    sam = sam_model_registry["vit_b"](checkpoint=str(SAM_CHECKPOINT))
-    sam.to(device=device)
-    sam_predictor = SamPredictor(sam)
-    print("[DEBUG] SAM 模型加載完成", flush=True)
+    print(f"[DEBUG] 開始加載 SAM2 模型: {SAM_CHECKPOINT}", flush=True)
+    sam_model = SAM(str(SAM_CHECKPOINT))
+    print("[DEBUG] SAM2 模型加載完成", flush=True)
 except Exception as e:
-    print(f"[ERROR] SAM 模型加載失敗：{e}", flush=True)
+    print(f"[ERROR] SAM2 模型加載失敗：{e}", flush=True)
     sys.exit(-1)
 
 def return_score(score):
@@ -51,13 +48,19 @@ def return_score(score):
 # ================== 輔助函數 ==================
 
 def get_sam_masks(frame, boxes):
+    """ 根據 YOLO 的 boxes 使用 SAM2 生成高品質 Mask，回傳 list[bool HxW] """
     if len(boxes) == 0: return []
-    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    sam_predictor.set_image(img_rgb)
+    bboxes = np.asarray(boxes, dtype=float)
+    results = sam_model.predict(source=frame, bboxes=bboxes, device=device, verbose=False)
     sam_masks = []
-    for box in boxes:
-        masks, _, _ = sam_predictor.predict(box=np.array(box), multimask_output=False)
-        sam_masks.append(masks[0])
+    if len(results) > 0 and results[0].masks is not None:
+        h, w = frame.shape[:2]
+        for m in results[0].masks.data.cpu().numpy():
+            mask = m > 0.5
+            if mask.shape[:2] != (h, w):
+                mask = cv2.resize(mask.astype(np.uint8), (w, h),
+                                  interpolation=cv2.INTER_NEAREST).astype(bool)
+            sam_masks.append(mask)
     return sam_masks
 
 def detect_blocks_boxes(frame, conf=CONF):

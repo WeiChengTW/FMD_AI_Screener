@@ -1,22 +1,12 @@
-# 裁切圖形 + 得出px->cm -> 分類圖形(圓 橢圓 其他) -> 標示端點&算距離
-
+# ch2-t2：YOLO+SAM2 找紙張 -> 該範圍內 CV 圈出圖形 -> 4類分類(square) -> SquareGapAnalyzer 評分
+import os
+import sys
 import cv2
 import numpy as np
-from skimage.morphology import skeletonize
-import math
-import json
-from Analyze_graphics import Analyze_graphics
-import glob
-from PIL import Image
-import os
-from q_or_other import ImageClassifier
-import shutil
-from square_detect import SquareGapAnalyzer
-import sys
-import os
-from pathlib import Path
 import socket
 import uuid
+from pathlib import Path
+from square_detect import SquareGapAnalyzer
 
 try:
     import pymysql
@@ -25,8 +15,11 @@ except ImportError:
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR.parent / ".env"
-target_dir = BASE_DIR.parent / "ch2-t2"
-MODEL_PATH = BASE_DIR.parent / "ch2-t2" / "model" / "square.h5"
+target_dir = BASE_DIR
+# 共用模組：prepare(分類前) + classify(分類)
+sys.path.insert(0, str(BASE_DIR.parent))
+from prepare import Preparer
+from classify import Classifier
 
 
 def _read_env_value(key, default):
@@ -221,77 +214,17 @@ def get_pixel_per_cm_from_a4(
     return pixel_per_cm, None, cropped_path
 
 
-def read_all_images_from_folder(folder_path):
-    """讀取資料夾中所有圖片（包含子資料夾）"""
-
-    # 支援的圖片格式
-    image_extensions = ["jpg", "jpeg", "png", "bmp", "gif", "tiff", "webp"]
-
-    all_images = []
-
-    # 使用 ** 進行遞迴搜尋
-    for ext in image_extensions:
-        # 搜尋當前資料夾
-        pattern1 = os.path.join(folder_path, f"*.{ext}")
-        pattern2 = os.path.join(folder_path, f"*.{ext.upper()}")
-
-        # 搜尋所有子資料夾（遞迴）
-        pattern3 = os.path.join(folder_path, "**", f"*.{ext}")
-        pattern4 = os.path.join(folder_path, "**", f"*.{ext.upper()}")
-
-        all_images.extend(glob.glob(pattern1))
-        all_images.extend(glob.glob(pattern2))
-        all_images.extend(glob.glob(pattern3, recursive=True))
-        all_images.extend(glob.glob(pattern4, recursive=True))
-
-    # 去除重複
-    all_images = list(set(all_images))
-
-    print(f"找到 {len(all_images)} 張圖片")
-
-    # 處理每張圖片
-    for image_path in all_images:
-        try:
-            image = Image.open(image_path)
-            print(f"讀取: {os.path.basename(image_path)} - 尺寸: {image.size}")
-
-            # 在這裡處理你的圖片
-            # image.show()  # 顯示圖片
-
-        except Exception as e:
-            print(f"無法讀取 {image_path}: {e}")
-
-    return all_images
-
-
 def main(img_path):
     # ==參數==#
     real_width_cm = 29.7
     SCALE = 2
     SCORE = -1
-
-    input_folder = "realtest"  # <-- 資料夾
-    CLASS_NAMES = ["Other", "quadrilateral"]
+    TARGET = "square"  # ch2-t2 目標形狀
     # ==參數==#
-
-    # 讀取資料夾內所有圖片
-    # all_images = read_all_images_from_folder(input_folder)
-
-    # 建立分類資料夾（只建立一次）
-    quadrilateral_dir = target_dir / "quadrilateral"
-    other_dir = target_dir / "Other"
-    os.makedirs(quadrilateral_dir, exist_ok=True)
-    os.makedirs(other_dir, exist_ok=True)
-
-    classifier = ImageClassifier(MODEL_PATH, CLASS_NAMES)
-
-    # 資料夾初始化
-    segmenter = Analyze_graphics()
-    segmenter.initialize_workspace()
 
     print(f"\n=== 處理 {img_path} ===\n")
 
-    # 得出 px->cm
+    # 得出 px->cm 與 warped A4（評分尺度，維持原本 A4 量測不變）
     try:
         _, _, cropped_path = get_pixel_per_cm_from_a4(
             img_path,
@@ -305,51 +238,48 @@ def main(img_path):
         print(f"⚠️ 跳過 {img_path}：{e}")
         return -1, cv2.imread(img_path)
 
-    # cm_per_pixel = 1 / pixel_per_cm
-    # actual_length_cm = 7.5
+    # prepare：找紙張 + CV 圈選 + binary
+    print("\n==prepare 前處理==")
+    prep = Preparer()
+    stem = os.path.splitext(os.path.basename(img_path))[0]
+    r = prep.prepare(img_path, target_dir / "ready", stem)
+    if not r["ok"]:
+        print(f"未圈到圖形（{r['reason']}）")
+        return -1, r.get("vis")
 
-    # 裁切圖形
-    print("\n==裁切圖形==")
+    # classify：4 類分類（僅作為閘門）
+    print("\n==classify 分類==")
+    clf = Classifier()
+    label, conf = clf.classify(r["binary_bgr"])
+    print(f"{img_path} → {label} ({conf*100:.2f}%)")
 
-    # print(cropped_path)
-    ready = segmenter.infer_and_draw(img_path, expand_ratio=0.15)
+    # 非目標形狀 -> 0 分
+    if label != TARGET:
+        img = cv2.imread(r["color_path"])
+        cv2.putText(img, "Other !", (30, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 0, 255), 2)
+        print(f"{img_path} is {label}!")
+        return 0, img
 
-    # 分類圖形(圓 橢圓 其他)
-    print("\n==分類圖形==\n")
-    result = {}
-
-    for rb in ready:
-        if "binary" in rb:
-            predicted_class_name, conf = classifier.predict(rb)
-            url = rb.replace("_binary", "")
-            print(f"{url} → {predicted_class_name} ({conf*100:.2f}%)")
-            result[url] = predicted_class_name
-
-            # 直接分類存檔
-            if predicted_class_name == "quadrilateral":
-                shutil.copy(url, quadrilateral_dir / os.path.basename(url))
-            else:
-                # 讀取圖片並加上標記
-                img = cv2.imread(url)
-                cv2.putText(
-                    img,
-                    "Other !",
-                    (30, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 0, 255),
-                    2,
-                )
-                save_path = other_dir / os.path.basename(url)
-                cv2.imwrite(str(save_path), img)  # 直接存檔，不用手動關視窗
-                print(f"{url} 已存入 Other 資料夾並加上標記")
-
+    # 方形 -> 交給 SquareGapAnalyzer 評分（評分邏輯不變，仍吃 warped A4）
     SGA = SquareGapAnalyzer()
     res, result_img = SGA.process_image(cropped_path)
     return res["score"], result_img
 
 
 if __name__ == "__main__":
+    # 測試模式：python main.py --img 照片路徑
+    if len(sys.argv) > 2 and sys.argv[1] == "--img":
+        image_path = sys.argv[2]
+        score, result_img = main(image_path)
+        if result_img is None:
+            result_img = cv2.imread(image_path)
+        out = os.path.splitext(image_path)[0] + "_result.jpg"
+        if result_img is not None:
+            cv2.imwrite(out, result_img)
+        print(f"score = {score}  (結果圖: {out})")
+        sys.exit(0)
+
     if len(sys.argv) > 2:
         # 使用傳入的 uid 和 id 作為圖片路徑
         uid = sys.argv[1]
