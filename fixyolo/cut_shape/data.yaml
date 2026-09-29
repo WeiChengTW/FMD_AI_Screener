@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['paper']
+
+roboflow:
+  workspace: new-workspace-wcfkd
+  project: cut_shape
+  version: 2
+  license: Private
+  url: https://app.roboflow.com/new-workspace-wcfkd/cut_shape/2

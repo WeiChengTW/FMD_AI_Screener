@@ -1,0 +1,6 @@
+path: D:/Desktop/vscode/FMD_AI_Screener/fix_draw/dataset_aug
+train: train/images
+val: valid/images
+test: test/images
+nc: 1
+names: ['shape']

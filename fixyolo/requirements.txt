@@ -1,0 +1,6 @@
+# YOLOv8 + SAM2 分割訓練/測試環境
+# GPU 建議先依 CUDA 版本安裝對應 torch：https://pytorch.org/get-started/locally/
+ultralytics>=8.3.0
+opencv-python>=4.8.0
+numpy
+pyyaml

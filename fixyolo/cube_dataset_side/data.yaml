@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['cube']
+
+roboflow:
+  workspace: new-workspace-wcfkd
+  project: cube-pdj2f
+  version: 1
+  license: Private
+  url: https://app.roboflow.com/new-workspace-wcfkd/cube-pdj2f/1
