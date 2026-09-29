@@ -30,20 +30,23 @@
       pointer-events: none;
     }
     .cscroll-track.is-visible { opacity: 1; pointer-events: auto; }
+    /* 掛圖風格：方角、墨框、握把用目前關卡色 */
     .cscroll-rail {
+      box-sizing: border-box;
       width: ${THUMB_WIDTH}px;
       height: 100%;
-      border-radius: 999px;
-      background: var(--accent-bg, rgba(0, 0, 0, .07));
+      border: 3px solid var(--ink, #1D1C1A);
+      background: var(--paper-dim, #EDECE6);
     }
     .cscroll-thumb {
+      box-sizing: border-box;
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
       width: ${THUMB_WIDTH}px;
-      border-radius: 999px;
-      background: var(--accent, var(--primary, #FF9F43));
-      box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+      border: 3px solid var(--ink, #1D1C1A);
+      border-radius: 4px;
+      background: var(--accent, var(--primary, #1D1C1A));
       cursor: grab;
       transition: width .12s ease;
     }

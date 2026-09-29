@@ -28,6 +28,9 @@ web.log
 !PDMS2_web/images/icons/
 !PDMS2_web/images/icons/*.png
 !PDMS2_web/images/icons/*.jpg
+# 掛圖風格插圖（關卡封面與任務圖）
+!PDMS2_web/images/chart/
+!PDMS2_web/images/chart/*.png
 
 #追蹤 PDMS2_web/kid 內的素材（含子資料夾）
 !PDMS2_web/kid/

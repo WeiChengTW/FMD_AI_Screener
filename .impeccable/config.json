@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "PDMS2_web/css/styles.css"
+        ],
+        "createdAt": "2026-09-29T09:40:47.752Z",
+        "reason": "model triage: .sticker has border-radius:0; the 10px top band is the chart's chapter colour code from the approved 注音掛圖 direction (seed c4f54853)"
+      }
+    ]
+  }
+}

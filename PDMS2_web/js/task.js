@@ -477,129 +477,6 @@ const SVG_ICONS = {
 
 
 
-/* ========= 慶祝彩紙 SVG 圖示 ========= */
-
-const CELEBRATION_SVG = {
-
-  // 派對拉炮：增加爆炸的線條感
-
-  party: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <path d="M 45 60 L 55 60 L 50 90 Z" fill="#FFD700"/>
-
-    <circle cx="50" cy="90" r="3" fill="#DAA520"/>
-
-    <g stroke-width="3" stroke-linecap="round">
-
-      <line x1="40" y1="50" x2="30" y2="30" stroke="#FF6347"/>
-
-      <line x1="60" y1="50" x2="70" y2="30" stroke="#4169E1"/>
-
-      <line x1="50" y1="45" x2="50" y2="20" stroke="#32CD32"/>
-
-      <line x1="35" y1="60" x2="20" y2="65" stroke="#FF1493"/>
-
-      <line x1="65" y1="60" x2="80" y2="65" stroke="#FFD700"/>
-
-    </g>
-
-    <circle cx="30" cy="30" r="3" fill="#FF6347"/>
-
-    <circle cx="70" cy="30" r="3" fill="#4169E1"/>
-
-    <circle cx="50" cy="20" r="3" fill="#32CD32"/>
-
-  </svg>`,
-
-
-
-  // 氣球：增加高光和立體漸層
-
-  balloon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <defs>
-
-      <radialGradient id="balloonGrad" cx="30%" cy="30%" r="70%">
-
-        <stop offset="0%" stop-color="#FFB6C1"/>
-
-        <stop offset="100%" stop-color="#DC143C"/>
-
-      </radialGradient>
-
-    </defs>
-
-    <path d="M 50 75 Q 45 85, 50 95" stroke="#888" stroke-width="2" fill="none"/>
-
-    <ellipse cx="50" cy="45" rx="22" ry="28" fill="url(#balloonGrad)"/>
-
-    <ellipse cx="40" cy="35" rx="5" ry="8" fill="#FFF" opacity="0.6" transform="rotate(-15, 40, 35)"/>
-
-    <path d="M 46 72 L 54 72 L 50 78 Z" fill="#DC143C"/>
-
-  </svg>`,
-
-
-
-  // 閃光：更銳利且有層次
-
-  sparkle: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <path d="M50 10 L60 40 L90 50 L60 60 L50 90 L40 60 L10 50 L40 40 Z" fill="#FFD700"/>
-
-    <path d="M50 25 L55 45 L75 50 L55 55 L50 75 L45 55 L25 50 L45 45 Z" fill="#FFFACD"/>
-
-  </svg>`,
-
-
-
-  // 星星：標準五角星，帶有邊框
-
-  star: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <polygon points="50,10 63,38 94,38 69,56 79,86 50,70 21,86 31,56 6,38 37,38" fill="#FFD700" stroke="#DAA520" stroke-width="2" stroke-linejoin="round"/>
-
-    <polygon points="50,20 58,40 80,40 62,52 69,72 50,60 31,72 38,52 20,40 42,40" fill="#FFF" opacity="0.3"/>
-
-  </svg>`,
-
-
-
-  // 閃爍：增加中心發光感
-
-  twinkle: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <circle cx="50" cy="50" r="5" fill="#FFF"/>
-
-    <path d="M50 15 L53 45 L85 50 L53 55 L50 85 L47 55 L15 50 L47 45 Z" fill="#87CEEB"/>
-
-    <line x1="30" y1="30" x2="70" y2="70" stroke="#B0E0E6" stroke-width="3" stroke-linecap="round"/>
-
-    <line x1="70" y1="30" x2="30" y2="70" stroke="#B0E0E6" stroke-width="3" stroke-linecap="round"/>
-
-  </svg>`,
-
-
-
-  // 糖果：包裝紙更具細節
-
-  candy: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-
-    <polygon points="20,50 35,35 35,65" fill="#FF69B4"/>
-
-    <polygon points="80,50 65,35 65,65" fill="#FF69B4"/>
-
-    <circle cx="50" cy="50" r="20" fill="#FF1493"/>
-
-    <circle cx="50" cy="50" r="15" fill="none" stroke="#FFF" stroke-width="2" opacity="0.5"/>
-
-    <path d="M 40 40 Q 50 35, 60 40" stroke="#FFF" stroke-width="2" fill="none" opacity="0.7"/>
-
-  </svg>`
-
-};
-
-
 
 // 任務內容（依 PDF）：ID → 顯示資料
 
@@ -845,6 +722,36 @@ function getId(){
 
 
 
+/* 示範影片／圖片的長寬比：CSS 用 --media-ar 算出左欄放得下的最大尺寸，墨框貼著它 */
+function setMediaRatio(w, h){
+  if (!w || !h) return;
+  const fig = document.querySelector(".task-illustration");
+  if (fig) fig.style.setProperty("--media-ar", (w / h).toFixed(4));
+}
+
+/* 每個任務的掛圖插圖（images/chart/，檔名＝任務編號＋中文名） */
+const TASK_CHART_ICONS = {
+  "ch1-t1": "ch1-t1-串積木.png",
+  "ch1-t2": "ch1-t2-疊城堡.png",
+  "ch1-t3": "ch1-t3-疊階梯.png",
+  "ch1-t4": "ch1-t4-疊高牆.png",
+  "ch2-t1": "ch2-t1-畫圓.png",
+  "ch2-t2": "ch2-t2-畫方.png",
+  "ch2-t3": "ch2-t3-畫十字.png",
+  "ch2-t4": "ch2-t4-描水平線.png",
+  "ch2-t5": "ch2-t5-兩水平線中塗色.png",
+  "ch2-t6": "ch2-t6-兩點連線.png",
+  "ch3-t1": "ch3-t1-剪圓.png",
+  "ch3-t2": "ch3-t2-剪方.png",
+  "ch3-t3": "ch3-t3-剪窗簾.png",
+  "ch3-t4": "ch3-t4-剪地毯.png",
+  "ch4-t1": "ch4-t1-摺紙一摺.png",
+  "ch4-t2": "ch4-t2-摺紙兩摺.png",
+  "ch5-t1": "ch5-t1-豆豆裝罐子.png",
+  "ch5-t2": "ch5-t2-解鈕扣.png",
+  "ch5-t3": "ch5-t3-扣鈕扣.png"
+};
+
 function render(){
 
   const id = getId();
@@ -853,13 +760,36 @@ function render(){
 
   if(!data){ location.replace("index.html"); return; }
 
+  // 關卡色：任務頁沿用那一關的掛圖顏色（id 形如 ch2-t1）
+  const chNum = parseInt((id.match(/^ch(\d+)/) || [])[1], 10);
+  if (chNum >= 1 && chNum <= 5) {
+    const root = document.documentElement;
+    root.style.setProperty("--accent",      `var(--ch${chNum})`);
+    root.style.setProperty("--accent-on",   `var(--ch${chNum}-on)`);
+    root.style.setProperty("--accent-tint", `var(--ch${chNum}-tint)`);
+  }
+
 
 
   document.title = `${data.title}｜任務操作`;
 
-  document.getElementById("emoji").innerHTML = SVG_ICONS[data.emoji];
+  // 標題旁的小圖：用這個任務的掛圖插圖；找不到才退回舊的 SVG 圖示
+  const chartIcon = TASK_CHART_ICONS[id];
+  document.getElementById("emoji").innerHTML = chartIcon
+    ? `<img src="/images/chart/${encodeURIComponent(chartIcon)}" alt="">`
+    : SVG_ICONS[data.emoji];
 
-  document.getElementById("title").textContent = data.title;
+  // 標題拆兩層：冒號前是孩子要做的動作（大字），冒號後是故事（小字）
+  const titleEl = document.getElementById("title");
+  const [verb, story] = data.title.split("：");
+  titleEl.innerHTML = "";
+  const verbEl = document.createElement("span"); verbEl.className = "task-verb"; verbEl.textContent = verb;
+  titleEl.appendChild(verbEl);
+  if (story) {
+    const storyEl = document.createElement("span"); storyEl.className = "task-story"; storyEl.textContent = story;
+    titleEl.appendChild(storyEl);
+  }
+  titleEl.setAttribute("aria-label", data.title);
 
   document.getElementById("desc").textContent  = data.desc;
 
@@ -903,6 +833,8 @@ function render(){
 
         video.muted = true;      // 引導影片一律靜音，不蓋到語音提示
 
+        // 量出影片長寬比交給 CSS，讓影片撐到左欄放得下的最大尺寸
+        video.addEventListener("loadedmetadata", () => setMediaRatio(video.videoWidth, video.videoHeight), { once: true });
         video.src = imgSrc;
 
         forceAutoplay(video);
@@ -941,7 +873,7 @@ function render(){
 
         img.src = imgSrc;
 
-        img.onload = ()=>{ img.style.display="block"; imgEmoji.style.display="none"; if(video) video.style.display="none"; };
+        img.onload = ()=>{ setMediaRatio(img.naturalWidth, img.naturalHeight); img.style.display="block"; imgEmoji.style.display="none"; if(video) video.style.display="none"; };
 
         img.onerror = ()=>{ img.style.display="none"; imgEmoji.style.display="block"; if(video) video.style.display="none"; };
 
@@ -999,87 +931,17 @@ function render(){
 
 
 
-    // 小煙火 + 返回相機頁
+    // 按鈕反白一下再前往相機頁（彩紙已退場）
 
-    celebrate();
+    document.getElementById("doneBtn").classList.add("is-going");
 
     setTimeout(()=>{
 
       location.href = `/html/camera.html?id=${encodeURIComponent(id)}`;
 
-    }, 800);
+    }, 220);
 
   };
-
-}
-
-
-
-// 簡易彩紙（使用 SVG）
-
-function celebrate(){
-
-  const box = document.getElementById("confetti");
-
-  box.innerHTML="";
-
-  const pieces = ["party", "balloon", "sparkle", "star", "twinkle", "candy"];
-
- 
-
-  for(let i=0; i<24; i++){
-
-    const wrapper = document.createElement("div");
-
-    wrapper.style.position = "absolute";
-
-    wrapper.style.width = "40px";
-
-    wrapper.style.height = "40px";
-
-    wrapper.style.left = Math.random()*100 + "vw";
-
-    wrapper.style.top = "-50px";
-
-    wrapper.style.transform = `rotate(${Math.random()*360}deg)`;
-
-    wrapper.style.transition = "all 0.7s ease-out";
-
-   
-
-    const svgKey = pieces[Math.floor(Math.random()*pieces.length)];
-
-    wrapper.innerHTML = CELEBRATION_SVG[svgKey];
-
-   
-
-    box.appendChild(wrapper);
-
-   
-
-    // 觸發動畫
-
-    setTimeout(() => {
-
-      wrapper.style.top = "100vh";
-
-      wrapper.style.transform = `translateY(0) rotate(${Math.random()*720}deg)`;
-
-    }, 50);
-
-  }
-
- 
-
-  box.classList.add("active");
-
-  setTimeout(()=>{
-
-    box.classList.remove("active");
-
-    box.innerHTML = "";
-
-  }, 700);
 
 }
 

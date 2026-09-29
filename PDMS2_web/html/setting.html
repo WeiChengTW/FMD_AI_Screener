@@ -3,401 +3,298 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>攝影機設定｜魔法王國</title>
-    <link rel="stylesheet" href="/css/styles.css?v=34" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css?v=48" />
     <style>
+        /* 設定頁：給大人用的掛圖 —— 與孩子頁同一套紙、墨、格線，資訊密度較高 */
         :root {
             color-scheme: light;
+            /* 設定頁沒有關卡：捲軸與焦點用第四關的群青，不沿用第一關的朱紅 */
+            --accent: var(--ch4);
+            --accent-on: #FFFFFF;
+            --accent-bg: var(--ch4-tint);
+            --accent-tint: var(--ch4-tint);
         }
 
         html,
-        body {
-            height: auto;
-            overflow-y: auto;
-        }
+        body { height: auto; overflow-y: auto; }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, rgba(255, 227, 194, 0.85), transparent 35%),
-                radial-gradient(circle at bottom right, rgba(184, 228, 255, 0.85), transparent 28%),
-                linear-gradient(180deg, #fffaf3 0%, #f5fbff 100%);
-        }
+        body { margin: 0; min-height: 100vh; background: var(--paper); }
 
-        .setting-shell {
-            width: min(920px, calc(100% - 32px));
-            margin: 24px auto 48px;
+        .setting-shell { display: block; }
+
+        /* 抬頭：與孩子頁同款，下緣 4px 墨線 */
+        .hero-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px max(24px, env(safe-area-inset-right)) 16px max(24px, env(safe-area-inset-left));
+            background: var(--paper);
+            border-bottom: var(--rule-heavy) solid var(--ink);
+        }
+        .hero-badge {
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            background: var(--ink);
+            color: var(--paper);
+        }
+        .hero-badge svg { width: 30px; height: 30px; }
+        /* 抬頭下緣的五色條：五個關卡的顏色 */
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            height: 12px;
+            background: linear-gradient(90deg,
+                var(--ch1) 0 20%, var(--ch2) 20% 40%, var(--ch3) 40% 60%, var(--ch4) 60% 80%, var(--ch5) 80% 100%);
+            border-bottom: var(--rule) solid var(--ink);
+        }
+        .hero-copy { flex: 1 1 320px; min-width: 0; }
+        .hero-copy h1 { margin: 0; font-size: clamp(24px, 3vw, 32px); font-weight: 900; letter-spacing: 0.06em; line-height: 1.2; }
+        .hero-copy p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; line-height: 1.7; }
+
+        .panel-card {
+            width: min(1320px, calc(100% - 48px));
+            margin: 44px auto 56px;
             display: grid;
             gap: 20px;
         }
 
-        .hero-card,
-        .panel-card {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(133, 168, 194, 0.2);
-            border-radius: 28px;
-            box-shadow: 0 18px 40px rgba(79, 110, 132, 0.12);
-            backdrop-filter: blur(8px);
+        /* 區塊：墨框格子，沒有圓角、沒有陰影 */
+        .device-panel,
+        .calibration-panel {
+            display: grid;
+            gap: 12px;
+            padding: 18px 20px;
+            background: var(--paper);
+            border: var(--rule) solid var(--ink);
         }
+        .device-head,
+        .calibration-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .device-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+        .device-title { margin: 0; font-size: 21px; font-weight: 900; letter-spacing: 0.06em; color: var(--ink); }
 
-        .hero-card {
-            padding: 28px;
+        .device-title,
+        .form-grid .field > label {
             display: flex;
-            gap: 18px;
             align-items: center;
-            flex-wrap: wrap;
+            gap: 12px;
         }
-
-        .hero-badge {
-            width: 72px;
-            height: 72px;
-            border-radius: 22px;
+        .device-title::before,
+        .form-grid .field > label::before {
+            content: var(--step);
+            flex: 0 0 auto;
             display: grid;
             place-items: center;
-            background: linear-gradient(135deg, #ffd89b, #ffb96f);
-            color: #7a3e00;
-            font-size: 34px;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            background: var(--step-c);
+            color: var(--step-on, #FFFFFF);
+            border: var(--rule) solid var(--ink);
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1;
         }
+        .device-panel               { --step: "1"; --step-c: var(--ch1); }
+        .form-grid .field:nth-child(1) { --step: "2"; --step-c: var(--ch4); background: var(--ch4-tint); }
+        .form-grid .field:nth-child(2) { --step: "3"; --step-c: var(--ch3); background: var(--ch3-tint); }
+        .calibration-panel.calibrate { --step: "4"; --step-c: var(--ch2); --step-on: var(--ink); background: var(--ch2-tint); }
+        .calibration-panel.other-device { --step: "5"; --step-c: var(--ch5); background: var(--ch5-tint); }
+        .calibration-grid .field { background: var(--paper); }
+        .device-note { margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.7; }
+        #deviceSummary { color: var(--ink); font-size: 16px; font-weight: 700; }
+        .device-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .device-list { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .hero-copy h1 {
-            margin: 0 0 8px;
-            font-size: clamp(28px, 4vw, 40px);
-        }
-
-        .hero-copy p {
-            margin: 0;
-            color: #51606d;
-            line-height: 1.7;
-        }
-
-        .panel-card {
-            padding: 24px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .field {
-            display: grid;
-            gap: 10px;
-            padding: 18px;
-            border-radius: 22px;
-            background: linear-gradient(180deg, #fff, #f8fcff);
-            border: 1px solid rgba(133, 168, 194, 0.18);
-        }
-
-        .field label {
-            font-weight: 700;
-            color: #28323b;
-            font-size: 18px;
-        }
-
-        .field small {
-            color: #677582;
-            line-height: 1.6;
-        }
-
-        .device-panel {
-            display: grid;
-            gap: 12px;
-            margin-bottom: 18px;
-            padding: 18px;
-            border-radius: 22px;
-            background: linear-gradient(180deg, #f8fcff, #f1f8fd);
-            border: 1px solid rgba(133, 168, 194, 0.18);
-        }
-
-        .device-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .device-title {
-            margin: 0;
-            font-size: 18px;
-            color: #28323b;
-            font-weight: 700;
-        }
-
-        .device-note {
-            margin: 0;
-            color: #677582;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        .device-list {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .device-chip {
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: #fff;
-            border: 1px solid #cfe0ec;
-            color: #30404d;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(79, 110, 132, 0.06);
-        }
-
-        .device-chip.current {
-            background: #e8f5e8;
-            border-color: #b8e0c0;
-            color: #1e7a4a;
-            font-weight: 700;
-        }
-
-        .device-title-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 6px;
-        }
-
-        .device-stats {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
+        .device-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+        .device-stats { gap: 8px; }
         .stat-badge {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.4;
-            border: 1px solid transparent;
+            min-height: 44px;
+            padding: 4px 18px;
+            border: var(--rule) solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 21px;
+            font-weight: 900;
+            line-height: 1.3;
+            letter-spacing: 0.04em;
             font-variant-numeric: tabular-nums;
         }
+        /* 鏡頭種類：實心關卡色，一眼看得出有幾台、是哪一種 */
+        .stat-badge.total { background: var(--ink); color: var(--paper); }
+        .stat-badge.external { background: var(--ch4); color: #FFFFFF; }
+        .stat-badge.builtin { background: var(--ch2); color: var(--ink); }
+        .stat-badge.continuity { background: var(--ch5); color: #FFFFFF; }
+        .stat-badge.unknown { background: var(--paper-dim); }
 
-        .stat-badge.total {
-            background: #28323b;
-            color: #fff;
+        .device-chip {
+            padding: 6px 12px;
+            border: 2px solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
         }
-
-        .stat-badge.external {
-            background: #e7f3ff;
-            border-color: #b9dafa;
-            color: #1c5d99;
-        }
-
-        .stat-badge.builtin {
-            background: #fff4e0;
-            border-color: #f5d49a;
-            color: #8a5300;
-        }
-
-        .stat-badge.continuity,
-        .stat-badge.unknown {
-            background: #f1f3f5;
-            border-color: #d9dee3;
-            color: #56626d;
-        }
+        .device-chip.current { background: var(--ink); color: var(--paper); font-weight: 700; }
 
         .device-empty {
             padding: 12px 14px;
-            border-radius: 16px;
-            background: #fff8f8;
-            border: 1px solid #f0c7c7;
-            color: #b42318;
+            border: 2px solid var(--stamp);
+            background: var(--ch1-tint);
+            color: var(--stamp);
+            font-weight: 700;
             line-height: 1.6;
         }
 
-        .preview-shell {
-            display: grid;
-            gap: 12px;
-            margin-top: 8px;
-        }
+        /* 自動設定進度 */
+        .auto-progress { display: grid; gap: 6px; padding: 12px 14px; border: 2px solid var(--ink); background: var(--paper); }
+        .auto-progress[hidden] { display: none; }
+        .auto-progress-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; font-size: 15px; }
+        .auto-progress-head span:last-child { font-variant-numeric: tabular-nums; }
+        .auto-progress-track { height: 14px; border: 2px solid var(--ink); background: var(--paper-dim); overflow: hidden; }
+        .auto-progress-bar { width: 0; height: 100%; background: var(--ink); }
+        .auto-progress-detail { min-height: 18px; font-size: 13px; color: var(--ink-soft); }
+        .auto-progress.done .auto-progress-bar { background: var(--ch3); }
+        .auto-progress.done .auto-progress-head span:last-child { color: var(--ch3); }
+        .auto-progress.failed .auto-progress-bar { background: var(--stamp); }
+        .auto-progress.failed .auto-progress-head span:last-child { color: var(--stamp); }
 
+        /* 兩台鏡頭並排：墨黑底色從縫隙透出成格線 */
+        .form-grid,
+        .calibration-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--rule);
+            background: var(--ink);
+            border: var(--rule) solid var(--ink);
+        }
+        .field { display: grid; align-content: start; gap: 10px; padding: 18px 20px; background: var(--paper); }
+        .field label { font-weight: 900; font-size: 18px; letter-spacing: 0.04em; color: var(--ink); }
+        .field small { color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+
+        select,
+        input[type="number"] {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 52px;
+            padding: 0 14px;
+            border: 2px solid var(--ink);
+            border-radius: 4px;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: var(--font);
+            font-size: 16px;
+        }
+        select:focus-visible,
+        input[type="number"]:focus-visible { outline: var(--rule) solid var(--ink); outline-offset: 2px; }
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--ink); }
+
+        /* 預覽框：相機畫面是墨黑底，左上角是標籤格 */
+        .preview-shell { display: grid; gap: 12px; margin-top: 4px; }
         .preview-frame {
             position: relative;
-            min-height: 180px;
-            border-radius: 18px;
-            overflow: hidden;
-            border: 2px solid #d7e7f2;
-            background: linear-gradient(180deg, #f7fbff, #eef6fb);
+            min-height: clamp(160px, 24vh, 260px);
             display: grid;
             place-items: center;
+            background: var(--ink);
+            border: var(--rule) solid var(--ink);
+            overflow: hidden;
         }
-
-        /* 用 auto + max-* 讓 <img> 保持裁切後的原始長寬比，
-           框會跟著畫面變高變矮，才看得出 ROI 實際的比例 */
+        /* 用 auto + max-* 讓 <img> 保持裁切後的原始長寬比，框會跟著畫面變高變矮，才看得出 ROI 實際的比例 */
         .preview-image {
             width: auto;
             height: auto;
             max-width: 100%;
-            max-height: 320px;
+            max-height: clamp(200px, 34vh, 480px);
             object-fit: contain;
             display: none;
             background: #000;
         }
-
-        .preview-size {
-            position: absolute;
-            right: 12px;
-            top: 12px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, 0.55);
-            color: #fff;
-            font-size: 12px;
-            font-variant-numeric: tabular-nums;
-            display: none;
-        }
-
-        .preview-placeholder {
-            padding: 20px;
-            text-align: center;
-            color: #607080;
-            line-height: 1.6;
-        }
-
         .preview-pill {
             position: absolute;
-            left: 12px;
-            top: 12px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, 0.68);
-            color: #fff;
+            left: 0;
+            top: 0;
+            padding: 5px 12px;
+            background: var(--step-c, var(--paper));
+            color: #FFFFFF;
+            border-right: var(--rule) solid var(--ink);
+            border-bottom: var(--rule) solid var(--ink);
             font-size: 13px;
-            letter-spacing: 0.02em;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            z-index: 1;
         }
-
-        .preview-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .preview-size {
+            position: absolute;
+            right: 0;
+            top: 0;
+            padding: 5px 10px;
+            background: var(--paper);
+            color: var(--ink);
+            border-left: var(--rule) solid var(--ink);
+            border-bottom: var(--rule) solid var(--ink);
+            font-size: 12px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            display: none;
+            z-index: 1;
         }
-
-        .preview-note {
-            font-size: 13px;
-            color: #6b7a88;
-            line-height: 1.6;
-        }
-
-        select,
-        input[type="number"] {
-            width: 100%;
-            min-height: 52px;
-            border-radius: 16px;
-            border: 1px solid #c7d8e5;
-            background: #fff;
-            padding: 0 14px;
-            font-size: 16px;
-        }
-
-        input[type="number"] {
-            box-sizing: border-box;
-        }
-
-        .calibration-panel {
-            margin-top: 20px;
-            padding: 18px;
-            border-radius: 24px;
-            background: linear-gradient(180deg, #fffdf7, #f4fbff);
-            border: 1px solid rgba(133, 168, 194, 0.18);
-            display: grid;
-            gap: 16px;
-        }
-
-        .calibration-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .calibration-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
+        .preview-placeholder { padding: 40px 24px 24px; text-align: center; color: #D8D5CC; line-height: 1.7; }
+        .preview-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .preview-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
 
         .summary {
-            margin-top: 18px;
             padding: 14px 16px;
-            border-radius: 16px;
-            background: #f5f9fd;
-            color: #314150;
+            border: 2px solid var(--ink);
+            background: var(--paper-dim);
+            color: var(--ink);
+            font-size: 15px;
             line-height: 1.7;
         }
 
-        .status {
-            margin-top: 14px;
-            min-height: 24px;
-            font-weight: 600;
-        }
+        .status { min-height: 24px; font-weight: 700; }
+        .status.ok { color: var(--ch3); }
+        .status.warn { color: #8A5300; }
+        .status.err { color: var(--stamp); }
 
-        .status.ok {
-            color: #1e7a4a;
-        }
+        .actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-        .status.warn {
-            color: #b26a00;
-        }
+        .hint-list { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: var(--ink-soft); line-height: 1.7; }
 
-        .status.err {
-            color: #b42318;
-        }
-
-        .actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .hint-list {
-            display: grid;
-            gap: 10px;
-            margin: 0;
-            padding-left: 20px;
-            color: #4b5a67;
-            line-height: 1.7;
+        @media (max-width: 1100px) {
+            /* 側邊至少留 36px：頁面捲軸是 30px 粗的觸控版，覆蓋式捲軸會壓在內容上 */
+            .panel-card { width: calc(100% - 72px); margin-top: 18px; gap: 16px; }
+            .device-panel, .calibration-panel { padding: 14px 16px; }
+            .field { padding: 14px 16px; }
         }
 
         @media (max-width: 720px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .calibration-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-card {
-                padding: 22px;
-            }
-
-            .panel-card {
-                padding: 18px;
-            }
+            .form-grid, .calibration-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
-<body>
+<body class="adult">
     <main class="setting-shell">
         <section class="hero-card">
-            <div class="hero-badge">⚙️</div>
+            <div class="hero-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                    <circle cx="12" cy="12" r="3.2" />
+                    <path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M5.5 18.5l2.1-2.1M16.4 7.6l2.1-2.1" />
+                </svg>
+            </div>
             <div class="hero-copy">
                 <h1>攝影機設定</h1>
                 <p>在這裡指定哪一台實體攝影機是上方鏡頭，哪一台是旁邊鏡頭。設定會同步到本機與遠端資料庫，回到拍照頁面就會自動套用。</p>
@@ -414,7 +311,21 @@
                         </div>
                         <p class="device-note" id="deviceSummary">正在掃描可用攝影機...</p>
                     </div>
-                    <button id="refreshDevicesBtn" class="btn ghost fat pill" type="button">↻ 重新掃描</button>
+                    <div class="device-actions">
+                        <button id="autoDetectBtn" class="btn primary fat" data-icon="target" type="button">ArUco 自動設定</button>
+                        <button id="refreshDevicesBtn" class="btn ghost fat" data-icon="refresh" type="button">重新掃描</button>
+                    </div>
+                </div>
+                <p class="device-note">每次開啟此頁會自動設定一次（也可手動按）：只檢查外接鏡頭，看得到四角 ArUco（ID 16~19）的當上方，並用四個標記內側圍起來的範圍當上方 ROI；另一台外接鏡頭當側面。</p>
+                <div id="autoDetectProgress" class="auto-progress" role="status" aria-live="polite" hidden>
+                    <div class="auto-progress-head">
+                        <span id="autoDetectStep">準備中</span>
+                        <span id="autoDetectPercent">0%</span>
+                    </div>
+                    <div class="auto-progress-track">
+                        <div id="autoDetectBar" class="auto-progress-bar"></div>
+                    </div>
+                    <div id="autoDetectDetail" class="auto-progress-detail"></div>
                 </div>
                 <div id="deviceAlert" class="device-empty" style="display:none"></div>
             </div>
@@ -433,12 +344,12 @@
                             </div>
                         </div>
                         <div class="preview-actions">
-                            <button id="previewTopBtn" class="btn secondary fat pill" type="button">👀 預覽上方</button>
-                            <button id="setRoiTopBtn" class="btn ghost fat pill" type="button">📐 設定裁切區域</button>
-                            <button id="stopPreviewBtn" class="btn ghost fat pill" type="button">⏹ 停止預覽</button>
+                            <button id="previewTopBtn" class="btn secondary fat" data-icon="eye" type="button">預覽上方</button>
+                            <button id="setRoiTopBtn" class="btn ghost fat" data-icon="crop" type="button">設定裁切區域</button>
+                            <button id="stopPreviewBtn" class="btn ghost fat" data-icon="stop" type="button">停止預覽</button>
                         </div>
                         <label
-                            style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; color:var(--text-muted);">
+                            style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; color:var(--ink-soft);">
                             <input id="forceGuiRoiTop" type="checkbox" checked />
                             強制嘗試原生視窗框選（失敗才改手動輸入）
                         </label>
@@ -459,12 +370,12 @@
                             </div>
                         </div>
                         <div class="preview-actions">
-                            <button id="previewSideBtn" class="btn secondary fat pill" type="button">👀 預覽旁邊</button>
-                            <button id="setRoiSideBtn" class="btn ghost fat pill" type="button">📐 設定裁切區域</button>
-                            <button id="stopPreviewSideBtn" class="btn ghost fat pill" type="button">⏹ 停止預覽</button>
+                            <button id="previewSideBtn" class="btn secondary fat" data-icon="eye" type="button">預覽旁邊</button>
+                            <button id="setRoiSideBtn" class="btn ghost fat" data-icon="crop" type="button">設定裁切區域</button>
+                            <button id="stopPreviewSideBtn" class="btn ghost fat" data-icon="stop" type="button">停止預覽</button>
                         </div>
                         <label
-                            style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; color:var(--text-muted);">
+                            style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; color:var(--ink-soft);">
                             <input id="forceGuiRoiSide" type="checkbox" checked />
                             強制嘗試原生視窗框選（失敗才改手動輸入）
                         </label>
@@ -473,7 +384,7 @@
                 </div>
             </div>
 
-            <div class="calibration-panel">
+            <div class="calibration-panel calibrate">
                 <div class="calibration-head">
                     <div>
                         <h2 class="device-title">比例尺與標準面積</h2>
@@ -487,8 +398,7 @@
                         <small>輸入每 1 公分對應的像素數。若不確定，可點擊下方按鈕自動量測。</small>
                         <input id="px2cmInput" type="number" step="0.0001" min="0" aria-label="px2cm 比例尺" />
                         <div class="preview-actions">
-                            <button id="measurePx2cmBtn" class="btn secondary fat pill" type="button">📸
-                                以目前上方預覽量測比例尺</button>
+                            <button id="measurePx2cmBtn" class="btn secondary fat" data-icon="camera" type="button">以目前上方預覽量測比例尺</button>
                         </div>
                         <div class="preview-note">請先切到「上方」鏡頭並放入 A4 紙，確認預覽畫面正確後再按。</div>
                     </div>
@@ -498,8 +408,7 @@
                         <small>輸入標準紙張的像素面積。若不確定，可點擊下方按鈕自動量測。</small>
                         <input id="standardAreaInput" type="number" step="1" min="1" aria-label="標準面積" />
                         <div class="preview-actions">
-                            <button id="measureStandardAreaBtn" class="btn secondary fat pill" type="button">📸
-                                以目前上方預覽測量標準面積</button>
+                            <button id="measureStandardAreaBtn" class="btn secondary fat" data-icon="camera" type="button">以目前上方預覽測量標準面積</button>
                         </div>
                         <div class="preview-note">請先切到「上方」鏡頭並確認預覽畫面是標準紙張，再按下測量。</div>
                     </div>
@@ -510,12 +419,12 @@
             <div class="status" id="statusText"></div>
 
             <div class="actions">
-                <button id="saveBtn" class="btn secondary fat pill">💾 儲存設定</button>
-                <button id="swapBtn" class="btn ghost fat pill">⇄ 交換上方與旁邊</button>
-                <a href="/html/start.html" class="btn ghost fat pill">← 回開始頁</a>
+                <button id="saveBtn" class="btn primary fat" data-icon="save">儲存設定</button>
+                <button id="swapBtn" class="btn ghost fat" data-icon="swap">交換上方與旁邊</button>
+                <a href="/html/start.html" class="btn ghost fat" data-icon="left">回開始頁</a>
             </div>
 
-            <div class="calibration-panel" style="margin-top:20px">
+            <div class="calibration-panel other-device">
                 <div class="calibration-head">
                     <div>
                         <h2 class="device-title">套用其他裝置的設定</h2>
@@ -523,12 +432,12 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-                    <select id="machineConfigSelect" style="flex:1; min-width:200px; padding:10px 14px; border-radius:12px; border:1px solid #c8d9e6; font-size:14px; background:#fff;">
+                    <select id="machineConfigSelect" style="flex:1; min-width:200px;">
                         <option value="">— 選擇裝置 —</option>
                     </select>
-                    <button id="applyMachineConfigBtn" class="btn ghost fat pill" type="button" disabled>套用此設定</button>
+                    <button id="applyMachineConfigBtn" class="btn ghost fat" type="button" disabled>套用此設定</button>
                 </div>
-                <div id="machineConfigPreview" style="font-size:13px; color:#677582; min-height:20px;"></div>
+                <div id="machineConfigPreview" style="font-size:13px; color:var(--ink-soft); min-height:20px;"></div>
             </div>
 
             <div style="margin-top:18px">
@@ -552,6 +461,12 @@
         const deviceStats = document.getElementById("deviceStats");
         const deviceAlert = document.getElementById("deviceAlert");
         const refreshDevicesBtn = document.getElementById("refreshDevicesBtn");
+        const autoDetectBtn = document.getElementById("autoDetectBtn");
+        const autoDetectProgress = document.getElementById("autoDetectProgress");
+        const autoDetectStep = document.getElementById("autoDetectStep");
+        const autoDetectPercent = document.getElementById("autoDetectPercent");
+        const autoDetectBar = document.getElementById("autoDetectBar");
+        const autoDetectDetail = document.getElementById("autoDetectDetail");
         const topPreviewImage = document.getElementById("topPreviewImage");
         const sidePreviewImage = document.getElementById("sidePreviewImage");
         const topPreviewPlaceholder = document.getElementById("topPreviewPlaceholder");
@@ -604,7 +519,6 @@
 
         // 鏡頭清單不再整排列出來，只留一行摘要，實際內容顯示在兩個預覽框裡
         const KIND_ORDER = ["external", "builtin", "continuity", "unknown"];
-        const KIND_ICON = { external: "🔌", builtin: "💻", continuity: "📱", unknown: "❔" };
 
         function makeStatBadge(className, text) {
             const badge = document.createElement("span");
@@ -636,7 +550,7 @@
             deviceStats.appendChild(makeStatBadge("total", `共 ${detectedDevices.length} 台`));
             KIND_ORDER.filter((kind) => groups[kind]).forEach((kind) => {
                 deviceStats.appendChild(
-                    makeStatBadge(kind, `${KIND_ICON[kind]} ${groups[kind].label} ${groups[kind].count}`),
+                    makeStatBadge(kind, `${groups[kind].label} ${groups[kind].count}`),
                 );
             });
 
@@ -681,11 +595,29 @@
         [[topPreviewImage, topPreviewSize], [sidePreviewImage, sidePreviewSize]].forEach(([imageEl, sizeEl]) => {
             imageEl.addEventListener("load", () => {
                 if (!imageEl.naturalWidth) return;
+                if (imageEl.dataset.snapshot === "raw") {
+                    sizeEl.textContent = "偵測快照（未裁切）";
+                    sizeEl.style.display = "block";
+                    return;
+                }
+                if (imageEl.dataset.snapshot === "roi") {
+                    sizeEl.textContent = `ROI 快照｜${imageEl.naturalWidth} × ${imageEl.naturalHeight}`;
+                    sizeEl.style.display = "block";
+                    return;
+                }
                 const ratio = (imageEl.naturalWidth / imageEl.naturalHeight).toFixed(2);
                 sizeEl.textContent = `${imageEl.naturalWidth} × ${imageEl.naturalHeight}（${ratio}:1）`;
                 sizeEl.style.display = "block";
             });
         });
+
+        // 自動偵測留下的快照：{ url, kind: "roi" | "raw" }，沒有即時預覽時預設顯示它
+        const snapshots = { [PREVIEW_TOP]: null, [PREVIEW_SIDE]: null };
+
+        function setSnapshot(role, snapshot) {
+            snapshots[role] = snapshot;
+            if (previewTarget !== role) setPreviewState(role, false);
+        }
 
         function setPreviewState(role, active, label) {
             const imageEl = role === PREVIEW_SIDE ? sidePreviewImage : topPreviewImage;
@@ -693,10 +625,17 @@
             const sizeEl = role === PREVIEW_SIDE ? sidePreviewSize : topPreviewSize;
 
             if (active) {
+                delete imageEl.dataset.snapshot;
                 imageEl.style.display = "block";
                 placeholderEl.style.display = "none";
                 imageEl.alt = label || imageEl.alt;
+            } else if (snapshots[role]) {
+                imageEl.dataset.snapshot = snapshots[role].kind;
+                imageEl.style.display = "block";
+                placeholderEl.style.display = "none";
+                imageEl.src = snapshots[role].url;
             } else {
+                delete imageEl.dataset.snapshot;
                 imageEl.style.display = "none";
                 placeholderEl.style.display = "block";
                 imageEl.src = "";
@@ -981,8 +920,8 @@
             updatePreviewPills();
         }
 
-        topCamera.addEventListener("change", syncAndRender);
-        sideCamera.addEventListener("change", syncAndRender);
+        topCamera.addEventListener("change", () => { setSnapshot(PREVIEW_TOP, null); syncAndRender(); });
+        sideCamera.addEventListener("change", () => { setSnapshot(PREVIEW_SIDE, null); syncAndRender(); });
         px2cmInput.addEventListener("input", syncAndRender);
         standardAreaInput.addEventListener("input", syncAndRender);
 
@@ -1065,6 +1004,9 @@
         swapBtn.addEventListener("click", () => {
             const next = { top: Number.parseInt(sideCamera.value, 10), side: Number.parseInt(topCamera.value, 10) };
             applyForm(next);
+            // 快照是跟著鏡頭走的；ROI 各自不同，對調後已不是關卡會看到的畫面，直接清掉
+            setSnapshot(PREVIEW_TOP, null);
+            setSnapshot(PREVIEW_SIDE, null);
         });
 
         previewTopBtn.addEventListener("click", () => startPreview(PREVIEW_TOP));
@@ -1131,6 +1073,7 @@
                         : `ROI 已儲存到本機，但遠端同步失敗：${remoteError || "請稍後再試"}`;
                     statusText.className = remoteSynced ? "status ok" : "status warn";
 
+                    setSnapshot(role, null);
                     const updatedSetting = await readSetting();
                     updateSummary(updatedSetting);
                     return;
@@ -1166,6 +1109,7 @@
                     : `ROI 已儲存到本機，但遠端同步失敗：${remoteError || "請稍後再試"}`;
                 statusText.className = remoteSynced ? "status ok" : "status warn";
 
+                setSnapshot(role, null);
                 const updatedSetting = await readSetting();
                 updateSummary(updatedSetting);
             } catch (error) {
@@ -1222,8 +1166,133 @@
             if (!hasDetectedDevices()) {
                 statusText.textContent = "目前沒有偵測到可用攝影機，請確認連接後重新掃描。";
                 statusText.className = "status warn";
+                return;
+            }
+
+            if (detectedDevices.some((device) => device.kind === "external")) {
+                await runAutoDetect({ onLoad: true });
             }
         })();
+
+        function showSnapshot(role, base64Image) {
+            setSnapshot(role, base64Image ? { url: `data:image/jpeg;base64,${base64Image}`, kind: "raw" } : null);
+        }
+
+        function roiSnapshotUrl(role) {
+            return { url: `/camera-settings/snapshot/${role}?t=${Date.now()}`, kind: "roi" };
+        }
+
+        function renderAutoProgress({ step, detail = "", percent = 0 }, state = "running") {
+            autoDetectProgress.hidden = false;
+            autoDetectProgress.classList.toggle("done", state === "done");
+            autoDetectProgress.classList.toggle("failed", state === "failed");
+            autoDetectStep.textContent = step;
+            autoDetectDetail.textContent = detail;
+            const pct = Math.max(0, Math.min(100, Math.round(percent)));
+            autoDetectPercent.textContent = `${pct}%`;
+            autoDetectBar.style.width = `${pct}%`;
+            if (state === "running") autoDetectBtn.textContent = `${step}...`;
+        }
+
+        // 後端的自動設定要跑好幾秒，等待期間輪詢它回報的步驟
+        function watchAutoProgress() {
+            let stopped = false;
+            const tick = async () => {
+                if (stopped) return;
+                try {
+                    const res = await fetch("/camera-settings/auto-detect/progress", { cache: "no-store" });
+                    const data = await res.json();
+                    if (!stopped && data.success && data.running) renderAutoProgress(data);
+                } catch (_) {
+                    // 輪詢失敗不影響主流程，下一輪再試
+                }
+                if (!stopped) setTimeout(tick, 250);
+            };
+            tick();
+            return () => { stopped = true; };
+        }
+
+        async function runAutoDetect({ onLoad = false } = {}) {
+            autoDetectBtn.disabled = true;
+            renderAutoProgress({ step: "準備中", detail: "停止目前的預覽", percent: 2 });
+            let stopWatching = () => {};
+            // 後端會先刪舊快照，前端也要一起清，不然會指向已刪掉的圖
+            snapshots[PREVIEW_TOP] = null;
+            snapshots[PREVIEW_SIDE] = null;
+            await stopPreview(undefined, { silent: true });
+            statusText.textContent = onLoad
+                ? "開啟頁面自動設定中，進度請看上方進度條..."
+                : "自動設定中，進度請看上方進度條...";
+            statusText.className = "status warn";
+
+            try {
+                stopWatching = watchAutoProgress();
+                const response = await fetch("/camera-settings/auto-detect", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ apply: true }),
+                });
+                const result = await response.json().catch(() => ({}));
+                stopWatching();
+                const results = Array.isArray(result.results) ? result.results : [];
+
+                if (!response.ok || !result.success) {
+                    // 失敗也把拍到的畫面秀出來，比較好判斷是哪裡沒對準
+                    if (results[0]) showSnapshot(PREVIEW_TOP, results[0].image);
+                    if (results[1]) showSnapshot(PREVIEW_SIDE, results[1].image);
+                    throw new Error(result.error || "自動設定失敗");
+                }
+
+                const topResult = results.find((r) => r.index === result.top.index);
+                const sideResult = result.side ? results.find((r) => r.index === result.side.index) : null;
+
+                detectedDevices = await readDevices();
+                renderDeviceSummary();
+                const setting = await readSetting();
+                renderOptions(topCamera, setting.top);
+                renderOptions(sideCamera, setting.side);
+                applyForm(setting);
+
+                // 預設顯示裁切後的 ROI 畫面；存檔失敗才退回未裁切的偵測圖
+                const saved = result.snapshots || {};
+                if (saved.top) setSnapshot(PREVIEW_TOP, roiSnapshotUrl(PREVIEW_TOP));
+                else showSnapshot(PREVIEW_TOP, topResult?.image);
+                if (saved.side) setSnapshot(PREVIEW_SIDE, roiSnapshotUrl(PREVIEW_SIDE));
+                else showSnapshot(PREVIEW_SIDE, sideResult?.image);
+
+                const roi = result.top.roi;
+                const parts = [
+                    `上方 = ${result.top.label}（看到 ID ${result.top.ids.join("、")}）`,
+                    roi ? `ROI = ${roi.x}, ${roi.y}, ${roi.w} × ${roi.h}` : null,
+                    result.side ? `側面 = ${result.side.label}` : null,
+                ].filter(Boolean);
+                const warnings = result.warnings || [];
+                const remoteFailed = result.remote_sync && result.remote_sync.synced === false;
+                if (remoteFailed) warnings.push(`遠端同步失敗：${result.remote_sync.error || "請稍後再試"}`);
+
+                statusText.textContent = `已自動設定並儲存：${parts.join("；")}。` +
+                    (warnings.length ? `（注意：${warnings.join("；")}）` : "");
+                statusText.className = warnings.length ? "status warn" : "status ok";
+                renderAutoProgress({
+                    step: warnings.length ? "完成（有警告）" : "完成",
+                    detail: warnings.length ? warnings.join("；") : parts.join("；"),
+                    percent: 100,
+                }, "done");
+            } catch (error) {
+                stopWatching();
+                renderAutoProgress({ step: "失敗", detail: `${error.message}（詳細紀錄在 console.txt）`, percent: 100 }, "failed");
+                // 開頁面時失敗不改任何設定，沿用上次儲存的值
+                statusText.textContent = onLoad
+                    ? `自動偵測未完成，沿用上次儲存的設定：${error.message}`
+                    : `自動設定失敗：${error.message}`;
+                statusText.className = onLoad ? "status warn" : "status err";
+            } finally {
+                autoDetectBtn.disabled = false;
+                autoDetectBtn.textContent = "ArUco 自動設定";
+            }
+        }
+
+        autoDetectBtn.addEventListener("click", () => runAutoDetect());
 
         refreshDevicesBtn.addEventListener("click", async () => {
             refreshDevicesBtn.disabled = true;
@@ -1248,7 +1317,7 @@
                 statusText.className = "status err";
             } finally {
                 refreshDevicesBtn.disabled = false;
-                refreshDevicesBtn.textContent = "↻ 重新掃描";
+                refreshDevicesBtn.textContent = "重新掃描";
             }
         });
 
@@ -1330,9 +1399,12 @@
             if (previewTarget) {
                 navigator.sendBeacon("/opencv-camera/stop");
             }
+
+            // 快照只給這一頁看，離開就刪
+            navigator.sendBeacon("/camera-settings/snapshot/clear");
         });
     </script>
-  <script src="/js/custom-scrollbar.js"></script>
+  <script src="/js/custom-scrollbar.js?v=2"></script>
 </body>
 
 </html>

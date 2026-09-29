@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-29T13:08:17+00:00",
+  "title": "Design System: FMAS 妙妙屋",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "掛圖墨黑",
+        "canonical": "#1D1C1A",
+        "tonalRamp": [
+          "#0C0B09",
+          "#252422",
+          "#41403D",
+          "#5F5D5B",
+          "#81807D",
+          "#A6A4A2",
+          "#CCCAC7",
+          "#F0EEEB"
+        ]
+      },
+      "ink-hover": {
+        "role": "primary",
+        "displayName": "滑鼠懸停墨",
+        "canonical": "#3A3834",
+        "tonalRamp": [
+          "#0D0B08",
+          "#262420",
+          "#413F3B",
+          "#5F5D59",
+          "#82807B",
+          "#A7A49F",
+          "#CDCAC5",
+          "#F1EEE9"
+        ]
+      },
+      "ink-soft": {
+        "role": "primary",
+        "displayName": "次要墨",
+        "canonical": "#5B5953",
+        "tonalRamp": [
+          "#0D0B07",
+          "#26241F",
+          "#42403A",
+          "#5F5D57",
+          "#82807A",
+          "#A7A49E",
+          "#CDCAC3",
+          "#F1EEE7"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "掛圖紙",
+        "canonical": "#FBFBF8",
+        "tonalRamp": [
+          "#0B0B09",
+          "#242422",
+          "#40403D",
+          "#5E5E5B",
+          "#80807E",
+          "#A5A5A2",
+          "#CBCBC8",
+          "#EFEFEC"
+        ]
+      },
+      "paper-dim": {
+        "role": "neutral",
+        "displayName": "暗紙",
+        "canonical": "#EDECE6",
+        "tonalRamp": [
+          "#0C0B08",
+          "#252420",
+          "#41403B",
+          "#5F5E59",
+          "#81807B",
+          "#A6A59F",
+          "#CCCBC5",
+          "#F0EFE9"
+        ]
+      },
+      "print-white": {
+        "role": "neutral",
+        "displayName": "印刷白（色塊上字色）",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "ch1": {
+        "role": "secondary",
+        "displayName": "朱紅（第一關）",
+        "canonical": "#C92F25",
+        "tonalRamp": [
+          "#200000",
+          "#4B0000",
+          "#7C0303",
+          "#B00B09",
+          "#DB4235",
+          "#FA7767",
+          "#FCB6AC",
+          "#FEE9E5"
+        ]
+      },
+      "ch1-tint": {
+        "role": "secondary",
+        "displayName": "朱紅淡底",
+        "canonical": "#F4DEDA",
+        "tonalRamp": [
+          "#140706",
+          "#2F201D",
+          "#4C3B38",
+          "#6B5955",
+          "#8F7B77",
+          "#B49F9B",
+          "#DAC5C1",
+          "#FFE9E5"
+        ]
+      },
+      "ch2": {
+        "role": "secondary",
+        "displayName": "鉻黃（第二關）",
+        "canonical": "#F2B705",
+        "tonalRamp": [
+          "#120900",
+          "#2F2201",
+          "#513C06",
+          "#75590F",
+          "#A17911",
+          "#CD9C1F",
+          "#FCC022",
+          "#FFEDC8"
+        ]
+      },
+      "ch2-tint": {
+        "role": "secondary",
+        "displayName": "鉻黃淡底",
+        "canonical": "#FAF1D6",
+        "tonalRamp": [
+          "#110A00",
+          "#2A230E",
+          "#473F29",
+          "#655D46",
+          "#888068",
+          "#ADA48B",
+          "#D3CAB0",
+          "#F7EED3"
+        ]
+      },
+      "ch3": {
+        "role": "secondary",
+        "displayName": "草綠（第三關）",
+        "canonical": "#17804A",
+        "tonalRamp": [
+          "#001004",
+          "#012D15",
+          "#064D29",
+          "#0F703F",
+          "#35955E",
+          "#5DBB81",
+          "#85E2A6",
+          "#C7FED8"
+        ]
+      },
+      "ch3-tint": {
+        "role": "secondary",
+        "displayName": "草綠淡底",
+        "canonical": "#DBEAE0",
+        "tonalRamp": [
+          "#050E08",
+          "#1C2720",
+          "#37433B",
+          "#546159",
+          "#77847B",
+          "#9BA99F",
+          "#C0CFC5",
+          "#E4F3E9"
+        ]
+      },
+      "ch4": {
+        "role": "secondary",
+        "displayName": "群青（第四關）",
+        "canonical": "#2447B0",
+        "tonalRamp": [
+          "#010036",
+          "#040475",
+          "#133199",
+          "#2E53BD",
+          "#4E78E6",
+          "#7CA2F9",
+          "#B3CAFC",
+          "#E7EFFF"
+        ]
+      },
+      "ch4-tint": {
+        "role": "secondary",
+        "displayName": "群青淡底",
+        "canonical": "#DDE2EE",
+        "tonalRamp": [
+          "#080B13",
+          "#20242D",
+          "#3C4049",
+          "#595D68",
+          "#7C808B",
+          "#A0A4B0",
+          "#C6CAD6",
+          "#E9EEFB"
+        ]
+      },
+      "ch5": {
+        "role": "secondary",
+        "displayName": "紫（第五關）",
+        "canonical": "#6D3BA5",
+        "tonalRamp": [
+          "#130027",
+          "#32005A",
+          "#521B85",
+          "#703FA9",
+          "#9463D0",
+          "#B888F9",
+          "#D5BDFD",
+          "#F2EAFF"
+        ]
+      },
+      "ch5-tint": {
+        "role": "secondary",
+        "displayName": "紫淡底",
+        "canonical": "#E7E0EC",
+        "tonalRamp": [
+          "#0E0911",
+          "#27222A",
+          "#433D47",
+          "#615B65",
+          "#847D88",
+          "#A8A2AD",
+          "#CEC7D3",
+          "#F2EBF7"
+        ]
+      },
+      "chart-orange": {
+        "role": "secondary",
+        "displayName": "插圖橘（僅插圖）",
+        "canonical": "#EE7D1A",
+        "tonalRamp": [
+          "#190500",
+          "#3C1900",
+          "#623108",
+          "#8D4911",
+          "#C06415",
+          "#F38223",
+          "#FCBA90",
+          "#FEEADE"
+        ]
+      },
+      "stamp": {
+        "role": "tertiary",
+        "displayName": "印泥紅（完成章與危險操作專用）",
+        "canonical": "#BF1330",
+        "tonalRamp": [
+          "#200001",
+          "#4A020C",
+          "#7A091B",
+          "#AD142C",
+          "#DE3B49",
+          "#FC7375",
+          "#FEB5B2",
+          "#FFE8E7"
+        ]
+      },
+      "rec": {
+        "role": "tertiary",
+        "displayName": "錄影洋紅（錄影中專用）",
+        "canonical": "#C8006A",
+        "tonalRamp": [
+          "#1F000A",
+          "#470122",
+          "#76073D",
+          "#A8125A",
+          "#DE2A7C",
+          "#FD6AA0",
+          "#FFB1C8",
+          "#FEE8EE"
+        ]
+      },
+      "rec-deep": {
+        "role": "tertiary",
+        "displayName": "錄影深洋紅",
+        "canonical": "#A30057",
+        "tonalRamp": [
+          "#1E000B",
+          "#480023",
+          "#76043E",
+          "#A80D5B",
+          "#D3417E",
+          "#FD69A2",
+          "#FBB3C9",
+          "#FEE8EE"
+        ]
+      },
+      "status-warn": {
+        "role": "neutral",
+        "displayName": "警告褐（設定頁）",
+        "canonical": "#8A5300",
+        "tonalRamp": [
+          "#160700",
+          "#361E01",
+          "#5B3605",
+          "#83510D",
+          "#AB722F",
+          "#D29755",
+          "#FBBD7B",
+          "#FFEBD7"
+        ]
+      },
+      "disabled-line": {
+        "role": "neutral",
+        "displayName": "停用灰線",
+        "canonical": "#B9B7B0",
+        "tonalRamp": [
+          "#0D0B07",
+          "#26241F",
+          "#41403A",
+          "#5F5E57",
+          "#82807A",
+          "#A6A59E",
+          "#CCCAC3",
+          "#F1EEE7"
+        ]
+      },
+      "disabled-text": {
+        "role": "neutral",
+        "displayName": "停用灰字",
+        "canonical": "#9C9A93",
+        "tonalRamp": [
+          "#0D0B07",
+          "#26241E",
+          "#41403A",
+          "#5F5E57",
+          "#828079",
+          "#A7A59D",
+          "#CDCAC3",
+          "#F1EEE7"
+        ]
+      },
+      "placeholder": {
+        "role": "neutral",
+        "displayName": "提示字灰",
+        "canonical": "#6B6963",
+        "tonalRamp": [
+          "#0D0B07",
+          "#26241F",
+          "#41403A",
+          "#5F5D58",
+          "#82807A",
+          "#A7A49E",
+          "#CDCAC4",
+          "#F1EEE7"
+        ]
+      },
+      "on-ink-muted": {
+        "role": "neutral",
+        "displayName": "墨底淡字",
+        "canonical": "#D8D5CC",
+        "tonalRamp": [
+          "#0D0B06",
+          "#26241D",
+          "#424038",
+          "#605D56",
+          "#838078",
+          "#A7A49C",
+          "#CDCAC1",
+          "#F1EEE5"
+        ]
+      },
+      "poster-scrim": {
+        "role": "neutral",
+        "displayName": "大字報遮罩（墨 55%）",
+        "canonical": "rgba(29, 28, 26, 0.55)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#252422",
+          "#41403D",
+          "#5F5D5B",
+          "#81807D",
+          "#A6A4A2",
+          "#CCCAC7",
+          "#F0EEEB"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "入口頁兩行紙白注音大字，只此一處。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "關卡標題列的關卡名，單行省略。"
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "任務格的動作大字，永不截斷。"
+      },
+      "title-story": {
+        "displayName": "Title Story",
+        "purpose": "接在動作大字後的故事小字，次要墨。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "注音導言、任務說明、步驟；行高 2.2 容納注音。"
+      },
+      "button-kid": {
+        "displayName": "Kid Button",
+        "purpose": "孩子會按的按鈕，字重靠字型本身。"
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "關卡與任務序號色格裡的數字。"
+      },
+      "adult-headline": {
+        "displayName": "Adult Headline",
+        "purpose": "設定頁與大人端標題（Noto Sans TC 900）。"
+      },
+      "adult-body": {
+        "displayName": "Adult Body",
+        "purpose": "設定頁說明文字。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "大人端按鈕與欄位標籤。"
+      },
+      "stamp": {
+        "displayName": "Stamp",
+        "purpose": "印章圓圈裡的「完成」，不帶注音。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "none",
+        "value": "none",
+        "purpose": "系統不使用任何投影或發光；深度只靠 3px／4px 墨線與紙墨反白。"
+      },
+      {
+        "name": "stamp-dot-ring",
+        "value": "inset 0 0 0 3px var(--paper)",
+        "purpose": "不是陰影：集點圈已蓋點的紙白內圈，模仿印章留白。"
+      },
+      {
+        "name": "recording-frame",
+        "value": "inset 0 0 0 8px var(--rec)",
+        "purpose": "不是陰影：錄影中相機格的洋紅內框。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "press-invert",
+        "value": "background-color .12s ease-out, color .12s ease-out, border-color .12s ease-out",
+        "purpose": "按鈕按下黑白對調、滑鼠懸停換底。"
+      },
+      {
+        "name": "tab-switch",
+        "value": "background-color .15s ease-out, color .15s ease-out",
+        "purpose": "關卡分頁切換與懸停。"
+      },
+      {
+        "name": "chapter-recolour",
+        "value": "background-color .2s ease-out, color .2s ease-out",
+        "purpose": "切換關卡時標記、序號格、淡底換色；集點圈填色。"
+      },
+      {
+        "name": "stamp-hit",
+        "value": ".34s cubic-bezier(.16, 1, .3, 1) both",
+        "purpose": "簽名互動：印章由 1.9 倍大落下、回彈到 -14°；同時 cell-thud 讓整格閃一下暗紙。"
+      },
+      {
+        "name": "bar-draw",
+        "value": ".7s cubic-bezier(.16, 1, .3, 1) .15s both",
+        "purpose": "入口頁五色條由左畫出（scaleX 0→1），入口頁唯一動態。"
+      },
+      {
+        "name": "key-shake",
+        "value": ".38s ease-in-out",
+        "purpose": "勇者編號錯誤時鑰匙左右搖。"
+      },
+      {
+        "name": "rec-blink",
+        "value": "1.2s steps(2, jump-none) infinite",
+        "purpose": "錄影中指示點硬切閃爍。"
+      },
+      {
+        "name": "rotate-hint",
+        "value": "2.8s cubic-bezier(.65, 0, .35, 1) infinite",
+        "purpose": "轉向提示的手機圖示示範轉橫。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation-duration: .01ms; transition-duration: .01ms",
+        "purpose": "prefers-reduced-motion 時全部動畫與轉場停止，印章直接出現。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tablet-width",
+        "value": "max-width: 1180px"
+      },
+      {
+        "name": "narrow-width",
+        "value": "max-width: 900px"
+      },
+      {
+        "name": "start-narrow",
+        "value": "max-width: 640px"
+      },
+      {
+        "name": "wide-short",
+        "value": "max-height: 960px and min-width: 1181px"
+      },
+      {
+        "name": "short",
+        "value": "max-height: 960px"
+      },
+      {
+        "name": "camera-short",
+        "value": "max-height: 760px"
+      },
+      {
+        "name": "very-short",
+        "value": "max-height: 720px"
+      },
+      {
+        "name": "start-short",
+        "value": "max-height: 660px"
+      },
+      {
+        "name": "large-desktop",
+        "value": "min-width: 1600px and min-height: 961px"
+      },
+      {
+        "name": "touch-floor",
+        "value": "pointer: coarse"
+      },
+      {
+        "name": "hover-capable",
+        "value": "hover: hover and pointer: fine"
+      },
+      {
+        "name": "landscape-gate",
+        "value": "orientation: portrait and pointer: coarse"
+      },
+      {
+        "name": "setting-tablet",
+        "value": "max-width: 1100px"
+      },
+      {
+        "name": "setting-stack",
+        "value": "max-width: 720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Ink Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "實心墨塊：開始、下一關等主要動作；按下反白為紙白。",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M7 4.8v14.4a1 1 0 0 0 1.5.86l11.3-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z\"/></svg>開始</button>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 18px;border:var(--rule) solid var(--ink);border-radius:var(--r-btn);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:1.3rem;font-weight:400;line-height:1.2;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out,border-color .12s ease-out;} .ds-btn:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;} .ds-btn-primary{background:var(--ink);color:var(--paper);} .ds-btn-primary:hover{background:var(--ink-hover);border-color:var(--ink-hover);} .ds-btn-primary:active{background:var(--paper);color:var(--ink);border-color:var(--ink);}"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "紙白描邊塊：完成、上一關；按下反白為墨黑。已完成時描邊改印泥紅。",
+      "html": "<div style=\"display:flex;gap:10px\"><button class=\"ds-btn ds-btn-outline\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12.5l5 5 10-11\"/></svg>完成</button><button class=\"ds-btn ds-btn-outline is-done\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12.5l5 5 10-11\"/></svg>完成</button></div>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 18px;border:var(--rule) solid var(--ink);border-radius:var(--r-btn);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:1.3rem;font-weight:400;line-height:1.2;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out,border-color .12s ease-out;} .ds-btn:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;} .ds-btn-outline{background:var(--paper);color:var(--ink);border-width:2px;font-size:1.1rem;} .ds-btn-outline:hover{background:var(--paper-dim);} .ds-btn-outline:active{background:var(--ink);color:var(--paper);} .ds-btn-outline.is-done{border-color:var(--stamp);color:var(--stamp);} .ds-btn-outline.is-done:active{background:var(--stamp);color:var(--paper);}"
+    },
+    {
+      "name": "Chapter Tab Rail",
+      "kind": "nav",
+      "refersTo": "chapter-tab",
+      "description": "五格關卡分頁，3px 墨縫；頂邊 10px 關卡色，目前這關整格填滿。",
+      "html": "<nav class=\"ds-rail\"><button class=\"ds-tab\" style=\"--c:var(--ch1);--c-tint:var(--ch1-tint);--c-on:#FFFFFF\"><span class=\"ds-tab-num\">第 1 關</span><span class=\"ds-tab-name\">建造魔法道路</span></button><button class=\"ds-tab is-active\" style=\"--c:var(--ch2);--c-tint:var(--ch2-tint);--c-on:#1D1C1A\"><span class=\"ds-tab-num\">第 2 關</span><span class=\"ds-tab-name\">神秘圖案迷宮</span></button><button class=\"ds-tab\" style=\"--c:var(--ch3);--c-tint:var(--ch3-tint);--c-on:#FFFFFF\"><span class=\"ds-tab-num\">第 3 關</span><span class=\"ds-tab-name\">精靈小屋</span></button><button class=\"ds-tab\" style=\"--c:var(--ch4);--c-tint:var(--ch4-tint);--c-on:#FFFFFF\"><span class=\"ds-tab-num\">第 4 關</span><span class=\"ds-tab-name\">摺紙飛毯</span></button><button class=\"ds-tab\" style=\"--c:var(--ch5);--c-tint:var(--ch5-tint);--c-on:#FFFFFF\"><span class=\"ds-tab-num\">第 5 關</span><span class=\"ds-tab-name\">寶藏大發現</span></button></nav>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-rail{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--rule);background:var(--ink);padding-bottom:var(--rule-heavy);} .ds-tab{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 16px;border:0;border-top:10px solid var(--c);border-radius:0;background:var(--paper);color:var(--ink);text-align:left;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out;} .ds-tab-num{font-family:\"Noto Sans TC\", \"PingFang TC\", \"Microsoft JhengHei UI\", sans-serif;font-size:16px;} .ds-tab-name{font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:17px;line-height:1.5;} .ds-tab:hover:not(.is-active){background:var(--c-tint);} .ds-tab.is-active{background:var(--c);color:var(--c-on);} .ds-tab:active{background:var(--ink);color:var(--paper);} .ds-tab:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:-8px;}"
+    },
+    {
+      "name": "Task Cell with Stamp",
+      "kind": "card",
+      "refersTo": "task-cell",
+      "description": "任務格：插圖在上且最大，左上序號色格，下方動作大字＋故事小字與開始／完成；做完蓋上印泥章。",
+      "html": "<article class=\"ds-cell\"><div class=\"ds-pic\"><span class=\"ds-num\">1</span><svg viewBox=\"0 0 120 90\" width=\"150\" height=\"110\" aria-hidden=\"true\"><rect x=\"22\" y=\"8\" width=\"76\" height=\"74\" fill=\"#FBFBF8\" stroke=\"#1D1C1A\" stroke-width=\"3\" transform=\"rotate(-8 60 45)\"/><circle cx=\"58\" cy=\"44\" r=\"20\" fill=\"none\" stroke=\"#1D1C1A\" stroke-width=\"4\"/></svg><svg class=\"ds-stamp\" viewBox=\"0 0 120 120\" aria-hidden=\"true\"><g fill=\"none\" stroke=\"currentColor\"><circle cx=\"60\" cy=\"60\" r=\"53\" stroke-width=\"7\"/><circle cx=\"60\" cy=\"60\" r=\"43\" stroke-width=\"2.5\"/><text x=\"60\" y=\"73\" text-anchor=\"middle\" font-size=\"38\" stroke=\"none\" fill=\"currentColor\">完成</text></g></svg></div><div class=\"ds-body\"><h4 class=\"ds-title\"><span class=\"ds-verb\">畫圓</span><span class=\"ds-story\">大圓圓魔法陣</span></h4><div class=\"ds-ops\"><button class=\"ds-start\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M7 4.8v14.4a1 1 0 0 0 1.5.86l11.3-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z\"/></svg>開始</button><button class=\"ds-done\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12.5l5 5 10-11\"/></svg>完成</button></div></div></article>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-cell{position:relative;display:flex;flex-direction:column;width:340px;background:var(--paper);border:var(--rule) solid var(--ink);overflow:hidden;} .ds-pic{position:relative;display:flex;align-items:center;justify-content:center;height:190px;background:var(--accent-tint);border-bottom:var(--rule) solid var(--ink);} .ds-num{position:absolute;top:0;left:0;display:grid;place-items:center;width:44px;height:44px;background:var(--accent);color:var(--accent-on);border-right:var(--rule) solid var(--ink);border-bottom:var(--rule) solid var(--ink);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:24px;font-weight:900;} .ds-stamp{position:absolute;top:10px;right:10px;width:96px;height:96px;color:var(--stamp);transform:rotate(-14deg);animation:ds-stamp-hit .34s cubic-bezier(.16,1,.3,1) both;} .ds-stamp text{font-family:\"BiauKai\",\"DFKai-SB\",\"標楷體\",\"Kaiti TC\",serif;font-weight:700;} @keyframes ds-stamp-hit{0%{opacity:0;transform:scale(1.9) rotate(-4deg);}55%{opacity:1;transform:scale(.93) rotate(-15deg);}100%{opacity:1;transform:scale(1) rotate(-14deg);}} .ds-body{display:flex;flex-direction:column;gap:8px;padding:10px 14px 14px;font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;} .ds-title{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;margin:0;font-weight:400;} .ds-verb{font-size:1.8rem;line-height:1.45;color:var(--ink);} .ds-story{font-size:1.15rem;line-height:1.6;color:var(--ink-soft);} .ds-ops{display:flex;gap:8px;} .ds-start,.ds-done{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:58px;border:var(--rule) solid var(--ink);border-radius:var(--r-btn);font-family:inherit;font-size:1.3rem;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out;} .ds-start{flex:1.6 1 0;background:var(--ink);color:var(--paper);} .ds-start:hover{background:var(--ink-hover);} .ds-start:active{background:var(--paper);color:var(--ink);} .ds-done{flex:1 1 0;border-width:2px;border-color:var(--stamp);background:var(--paper);color:var(--stamp);font-size:1.1rem;} .ds-done:active{background:var(--stamp);color:var(--paper);} .ds-start:focus-visible,.ds-done:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;} @media (prefers-reduced-motion:reduce){.ds-stamp{animation:none;}}"
+    },
+    {
+      "name": "Chapter Story Row",
+      "kind": "custom",
+      "refersTo": "story-row",
+      "description": "關卡標題列：整條高的關卡色序號格、注音關卡名與導言、上一關／下一關。",
+      "html": "<section class=\"ds-story-row\" data-chapter=\"2\"><div class=\"ds-story-text\"><h2>第二關：神秘圖案迷宮</h2><p>巫師教我們用圖形魔法通過迷宮！</p></div><button class=\"ds-next\">下一關<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12H19M13 5.5l6.5 6.5-6.5 6.5\"/></svg></button></section>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch2);--accent-on:#1D1C1A;--accent-tint:var(--ch2-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-story-row{display:flex;align-items:center;gap:18px;padding:14px 20px 14px 0;background:var(--accent-tint);border-top:var(--rule-heavy) solid var(--ink);border-bottom:var(--rule-heavy) solid var(--ink);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;} .ds-story-row::before{content:attr(data-chapter);align-self:stretch;display:grid;place-items:center;width:84px;margin:-14px 0;background:var(--accent);color:var(--accent-on);border-right:var(--rule) solid var(--ink);font-size:52px;font-weight:900;line-height:1;} .ds-story-text{flex:1;min-width:0;} .ds-story-text h2{margin:0 0 2px;font-size:30px;font-weight:400;line-height:1.4;} .ds-story-text p{margin:0;font-size:19px;line-height:2.2;} .ds-next{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:10px 20px;background:var(--ink);color:var(--paper);border:var(--rule) solid var(--ink);border-radius:var(--r-btn);font-family:inherit;font-size:17px;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out;} .ds-next:hover{background:var(--ink-hover);} .ds-next:active{background:var(--paper);color:var(--ink);} .ds-next:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Kidbar with Stamp-Slot Progress",
+      "kind": "nav",
+      "refersTo": "kidbar",
+      "description": "掛圖抬頭：關卡色「ㄇ」標記、注音標題、聽故事、五個集點圈、小老師模式；下緣 4px 墨線。",
+      "html": "<header class=\"ds-kidbar\"><div class=\"ds-left\"><span class=\"ds-logo\">ㄇ</span><h1>魔法王國大冒險</h1></div><div class=\"ds-right\"><div class=\"ds-dots\" role=\"img\" aria-label=\"完成進度 2/5\"><span class=\"lit\"></span><span class=\"lit\"></span><span></span><span></span><span></span></div><button class=\"ds-admin\">小老師模式</button></div></header>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-kidbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:84px;padding:8px 20px;background:var(--paper);border-bottom:var(--rule-heavy) solid var(--ink);} .ds-left,.ds-right{display:flex;align-items:center;gap:12px;} .ds-logo{display:grid;place-items:center;width:42px;height:42px;background:var(--accent);color:var(--accent-on);border:var(--rule) solid var(--ink);font-family:\"Noto Sans TC\", \"PingFang TC\", \"Microsoft JhengHei UI\", sans-serif;font-size:24px;font-weight:900;line-height:1;} .ds-kidbar h1{margin:0;font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:26px;font-weight:400;line-height:1.45;color:var(--ink);} .ds-dots{display:flex;gap:6px;} .ds-dots span{width:24px;height:24px;border:2.5px solid var(--ink);border-radius:50%;background:var(--paper);transition:background-color .2s ease-out,border-color .2s ease-out;} .ds-dots .lit{background:var(--stamp);border-color:var(--stamp);box-shadow:inset 0 0 0 3px var(--paper);} .ds-admin{min-height:48px;padding:10px 18px;border:2px solid var(--ink);border-radius:var(--r-btn);background:var(--paper);color:var(--ink);font-family:\"Noto Sans TC\", \"PingFang TC\", \"Microsoft JhengHei UI\", sans-serif;font-size:16px;font-weight:700;letter-spacing:.04em;cursor:pointer;} .ds-admin:hover{background:var(--paper-dim);} .ds-admin:active{background:var(--ink);color:var(--paper);} .ds-admin:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Start Entry Row",
+      "kind": "input",
+      "refersTo": "entry-row",
+      "description": "入口頁登入列：鉻黃鑰匙格｜勇者編號欄｜墨黑進入故事，外框 4px 墨黑。",
+      "html": "<div class=\"ds-entry-stage\"><div class=\"ds-entry\"><span class=\"ds-key\"><svg viewBox=\"0 0 24 24\" width=\"30\" height=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"7.5\" cy=\"12\" r=\"4\"/><path d=\"M11.5 12h10M17.5 12v3.6M20.5 12v2.6\"/></svg></span><input placeholder=\"輸入你的勇者編號\" aria-label=\"勇者編號\"/><button class=\"ds-enter\">進入故事<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 12H19M13 5.5l6.5 6.5-6.5 6.5\"/></svg></button></div></div>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-entry-stage{padding:28px;background:rgba(29,28,26,.55);} .ds-entry{display:flex;align-items:stretch;width:min(720px,100%);background:var(--paper);border:var(--rule-heavy) solid var(--ink);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;} .ds-entry:focus-within{outline:var(--rule-heavy) solid var(--ch2);outline-offset:4px;} .ds-key{display:grid;place-items:center;width:68px;background:var(--ch2);color:var(--ink);border-right:var(--rule) solid var(--ink);} .ds-entry input{flex:1;min-width:0;height:72px;padding:0 20px;border:0;background:transparent;color:var(--ink);font-family:inherit;font-size:22px;outline:none;} .ds-entry input::placeholder{color:#6B6963;} .ds-enter{display:inline-flex;align-items:center;gap:12px;padding:0 30px;background:var(--ink);color:var(--paper);border:0;border-left:var(--rule) solid var(--ink);font-family:inherit;font-size:24px;letter-spacing:.04em;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out;} .ds-enter:hover{background:var(--ink-hover);} .ds-enter:active{background:var(--paper);color:var(--ink);} .ds-enter:focus-visible{outline:var(--rule) solid var(--ch2);outline-offset:-8px;}"
+    },
+    {
+      "name": "Setting Step Block and Camera Badges",
+      "kind": "card",
+      "refersTo": "step-number",
+      "description": "大人設定頁：關卡色序號方格開頭、同色淡底的步驟區塊；鏡頭種類為實心色標籤。",
+      "html": "<section class=\"ds-step\" style=\"--step-c:var(--ch4);--step-tint:var(--ch4-tint)\"><h3 class=\"ds-step-title\" data-step=\"2\">俯視鏡頭</h3><p>選擇從上方拍攝桌面的鏡頭。</p><div class=\"ds-badges\"><span class=\"ds-badge total\">共 3 台</span><span class=\"ds-badge external\">外接 2</span><span class=\"ds-badge builtin\">內建 1</span><span class=\"ds-badge continuity\">接續互通 0</span></div></section>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-step{display:grid;gap:12px;padding:18px 20px;background:var(--step-tint);border:var(--rule) solid var(--ink);font-family:\"Noto Sans TC\", \"PingFang TC\", \"Microsoft JhengHei UI\", sans-serif;color:var(--ink);} .ds-step p{margin:0;color:var(--ink-soft);font-size:15px;line-height:1.7;} .ds-step-title{display:flex;align-items:center;gap:12px;margin:0;font-size:21px;font-weight:900;letter-spacing:.06em;} .ds-step-title::before{content:attr(data-step);display:grid;place-items:center;width:40px;height:40px;background:var(--step-c);color:#FFFFFF;border:var(--rule) solid var(--ink);font-size:22px;font-weight:900;line-height:1;} .ds-badges{display:flex;gap:8px;flex-wrap:wrap;} .ds-badge{display:inline-flex;align-items:center;min-height:44px;padding:4px 18px;border:var(--rule) solid var(--ink);background:var(--paper);font-size:21px;font-weight:900;letter-spacing:.04em;font-variant-numeric:tabular-nums;} .ds-badge.total{background:var(--ink);color:var(--paper);} .ds-badge.external{background:var(--ch4);color:#FFFFFF;} .ds-badge.builtin{background:var(--ch2);color:var(--ink);} .ds-badge.continuity{background:var(--ch5);color:#FFFFFF;}"
+    },
+    {
+      "name": "Recording Button",
+      "kind": "button",
+      "refersTo": "button-rec",
+      "description": "相機頁停止錄影鍵：唯一使用錄影洋紅的按鈕。",
+      "html": "<button class=\"ds-rec\"><span class=\"ds-rec-dot\"></span>停止錄影</button>",
+      "css": ":host{--paper:#FBFBF8;--paper-dim:#EDECE6;--ink:#1D1C1A;--ink-soft:#5B5953;--ink-hover:#3A3834;--rule:3px;--rule-heavy:4px;--ch1:#C92F25;--ch1-tint:#F4DEDA;--ch2:#F2B705;--ch2-tint:#FAF1D6;--ch3:#17804A;--ch3-tint:#DBEAE0;--ch4:#2447B0;--ch4-tint:#DDE2EE;--ch5:#6D3BA5;--ch5-tint:#E7E0EC;--accent:var(--ch1);--accent-on:#FFFFFF;--accent-tint:var(--ch1-tint);--stamp:#BF1330;--rec:#C8006A;--r-btn:6px;} .ds-rec{display:inline-flex;align-items:center;gap:12px;min-height:78px;padding:16px 34px;background:var(--rec);color:#FFFFFF;border:var(--rule) solid var(--rec);border-radius:var(--r-btn);font-family:\"FMAS GenSen Bpmf\", \"BpmfGenYoGothic\", \"PingFang TC\", sans-serif;font-size:24px;cursor:pointer;transition:background-color .12s ease-out,color .12s ease-out;} .ds-rec-dot{width:14px;height:14px;border-radius:50%;background:currentColor;animation:ds-blink 1.2s steps(2,jump-none) infinite;} .ds-rec:hover{background:#A30057;border-color:#A30057;} .ds-rec:active{background:var(--paper);color:var(--rec);} .ds-rec:focus-visible{outline:var(--rule) solid var(--ink);outline-offset:3px;} @keyframes ds-blink{50%{opacity:.25;}} @media (prefers-reduced-motion:reduce){.ds-rec-dot{animation:none;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "注音符號教室掛圖",
+    "overview": "整個孩子端畫面就是一張台灣幼兒園牆上的注音符號掛圖：近白的掛圖紙上，墨黑格線切出一格一格，每格一張平塗插圖、一個動作大字、一個注音。版面本身就是格線，格線不是畫上去的框，而是墨黑底色從紙格之間的縫隙透出來。孩子找到自己這一關的顏色，看圖認出任務，按下黑色的「開始」；做完回來，那一格被蓋上紅色印泥「完成」章，章一直留在那裡。大人看抬頭上的五個集點圈就知道整體進度。\n\n五種平塗印刷色（朱紅、鉻黃、草綠、群青、紫）是完整的調色盤，但每一種只負責一件事：標示「你在哪一關」。可以按的東西只有一種語言：墨黑實心塊與墨黑描邊塊，按下就黑白對調。沒有漸層、沒有發光、沒有投影、沒有大圓角；深度只靠格線的粗細（3px 與 4px）和紙與墨的明暗。\n\n孩子看的每一行字都用源泉注音圓體 粗（注音直接長在字形裡），字重來自字型本身而不是瀏覽器加粗；大人用的設定頁與小老師面板換成 Noto Sans TC。入口頁是同一個世界的大字報：加深色遮罩的掛圖風格童話王國、巨大的紙白注音大字、一條五色條、一整條紙白登入列。",
+    "keyCharacteristics": [
+      "墨黑格線即版面：3px 分格、4px 分區，格線由墨黑底色從縫隙透出。",
+      "五關五色平塗，只標示位置；按鈕永遠是墨黑。",
+      "單一控制語言：實心墨塊與描邊墨塊，按下反白。",
+      "簽名互動：紅色印泥圓章原地蓋下、微歪、永久保留。",
+      "孩子的字全帶注音（源泉注音圓體 粗），大人的字用 Noto Sans TC。",
+      "版面先看高度再看寬度；直向觸控裝置一律擋在「請把螢幕轉橫」。"
+    ],
+    "rules": [
+      {
+        "name": "The Location-Only Rule",
+        "body": "關卡色只標示「你在哪一關」：分頁、序號色格、淡底、捲軸握把。可以按的動作按鈕永遠是墨黑或紙白描邊，從不填關卡色。",
+        "section": "colors"
+      },
+      {
+        "name": "The Reserved Ink Rule",
+        "body": "印泥紅只屬於「完成」與危險操作，錄影洋紅只屬於錄影中。兩者都不准拿來做裝飾、強調或標題。",
+        "section": "colors"
+      },
+      {
+        "name": "The No Score Colours Rule",
+        "body": "孩子端從不用綠色或紅色評判表現。「完成」只代表做完了，紅章是印泥不是打叉；相機頁出錯時用紙白底加一塊當關顏色，而不是粉紅或紅底。",
+        "section": "colors"
+      },
+      {
+        "name": "The Zhuyin Everywhere Rule",
+        "body": "孩子會讀的每一段字（標題、導言、任務名、步驟、按鈕、轉向提示）都用注音字型，字重維持 400，靠字型本身的粗度，不讓瀏覽器合成粗體。",
+        "section": "typography"
+      },
+      {
+        "name": "The Adult Switch Rule",
+        "body": "大人端（`body.adult`、小老師面板、小老師模式鈕、入口頁的攝影機設定標籤）一律換回 Noto Sans TC，不帶注音，讓孩子一眼分得出哪些不是給他按的。",
+        "section": "typography"
+      },
+      {
+        "name": "The Height-First Rule",
+        "body": "孩子端的斷點先問「還剩多高」，再問寬度；新畫面不得依賴整頁捲動。",
+        "section": "layout"
+      },
+      {
+        "name": "The Landscape Gate Rule",
+        "body": "直向的觸控裝置只顯示轉向提示，不為直向另做版面。",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Print Rule",
+        "body": "掛圖是印刷品：任何元素都不投影、不發光。需要分層時加粗墨線或反白，不要抬高。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 讓版面本身就是格線：區與區之間 4px 墨縫、格與格之間 3px 墨縫，由墨黑底色透出。",
+      "**Do** 讓可以按的東西只有墨黑實心塊或墨黑描邊塊，按下 0.12s 黑白對調。",
+      "**Do** 在任務格裡讓插圖成為最大的元素：插圖在上、吃掉剩餘高度，下方只放動作大字＋故事小字與兩顆按鈕。",
+      "**Do** 讓孩子讀的每一個字都用注音字型 (FMAS GenSen Bpmf)，大人端換成 Noto Sans TC。",
+      "**Do** 在做完時原地蓋章並讓章留著，位置不動。",
+      "**Do** 先寫高度斷點，觸控樓地板寫在所有尺寸斷點之後。",
+      "**Do** 為每個動畫提供 `prefers-reduced-motion` 的靜止版本。"
+    ],
+    "donts": [
+      "**Don't** 把關卡色填到動作按鈕上；關卡色只標示位置。",
+      "**Don't** 在孩子端用綠色或紅色表示對或錯，也不要顯示分數。",
+      "**Don't** 把印泥紅或錄影洋紅用在它們的單一事件以外。",
+      "**Don't** 用漸層、發光、投影或浮起來的圓角白卡；五色條這種硬邊色帶不算漸層。",
+      "**Don't** 用超過 6px 的圓角；格子與面板一律直角。",
+      "**Don't** 用 emoji 或字元當圖示；圖示是同一筆畫粗細的 SVG。",
+      "**Don't** 加第二條捲軸，也不要露出原生捲軸。",
+      "**Don't** 為直向觸控裝置另做版面；顯示轉向提示。"
+    ]
+  }
+}

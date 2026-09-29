@@ -3,19 +3,31 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>魔法王國大冒險｜童趣版</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=34" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=48" />
 </head>
 
 <body>
-  <!-- 童趣頂欄：大標題 + 星星進度 + 旁白 -->
+  <!-- 橫向鎖定：只在直向的觸控裝置出現，圖示自己示範要轉的方向 -->
+  <div class="rotate-gate" role="alert">
+    <svg class="rotate-gate-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor"
+         stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="17" y="4" width="30" height="56" rx="6" />
+      <line x1="27" y1="12" x2="37" y2="12" />
+      <circle cx="32" cy="52" r="2.2" fill="currentColor" stroke="none" />
+    </svg>
+    <h2 class="rotate-gate-title">請把螢幕轉橫</h2>
+    <p class="rotate-gate-text">妙妙屋的故事要橫著看才完整，把螢幕轉過來就可以繼續囉。</p>
+  </div>
+
+  <!-- 掛圖抬頭：標記＋標題、旁白、集點圈、小老師模式 -->
   <header class="kidbar">
     <div class="kidbar-left">
-      <span class="logo" aria-hidden="true">🪄</span>
+      <span class="logo" aria-hidden="true">ㄇ</span>
       <div class="title-wrap">
         <h1 class="app-title">魔法王國大冒險</h1>
         <div class="subtitle">一起找到「快樂寶藏」！</div>
@@ -23,25 +35,24 @@
       <button id="switchBtn" class="btn switch-btn"></button>
     </div>
     <div class="kidbar-right">
-      <button id="ttsBtn" class="btn big pill" aria-label="聽故事旁白">🔊 聽故事</button>
-      <div class="stars">
-        <span id="star1">★</span><span id="star2">★</span><span id="star3">★</span><span id="star4">★</span><span
-          id="star5">★</span>
+      <button id="ttsBtn" class="btn big" data-icon="sound" aria-label="聽故事旁白">聽故事</button>
+      <div class="stars" role="img" aria-label="完成進度">
+        <span id="star1"></span><span id="star2"></span><span id="star3"></span><span id="star4"></span><span id="star5"></span>
       </div>
-      <button id="toggleAdmin" class="btn ghost pill" aria-expanded="false">小老師模式</button>
+      <button id="toggleAdmin" class="btn ghost" aria-expanded="false">小老師模式</button>
     </div>
   </header>
 
-  <!-- 主要內容：大卡片 + 大按鈕（童趣） -->
+  <!-- 掛圖本體：分頁列、關卡標題列、任務格 -->
   <main class="playground">
-    <!-- 章節導覽（大貼紙） -->
+    <!-- 關卡分頁 -->
     <nav class="sticker-rail" id="stickerRail" aria-label="章節導覽">
       <!-- 由 JS 注入：大貼紙（1~5關） -->
     </nav>
 
-    <!-- 故事卡 -->
-    <section class="story-card" id="storyCard" aria-live="polite">
-      <div class="story-emoji" id="storyEmoji">🏞️</div>
+    <!-- 關卡標題列：序號色格｜圖｜標題與導言 -->
+    <section class="story-card" id="storyCard" data-chapter="1" aria-live="polite">
+      <div class="story-emoji" id="storyEmoji"></div>
       <div class="story-text">
         <h2 class="story-title" id="chapterTitle">第一關：建造魔法道路</h2>
         <p class="story-intro" id="chapterIntro">
@@ -49,12 +60,12 @@
         </p>
       </div>
       <div class="kid-actions">
-        <button id="prevBtn" class="btn fat secondary" disabled>← 上一關</button>
-        <button id="nextBtn" class="btn fat primary">下一關 →</button>
+        <button id="prevBtn" class="btn fat secondary" data-icon="left" disabled>上一關</button>
+        <button id="nextBtn" class="btn fat primary" data-icon-after="right">下一關</button>
       </div>
     </section>
 
-    <!-- 任務區：大積木卡（可勾選 + 開始） -->
+    <!-- 任務格（JS 依任務數決定欄數） -->
     <section class="tasks-grid" id="tasksGrid" aria-label="任務清單">
       <!-- 由 JS 注入 -->
     </section>
@@ -82,27 +93,41 @@
     </div>
   </aside>
 
-  <!-- 任務卡樣板（JS 用） -->
+  <!-- 任務格樣板（JS 用）：做完時右上角會出現印章 -->
   <template id="taskTpl">
     <article class="task-card">
       <div class="task-icon"></div>
       <div class="task-body">
-        <h4 class="task-title"></h4>
-        <p class="task-note"></p>
+        <h4 class="task-title"><span class="task-verb"></span><span class="task-story"></span></h4>
         <div class="task-ops">
-          <button class="btn fat start-btn">開始</button>
-          <button class="btn fat done-btn" aria-pressed="false">完成 ✅</button>
+          <button class="btn fat start-btn" data-icon="play">開始</button>
+          <button class="btn fat done-btn" data-icon="check" aria-pressed="false">完成</button>
         </div>
       </div>
+      <svg class="stamp" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+        <g filter="url(#stamp-ink)" fill="none" stroke="currentColor">
+          <circle cx="60" cy="60" r="53" stroke-width="7" />
+          <circle cx="60" cy="60" r="43" stroke-width="2.5" />
+          <text x="60" y="73" text-anchor="middle" font-size="38" stroke="none">完成</text>
+        </g>
+      </svg>
     </article>
   </template>
 
-  <!-- 小小煙火（簡單彩紙效果） -->
-  <div id="confetti" class="confetti" aria-hidden="true"></div>
+  <!-- 印泥質感：印章邊緣的斑駁與吃墨不均 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="stamp-ink" x="-6%" y="-6%" width="112%" height="112%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4" result="noise" />
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.8 1.45" result="grain" />
+      <feComposite in="SourceGraphic" in2="grain" operator="in" result="inked" />
+      <feDisplacementMap in="inked" in2="noise" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+
 
   <script src="/utils/bopomofo.js"></script>
-  <script src="/js/script.js"></script>
-  <script src="/js/custom-scrollbar.js"></script>
+  <script src="/js/script.js?v=40"></script>
+  <script src="/js/custom-scrollbar.js?v=2"></script>
 </body>
 
 </html>

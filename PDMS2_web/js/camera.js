@@ -34,7 +34,7 @@ async function getUid(){
 function isImagePath(s){ return typeof s==="string" && (s.startsWith("/images/") || /\.(png|jpe?g|svg|webp|gif)$/i.test(s)); }
 function setIcon(el, src){
   if(!el) return;
-  el.innerHTML = isImagePath(src) ? `<img class="icon-img" src="${src}" alt="">` : "";
+  el.innerHTML = isImagePath(src) ? `<img class="icon-img" src="${encodeURI(src)}" alt="" onerror="this.remove()">` : "";
 }
 
 async function loadCameraSetting() {
@@ -65,23 +65,25 @@ function getCameraIndex(role) {
 let cameraSetting = { ...DEFAULT_CAMERA_SETTING };
 
 const ID_TO_META = {
-  "ch1-t1": {icon:"/images/bridge.jpg",  title:"串積木：做成一條橋"},
-  "ch1-t2": {icon:"/images/tower.jpg",   title:"疊城堡：蓋瞭望塔"},
-  "ch1-t3": {icon:"/images/stairs.jpg",  title:"疊階梯：翻過高牆"},
-  "ch1-t4": {icon:"/images/wall.jpg",  title:"疊高牆：蓋出傳送門"},
-  "ch2-t1": {icon:"/images/circle.jpg",  title:"畫圓：大圓圓魔法陣"},
-  "ch2-t2": {icon:"/images/square.jpg",  title:"畫方：守護盾"},
-  "ch2-t3": {icon:"/images/cross.jpg",   title:"畫十字：啟動魔法"},
-  "ch2-t4": {icon:"/images/line.jpg",    title:"描水平線：打敗恐龍"},
-  "ch2-t5": {icon:"/images/fill.jpg",    title:"兩水平線中塗色：提升威力"},
-  "ch2-t6": {icon:"/images/connect.png", title:"兩點連線：開門"},
-  "ch3-t1": {icon:"/images/circle_win.jpg", title:"剪圓：做圓形窗戶"},
-  "ch3-t2": {icon:"/images/square_door.jpg", title:"剪方：做方方正正的門"},
-  "ch4-t1": {icon:"/images/fold1.jpg", title:"摺紙一摺：變出小飛毯"},
-  "ch4-t2": {icon:"/images/fold2.jpg", title:"摺紙兩摺：更結實的飛毯"},
-  "ch5-t1": {icon:"/images/beans.jpg", title:"豆豆裝罐子：完成任務"},
-  "ch5-t2": {icon:"/images/icons/ch5_unbutton.svg", title:"解鈕扣：打開魔法披風"},
-  "ch5-t3": {icon:"/images/icons/ch5_button.svg", title:"扣鈕扣：穿上魔法披風"},
+  "ch1-t1": {icon:"/images/chart/ch1-t1-串積木.png", title:"串積木：做成一條橋"},
+  "ch1-t2": {icon:"/images/chart/ch1-t2-疊城堡.png", title:"疊城堡：蓋瞭望塔"},
+  "ch1-t3": {icon:"/images/chart/ch1-t3-疊階梯.png", title:"疊階梯：翻過高牆"},
+  "ch1-t4": {icon:"/images/chart/ch1-t4-疊高牆.png", title:"疊高牆：蓋出傳送門"},
+  "ch2-t1": {icon:"/images/chart/ch2-t1-畫圓.png", title:"畫圓：大圓圓魔法陣"},
+  "ch2-t2": {icon:"/images/chart/ch2-t2-畫方.png", title:"畫方：守護盾"},
+  "ch2-t3": {icon:"/images/chart/ch2-t3-畫十字.png", title:"畫十字：啟動魔法"},
+  "ch2-t4": {icon:"/images/chart/ch2-t4-描水平線.png", title:"描水平線：打敗恐龍"},
+  "ch2-t5": {icon:"/images/chart/ch2-t5-兩水平線中塗色.png", title:"兩水平線中塗色：提升威力"},
+  "ch2-t6": {icon:"/images/chart/ch2-t6-兩點連線.png", title:"兩點連線：開門"},
+  "ch3-t1": {icon:"/images/chart/ch3-t1-剪圓.png", title:"剪圓：做圓形窗戶"},
+  "ch3-t2": {icon:"/images/chart/ch3-t2-剪方.png", title:"剪方：做方方正正的門"},
+  "ch3-t3": {icon:"/images/chart/ch3-t3-剪窗簾.png", title:"剪窗簾：裝飾圓窗"},
+  "ch3-t4": {icon:"/images/chart/ch3-t4-剪地毯.png", title:"剪地毯：幫房子鋪地毯"},
+  "ch4-t1": {icon:"/images/chart/ch4-t1-摺紙一摺.png", title:"摺紙一摺：變出小飛毯"},
+  "ch4-t2": {icon:"/images/chart/ch4-t2-摺紙兩摺.png", title:"摺紙兩摺：更結實的飛毯"},
+  "ch5-t1": {icon:"/images/chart/ch5-t1-豆豆裝罐子.png", title:"豆豆裝罐子：完成任務"},
+  "ch5-t2": {icon:"/images/chart/ch5-t2-解鈕扣.png", title:"解鈕扣：打開魔法披風"},
+  "ch5-t3": {icon:"/images/chart/ch5-t3-扣鈕扣.png", title:"扣鈕扣：穿上魔法披風"},
 };
 
 // 鈕扣關：錄影而不是拍照
@@ -137,6 +139,17 @@ function updateStatus(message, type = 'info') {
   els.statusInfo.className = `status-info ${type}`;
 }
 
+// 關卡色：相機頁沿用那一關的掛圖顏色（id 形如 ch2-t1）
+(function applyChapterColour(){
+  const n = parseInt(((id || "").match(/^ch(\d+)/) || [])[1], 10);
+  if (n >= 1 && n <= 5) {
+    const root = document.documentElement;
+    root.style.setProperty("--accent",      `var(--ch${n})`);
+    root.style.setProperty("--accent-on",   `var(--ch${n}-on)`);
+    root.style.setProperty("--accent-tint", `var(--ch${n}-tint)`);
+  }
+})();
+
 // 初始化標題
 (function initHeader(){
   const meta = ID_TO_META[id] || {icon:"", title:"拍照存證"};
@@ -164,8 +177,9 @@ function updateStatus(message, type = 'info') {
     }
   } else if (BUTTON_TASKS.includes(id)) {
     els.shotBtn.textContent = "開始錄影";
+    els.shotBtn.dataset.icon = "rec";
   } else {
-      els.shotBtn.textContent = "🎞️ 拍照、存檔並進下一關"; 
+      els.shotBtn.textContent = "拍照、存檔並進下一關";
   }
 })();
 
@@ -225,10 +239,23 @@ async function openCamera() {
       throw new Error(result.error || '開啟相機失敗');
     }
   } catch (error) {
+    // 技術細節只留給主控台；畫面上給孩子與大人看得懂的話，並提供再試一次
     console.error('開啟相機錯誤:', error);
-    updateStatus(`開啟相機失敗: ${error.message}`, 'error');
+    updateStatus('相機還沒準備好，請大人幫忙檢查一下', 'error');
+    const retry = document.getElementById('retryBtn');
+    if (retry) retry.hidden = false;
   }
 }
+
+// 再試一次：重新開啟相機
+(function bindRetry(){
+  const retry = document.getElementById('retryBtn');
+  if (!retry) return;
+  retry.addEventListener('click', async () => {
+    retry.hidden = true;
+    await openCamera();
+  });
+})();
 
 // 輪詢遊戲狀態（Ch5-t1 專用）
 // 開始語音只播一次；輪詢每 0.5 秒會一直進來，所以要自己記住播過了
@@ -311,7 +338,7 @@ async function pollGameState(uid) {
 
         // 警告提示
         if (state.warning) {
-          updateStatus('⚠️ 注意：檢測到作弊行為！', 'error');
+          updateStatus('注意：檢測到作弊行為！', 'error');
         } else if (state.running) {
           const target = state.target_bean_count || 10;
           updateStatus(`遊戲進行中... 豆豆：${state.bean_count}/${target} | 剩餘：${state.remaining_time}秒`, 'loading');
@@ -325,11 +352,11 @@ async function pollGameState(uid) {
           
           let resultMsg = '';
           if (state.score === 2) {
-            resultMsg = '🎉 完美完成！';
+            resultMsg = '完美完成！';
           } else if (state.score === 1) {
-            resultMsg = '👍 完成任務！';
+            resultMsg = '完成任務！';
           } else {
-            resultMsg = '👍 完成任務！';
+            resultMsg = '完成任務！';
           }
           
           updateStatus(`遊戲結束！${resultMsg}`, 'success');
@@ -572,8 +599,9 @@ async function startRecording() {
       return;
     }
     els.shotBtn.style.display = 'none';
-    els.stopBtn.style.display = 'inline-block';
-    updateStatus('錄影中...', 'info');
+    els.stopBtn.style.display = 'inline-flex';
+    document.body.classList.add('is-recording');
+    updateStatus('錄影中', 'recording');
   } catch (err) {
     console.error('開始錄影失敗:', err);
     updateStatus('開始錄影失敗', 'error');
@@ -584,6 +612,7 @@ async function startRecording() {
 async function stopRecording() {
   try {
     els.stopBtn.disabled = true;
+    document.body.classList.remove('is-recording');
     updateStatus('正在存檔...', 'loading');
     const response = await fetch('/opencv-camera/record/stop', { method: 'POST' });
     const result = await response.json();

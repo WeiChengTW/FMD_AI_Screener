@@ -231,49 +231,50 @@
  */
 const ICON_BASE = "../images/";
 
-/** 各個任務 / 關卡的檔名（不含路徑） */
+/** 各個任務 / 關卡的插圖（掛圖平塗風格；舊版亮面插圖仍保留在 images/icons/） */
 const ICON_PATHS = {
-  // 第一關
-  blocks_ai:    "icons/blocks_ai.png",
-  bridge:       "icons/ch1_bridge_ai.png",
-  castle:       "icons/ch1_castle_ai.png",
-  stairs:       "icons/ch1_stairs_ai.png",
-  wall:         "icons/ch1_wall_ai.png",
+  // 第一關：朱紅積木
+  blocks_ai:    "chart/ch1-00-建造魔法道路.png",
+  bridge:       "chart/ch1-t1-串積木.png",
+  castle:       "chart/ch1-t2-疊城堡.png",
+  stairs:       "chart/ch1-t3-疊階梯.png",
+  wall:         "chart/ch1-t4-疊高牆.png",
 
-  // 第二關
-  maze:    "maze.jpg",
-  circle:  "icons/ch2_circle_ai.png",
-  square:  "icons/ch2_square_ai.png",
-  cross:   "icons/ch2_cross_ai.png",
-  line:    "icons/ch2_line_ai.png",
-  paint:   "icons/ch2_paint_ai.png",
-  connect: "icons/ch2_connect_ai.png",
+  // 第二關：鉻黃蠟筆
+  maze:    "chart/ch2-00-神秘圖案迷宮.png",
+  circle:  "chart/ch2-t1-畫圓.png",
+  square:  "chart/ch2-t2-畫方.png",
+  cross:   "chart/ch2-t3-畫十字.png",
+  line:    "chart/ch2-t4-描水平線.png",
+  paint:   "chart/ch2-t5-兩水平線中塗色.png",
+  connect: "chart/ch2-t6-兩點連線.png",
 
-  // 第三關
-  house:             "icons/ch3_house_ai.png",
-  scissorsCircle:    "icons/ch3_circle_ai.png",
-  scissorsSquare:    "icons/ch3_square_ai.png",
-  scissorsLine:      "icons/ch3_curtain_ai.png",
-  scissorsHalfpaper: "icons/ch3_carpet_ai.png",
+  // 第三關：草綠剪刀
+  house:             "chart/ch3-00-精靈小屋.png",
+  scissorsCircle:    "chart/ch3-t1-剪圓.png",
+  scissorsSquare:    "chart/ch3-t2-剪方.png",
+  scissorsLine:      "chart/ch3-t3-剪窗簾.png",
+  scissorsHalfpaper: "chart/ch3-t4-剪地毯.png",
 
-  // 第四關
-  paper:     "icons/ch4_fold2_ai.png",
-  foldOnce:  "icons/ch4_fold1_ai.jpg",
-  foldTwice: "icons/ch4_fold2_ai.png",
+  // 第四關：群青色紙
+  paper:     "chart/ch4-00-摺紙飛毯.png",
+  foldOnce:  "chart/ch4-t1-摺紙一摺.png",
+  foldTwice: "chart/ch4-t2-摺紙兩摺.png",
 
-  // 第五關
-  treasure: "icons/ch5_beans_ai.png",
-  beans:    "icons/ch5_beans_ai.png",
-  unbutton: "icons/ch5_unbutton.svg",
-  button:   "icons/ch5_button.svg"
+  // 第五關：紫色布條與豆子
+  treasure: "chart/ch5-00-寶藏大發現.png",
+  beans:    "chart/ch5-t1-豆豆裝罐子.png",
+  unbutton: "chart/ch5-t2-解鈕扣.png",
+  button:   "chart/ch5-t3-扣鈕扣.png"
 };
 
-/** 統一產生 <img> icon 的 HTML */
-function getIconHtml(key, altText = "") {
+/** 統一產生 <img> icon 的 HTML。
+ *  旁邊一定有文字標題，所以插圖是裝飾性的（alt 留空）；
+ *  載入失敗就把圖藏起來，留下空白格，不讓替代文字擠在序號色格下面。 */
+function getIconHtml(key) {
   const file = ICON_PATHS[key];   // 沒列在 ICON_PATHS 就用 key.png
-  const src = ICON_BASE + file;
-  const alt = altText || key;
-  return `<img src="${src}" alt="${alt}" class="icon-img">`;
+  const src = ICON_BASE + encodeURI(file || `${key}.png`);
+  return `<img src="${src}" alt="" class="icon-img" decoding="async" onerror="this.onerror=null;this.style.visibility='hidden'">`;
 }
 
 
@@ -454,14 +455,13 @@ function renderStickers() {
   });
 }
 
-const CH_COLORS    = ['--ch1','--ch2','--ch3','--ch4','--ch5'];
-const CH_COLORS_BG = ['--ch1b','--ch2b','--ch3b','--ch4b','--ch5b'];
-
+/* 目前這一關的顏色：主色、壓在主色上的字色、平塗淡底 */
 function updateAccentColor() {
-  const idx = state.chapterIndex;
+  const n = state.chapterIndex + 1;
   const root = document.documentElement;
-  root.style.setProperty('--accent',    `var(${CH_COLORS[idx]})`);
-  root.style.setProperty('--accent-bg', `var(${CH_COLORS_BG[idx]})`);
+  root.style.setProperty('--accent',      `var(--ch${n})`);
+  root.style.setProperty('--accent-on',   `var(--ch${n}-on)`);
+  root.style.setProperty('--accent-tint', `var(--ch${n}-tint)`);
 }
 
 function renderStory() {
@@ -470,6 +470,7 @@ function renderStory() {
 
   updateAccentColor();
   resetTts();
+  $("#storyCard").dataset.chapter = String(state.chapterIndex + 1);
   $("#storyEmoji").innerHTML = iconHtml;
   $("#chapterTitle").textContent = ch.title;
   $("#chapterIntro").textContent = personalize(ch.intro);
@@ -488,13 +489,21 @@ function renderTasks() {
     const iconHtml = getIconHtml(t.icon, t.title);
     tpl.querySelector(".task-icon").innerHTML = iconHtml;
 
-    tpl.querySelector(".task-title").textContent = t.title;
-    tpl.querySelector(".task-note").textContent = t.note || "";
+    // 標題拆兩層：冒號前是孩子要做的動作（大字），冒號後是故事（小字）
+    const [verb, story] = t.title.split("：");
+    tpl.querySelector(".task-verb").textContent = verb;
+    tpl.querySelector(".task-story").textContent = story || "";
+    tpl.querySelector(".task-title").setAttribute("aria-label", t.title);
 
     const startBtn = tpl.querySelector(".start-btn");
     const doneBtn = tpl.querySelector(".done-btn");
 
-    if (state.done[ch.key][i]) card.classList.add("is-done");
+    const isDone = Boolean(state.done[ch.key][i]);
+    card.classList.toggle("is-done", isDone);
+    doneBtn.setAttribute("aria-pressed", String(isDone));
+    if (isDone && justStamped && justStamped.key === ch.key && justStamped.i === i) {
+      card.classList.add("just-stamped");
+    }
 
     startBtn.addEventListener("click", () => {
       const id = makeTaskId(state.chapterIndex, i);
@@ -504,19 +513,53 @@ function renderTasks() {
     doneBtn.addEventListener("click", () => {
       state.done[ch.key][i] = !state.done[ch.key][i];
       saveState();
+      justStamped = state.done[ch.key][i] ? { key: ch.key, i } : null;
       renderAll();
-      if (state.done[ch.key][i]) celebrate();
+      justStamped = null;
     });
 
     grid.appendChild(tpl);
   });
 
-  // 根據任務數量動態設定欄數
-  const count = ch.tasks.length;
-  const cols = count <= 4 ? count : count <= 6 ? 3 : 4;
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-  grid.style.gridAutoRows = 'minmax(300px, 1fr)';
+  layoutTaskGrid(grid, ch.tasks.length);
 }
+
+/* 剛蓋章的那一格；只在重繪的這一次播動畫 */
+let justStamped = null;
+
+/* 欄數同時看任務數與實際可用寬度。
+   格子窄於 MIN_CARD_W 就塞不下標題加兩顆按鈕，
+   在平板橫向硬排 4 欄會讓文字擠成兩三個字換一行。
+   列高交給 CSS 的高度斷點決定，這裡不寫死，否則行內樣式會蓋掉 media query。 */
+const MIN_CARD_W = 268;
+const GRID_GAP   = 3;   /* 格線粗細 */
+
+function layoutTaskGrid(grid, count) {
+  if (!grid || !count) return;
+  const avail  = grid.clientWidth || window.innerWidth;
+  const fits   = Math.max(1, Math.floor((avail + GRID_GAP) / (MIN_CARD_W + GRID_GAP)));
+  const wanted = Math.min(count <= 4 ? count : count <= 6 ? 3 : 4, fits);
+  // 掛圖不留空格：欄數要能整除任務數（4 個任務放不下 4 欄時排 2×2，不排 3＋1）
+  let cols = 1;
+  for (let c = wanted; c >= 1; c--) {
+    if (count % c === 0) { cols = c; break; }
+  }
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  grid.style.removeProperty('grid-auto-rows');
+}
+
+/* 轉向或改變視窗大小時重算欄數 */
+let _relayoutTimer = null;
+function relayoutTaskGrid() {
+  clearTimeout(_relayoutTimer);
+  _relayoutTimer = setTimeout(() => {
+    const grid = $("#tasksGrid");
+    const ch = STORY[state.chapterIndex];
+    if (grid && ch) layoutTaskGrid(grid, ch.tasks.length);
+  }, 120);
+}
+window.addEventListener("resize", relayoutTaskGrid);
+window.addEventListener("orientationchange", relayoutTaskGrid);
 
 /* ========= 小老師模式 ========= */
 function renderAdmin() {
@@ -540,7 +583,7 @@ function renderAdmin() {
   $("#childName").value = state.name || "";
 }
 
-/* ========= 星星進度與彩紙 ========= */
+/* ========= 集點圈進度 ========= */
 function renderStars() {
   let total = 0,
     done = 0;
@@ -555,33 +598,13 @@ function renderStars() {
   for (let i = 0; i < lit; i++) stars[i].classList.add("lit");
 }
 
-/** 不用 emoji，改成彩色小圓點 */
-function celebrate() {
-  const box = $("#confetti");
-  box.innerHTML = "";
-  for (let i = 0; i < 30; i++) {
-    const s = document.createElement("span");
-    s.className = "confetti-dot";
-    s.style.left = Math.random() * 100 + "vw";
-    s.style.top = "-10vh";
-    s.style.width = "10px";
-    s.style.height = "10px";
-    s.style.borderRadius = "50%";
-    s.style.position = "absolute";
-    s.style.backgroundColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
-    box.appendChild(s);
-  }
-  box.classList.add("active");
-  setTimeout(() => box.classList.remove("active"), 900);
-}
-
 /* ========= 旁白（播放/暫停切換） ========= */
 let _ttsPlaying = false;
 
 function setTtsState(playing) {
   _ttsPlaying = playing;
   const btn = $("#ttsBtn");
-  btn.textContent = playing ? "⏸ 暫停" : "🔊 聽故事";
+  btn.textContent = playing ? "暫停" : "聽故事";
   btn.classList.toggle("is-playing", playing);
 }
 
@@ -683,7 +706,7 @@ function bindEvents() {
 
   const switchBtn = $("#switchBtn");
   if (switchBtn) {
-    switchBtn.innerHTML = window.Bopomofo ? window.Bopomofo.toRuby("換人玩") : "換人玩";
+    switchBtn.textContent = "換人玩";   // 注音由注音字型本身提供
     switchBtn.addEventListener("click", () => {
       if (confirm("確定要換下一個小朋友玩嗎？")) {
         localStorage.clear();

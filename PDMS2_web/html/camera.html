@@ -3,9 +3,12 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>拍照存證｜魔法王國</title>
-  <link rel="stylesheet" href="/css/styles.css?v=34" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=48" />
   <style>
     html, body {
       height: 100vh;
@@ -15,35 +18,96 @@
       flex-direction: column;
     }
 
+    /* 掛圖的三列：狀態列、相機格、操作列，格線由墨黑底色透出 */
     main.playground-inner {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      padding: 8px 12px;
-      gap: 6px;
-      padding-bottom: 132px;
+      gap: var(--rule-heavy);
       overflow: hidden;
     }
+
+    .status-info {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      padding: 10px 20px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 19px;
+      font-weight: normal;
+      text-align: center;
+    }
+    .status-info.success { background: var(--ch3-tint); }
+    /* 出錯：紙白底、墨色字，前面一塊當關顏色，不用粉紅底 */
+    .status-info.error   { background: var(--paper); color: var(--ink); }
+    .status-info.error::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 16px;
+      height: 32px;
+      background: var(--accent);
+      border: var(--rule) solid var(--ink);
+    }
+
+    /* 抬頭裡的任務插圖 */
+    .cam-task-icon {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      background: var(--accent-tint);
+      border: var(--rule) solid var(--ink);
+    }
+    .cam-task-icon:empty { display: none; }
+    .cam-task-icon .icon-img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+
+    /* 錄影中：整頁唯一使用 --rec 的地方 */
+    .status-info.recording { background: var(--rec); color: #FFFFFF; }
+    .status-info.recording::before {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      animation: rec-blink 1.2s steps(2, jump-none) infinite;
+    }
+    @keyframes rec-blink { 50% { opacity: 0.25; } }
+
+    .status-info.loading::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 3px solid var(--ink);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .cam-wrap {
       flex: 1;
       min-height: 0;
-      border: 4px solid #e7f3ff;
-      border-radius: 18px;
-      background: #000;
       display: flex;
       flex-direction: column;
+      background: var(--ink);
       overflow: hidden;
     }
+    body.is-recording .cam-wrap { box-shadow: inset 0 0 0 8px var(--rec); }
 
     .cam-view {
       flex: 1;
       min-height: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 6px;
+      padding: 10px;
     }
 
     .camera-stream {
@@ -51,123 +115,116 @@
       max-height: 100%;
       width: auto;
       height: auto;
-      border-radius: 10px;
       object-fit: contain;
       display: block;
+      border: var(--rule) solid var(--paper);
+    }
+
+    #placeholderText { color: #D8D5CC; font-size: 20px; font-weight: normal; }
+
+    /* 豆豆關的即時資訊：在墨黑底上用掛圖的鉻黃與紙白 */
+    .cam-banner { margin-top: 20px; text-align: center; font-size: 64px; font-weight: normal; }
+    #goBanner   { color: var(--ch2); }
+    #doneBanner { color: var(--paper); }
+    #gameInfo   { margin-top: 24px; text-align: center; color: var(--paper); font-size: 30px; font-weight: normal; }
+    #gameInfo p { margin: 6px 0; }
+    #gameInfo .num { font-family: var(--font); font-size: 56px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--ch2); }
+    #gameInfo .num.target { color: var(--paper); }
+
+    .tip {
+      margin: 0;
+      padding: 10px 16px 12px;
+      color: #D8D5CC;
+      font-size: 14px;
+      text-align: center;
     }
 
     .bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
+      flex-shrink: 0;
       display: flex;
-      gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
-      padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+      gap: 14px;
+      padding: 14px max(20px, env(safe-area-inset-left, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+      background: var(--paper);
+      border-top: var(--rule-heavy) solid var(--ink);
     }
 
     /* 觸控螢幕用：按鈕要夠大才按得準 */
     .bottom-bar .btn {
       min-height: 78px;
-      font-size: 22px;
-      font-weight: 900;
       padding: 16px 34px;
+      font-size: 24px;
+      font-weight: normal;
     }
 
-    .tip {
-      font-size: 14px;
-      color: #61707f;
-      text-align: center;
-      margin-top: 8px
+    /* 停止錄影：錄影中的保留色 */
+    .bottom-bar .btn.rec-btn { background: var(--rec); border-color: var(--rec); color: #FFFFFF; }
+    .bottom-bar .btn.rec-btn:active { background: var(--paper); color: var(--rec); }
+    @media (hover: hover) and (pointer: fine) {
+      /* 通用 hover 會把底色換成淺灰，白字就看不見了：錄影鍵改成深一階的保留色 */
+      .bottom-bar .btn.rec-btn:hover:not(:disabled) { background: #A30057; border-color: #A30057; color: #FFFFFF; }
     }
 
-    .status-info {
-      background: #f8f9fa;
-      padding: 12px;
-      border-radius: 8px;
-      margin: 12px 0;
-      font-size: 14px;
-      text-align: center;
+    /* 平板寬度：三顆按鈕（拍照、再試一次、回主頁）要排在同一列 */
+    @media (max-width: 1180px) {
+      .bottom-bar { flex-wrap: nowrap; gap: 10px; }
+      .bottom-bar .btn { min-height: 68px; padding: 10px 18px; font-size: 20px; }
     }
 
-    .status-success {
-      background: #e8f5e8;
-      color: #2d5a2d
-    }
-
-    .status-error {
-      background: #fdeaea;
-      color: #5a2d2d
-    }
-
-    .status-info.loading::after {
-      content: '';
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-left: 8px;
-      border: 2px solid #666;
-      border-radius: 50%;
-      border-top-color: transparent;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+    @media (max-height: 760px) {
+      .bottom-bar .btn { min-height: 64px; padding: 10px 18px; font-size: 19px; }
+      .bottom-bar { padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+      .cam-banner { font-size: 52px; }
     }
   </style>
 </head>
 
 <body>
+  <!-- 掛圖抬頭：當關顏色的「ㄇ」、任務插圖、任務名稱 -->
+  <header class="kidbar">
+    <div class="kidbar-left">
+      <span class="logo" aria-hidden="true">ㄇ</span>
+      <span class="cam-task-icon" id="taskIcon" aria-hidden="true"></span>
+      <h1 class="app-title" id="taskTitle">拍照存證</h1>
+    </div>
+  </header>
+
   <main class="playground playground-inner">
     <div id="statusInfo" class="status-info">準備開始...</div>
 
     <section class="cam-wrap">
       <div class="cam-view">
         <img id="cameraStream" class="camera-stream" src="" alt="相機畫面" style="display:none;" />
-        <div id="placeholderText" style="color:#666; text-align:center; line-height:400px;">
+        <div id="placeholderText" style="text-align:center; line-height:1.7; padding:48px 20px;">
           等等相機畫面會顯示在這裡 ~
         </div>
-        <div id="goBanner"
-          style="display: none; margin-top: 24px; text-align: center; color: #2f9e44; font-size: 64px; font-weight: 900; letter-spacing: 4px;">
+        <div id="goBanner" class="cam-banner" style="display: none;">
           開始了！
         </div>
-        <div id="doneBanner"
-          style="display: none; margin-top: 24px; text-align: center; color: #f59f00; font-size: 64px; font-weight: 900; letter-spacing: 4px;">
+        <div id="doneBanner" class="cam-banner" style="display: none;">
           完成了，你真棒
         </div>
-        <div id="gameInfo"
-          style="display: none; margin-top: 30px; text-align: center; font-size: 32px; font-weight: bold;">
-          <p>豆豆數量：<span id="beanCount" style="color: #ff6b6b; font-size: 56px;">0</span> / <span id="targetBeanCount"
-              style="color: #4c6ef5; font-size: 56px;">10</span></p>
-          <p>剩餘時間：<span id="timeRemaining" style="color: #ffa94d; font-size: 56px;">60</span> 秒</p>
+        <div id="gameInfo" style="display: none;">
+          <p>豆豆數量：<span id="beanCount" class="num">0</span> / <span id="targetBeanCount" class="num target">10</span></p>
+          <p>剩餘時間：<span id="timeRemaining" class="num">60</span> 秒</p>
         </div>
       </div>
-      <p class="tip">
-        使用 OpenCV 控制電腦相機，照片將直接儲存到對應的任務資料夾中。
-      </p>
     </section>
   </main>
 
   <div class="bottom-bar">
-    <button id="shotBtn" class="btn secondary fat pill" disabled>🎞️ 拍照、存檔並進下一關</button>
-    <button id="stopBtn" class="btn btn-danger fat pill" style="display:none;">🔴 停止錄影</button>
-    <a id="backLink" href="/html/index.html" class="btn ghost pill">← 先回主頁</a>
+    <button id="shotBtn" class="btn primary fat" data-icon="camera" disabled>拍照、存檔並進下一關</button>
+    <button id="stopBtn" class="btn rec-btn fat" data-icon="stop" style="display:none;">停止錄影</button>
+    <button id="retryBtn" class="btn fat" data-icon="refresh" type="button" hidden>再試一次</button>
+    <a id="backLink" href="/html/index.html" class="btn ghost" data-icon="left">先回主頁</a>
   </div>
 
   <!-- Ch5-t1 開始時的提示語音 -->
   <audio id="startVoice" src="/voice_guide/ch5-t1_start.mp3" preload="auto"></audio>
 
-  <script src="/js/camera.js?v=5" defer></script>
-  <script src="/js/custom-scrollbar.js"></script>
+  <script src="/js/camera.js?v=8" defer></script>
+  <script src="/js/custom-scrollbar.js?v=2"></script>
 </body>
 
 </html>
