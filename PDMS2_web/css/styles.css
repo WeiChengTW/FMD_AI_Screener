@@ -5,18 +5,11 @@
    關卡色只標示「你在哪一關」，永遠不上按鈕。完成＝紅色印泥圓章。
    ══════════════════════════════════════════════════════════════════════ */
 
-@font-face {
-  font-family: "BpmfGenYoGothic";
-  src: url("BpmfGenYoGothic-R.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* 注音粉圓：ButTaiwan「源泉注音圓體 粗」依孩子頁用字裁切（OFL：修改版改名）；授權見 css/fonts/ */
 @font-face {
   font-family: "FMAS GenSen Bpmf";
-  src: url("fonts/fmas-gensen-bpmf.woff?v=2") format("woff");
+  src: url("fonts/fmas-gensen-bpmf.woff2?v=3") format("woff2"),
+       url("fonts/fmas-gensen-bpmf.woff?v=3") format("woff");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -52,8 +45,8 @@
   --rec:   #C8006A;  /* 錄影中：相機頁專用，其他地方不准出現 */
 
   /* 字 */
-  --font:      "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", sans-serif;
-  --font-kid:  "FMAS GenSen Bpmf", "BpmfGenYoGothic", "PingFang TC", "Microsoft JhengHei UI", sans-serif;  /* 孩子看的字：圓體＋注音 */
+  --font:      "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;   /* 大人用文字：系統內建黑體（不再向 Google Fonts 下載） */
+  --font-kid:  "FMAS GenSen Bpmf", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;  /* 孩子看的字：圓體＋注音 */
   --font-kai:  var(--font-kid);
   --font-stamp:"BiauKai", "DFKai-SB", "標楷體", "Kaiti TC", "Noto Sans TC", serif;    /* 印章字：不帶注音 */
   --font-read: var(--font-kid);

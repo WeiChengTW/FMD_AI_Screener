@@ -13,23 +13,16 @@
   --rule:       3px;
   --rule-heavy: 4px;
   --ch1: #C92F25; --ch2: #F2B705; --ch3: #17804A; --ch4: #2447B0; --ch5: #6D3BA5;
-  --font:       "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", sans-serif;
-  --font-title: "FMAS GenSen Bpmf", "BpmfGenYoGothic", "PingFang TC", sans-serif;
+  --font:       "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  --font-title: "FMAS GenSen Bpmf", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   --font-read:  var(--font-title);
-}
-
-@font-face {
-  font-family: "BpmfGenYoGothic";
-  src: url("./BpmfGenYoGothic-R.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
 }
 
 /* 源泉注音圓體 粗（與關卡頁同一套）：裁切版，授權見 css/fonts/ */
 @font-face {
   font-family: "FMAS GenSen Bpmf";
-  src: url("fonts/fmas-gensen-bpmf.woff?v=2") format("woff");
+  src: url("fonts/fmas-gensen-bpmf.woff2?v=3") format("woff2"),
+       url("fonts/fmas-gensen-bpmf.woff?v=3") format("woff");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
