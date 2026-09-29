@@ -590,16 +590,16 @@ def _scan_camera_devices_macos() -> list:
     for index, entry in enumerate(entries):
         name = str(entry.get("_name") or f"相機 {index}").strip()
         model_id = str(entry.get("spcamera_model-id") or "")
-        raw.append((index, name, _classify_camera(name, model_id)))
+        raw.append((index, name, _classify_camera(name, model_id), str(entry.get("spcamera_unique-id") or "")))
 
     # 兩台同型號的相機（例如兩支 AVerMedia）名稱會一模一樣，加序號才分得出來
     name_counts = {}
-    for _, name, _kind in raw:
+    for _, name, _kind, _uid in raw:
         name_counts[name] = name_counts.get(name, 0) + 1
     seen = {}
 
     devices = []
-    for index, name, kind in raw:
+    for index, name, kind, unique_id in raw:
         display = name
         if name_counts[name] > 1:
             seen[name] = seen.get(name, 0) + 1
@@ -611,12 +611,13 @@ def _scan_camera_devices_macos() -> list:
                 "kind": kind,
                 "kind_label": _CAMERA_KIND_LABEL[kind],
                 "label": f"{display}（{_CAMERA_KIND_LABEL[kind]}）",
+                "unique_id": unique_id,
             }
         )
 
     write_to_console(
         f"[CAM] macOS 偵測到 {len(devices)} 台相機：" +
-        ", ".join(f"{d['index']}={d['name']}" for d in devices),
+        ", ".join(f"{d['index']}={d['name']}[{d['unique_id']}]" for d in devices),
         "INFO",
     )
     return devices
@@ -1933,6 +1934,368 @@ def init_camera(camera_index=TOP):
         write_to_console(f"相機初始化失敗: {e}", "ERROR")
         release_camera()
         return False
+
+
+# ====== ArUco 自動判定上方鏡頭 / ROI =====
+# 平台四角貼 DICT_4X4_50 的 ID 16~19；看得到的那台就是上方鏡頭，四個標記內側圍起來的範圍就是 ROI
+# 刻意避開 0/1：ch3 關卡紙上的 ArUco 用的是 ID 0、1
+ROI_ARUCO_IDS = (16, 17, 18, 19)
+ROI_ARUCO_INSET_PX = 4  # 內縮幾個像素，確保裁切後不殘留角落標記
+
+
+_aruco_detector_instance = None
+
+
+def _aruco_detector():
+    global _aruco_detector_instance
+    if _aruco_detector_instance is None:
+        _aruco_detector_instance = cv2.aruco.ArucoDetector(
+            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50),
+            cv2.aruco.DetectorParameters(),
+        )
+    return _aruco_detector_instance
+
+
+def _find_roi_marker_candidates(frame) -> dict:
+    """單張畫面裡找角落標記，回傳 {ID: [四角座標, ...]}；只留 ROI 用的 ID。"""
+    corners, ids, _ = _aruco_detector().detectMarkers(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+    candidates = {}
+    if ids is None:
+        return candidates
+    for marker_id, marker_corners in zip(ids.flatten(), corners):
+        marker_id = int(marker_id)
+        if marker_id in ROI_ARUCO_IDS:
+            candidates.setdefault(marker_id, []).append(marker_corners.reshape(4, 2))
+    return candidates
+
+
+def _roi_from_candidates(candidates: dict, frame_shape) -> dict:
+    """
+    從候選標記算 ROI。
+    同一個 ID 出現多次時（多張合併、或多印了一張），取離整體中心最遠的那個，也就是角落那顆。
+    """
+    if not candidates:
+        return {"ids": [], "roi": None, "corners": {}}
+
+    all_centers = np.array([c.mean(axis=0) for group in candidates.values() for c in group])
+    centroid = all_centers.mean(axis=0)
+    chosen = {
+        marker_id: max(group, key=lambda c: float(np.linalg.norm(c.mean(axis=0) - centroid)))
+        for marker_id, group in candidates.items()
+    }
+
+    roi = None
+    if len(chosen) == len(ROI_ARUCO_IDS):
+        middle = np.mean([c.mean(axis=0) for c in chosen.values()], axis=0)
+        inner = np.array([c[np.argmin(np.linalg.norm(c - middle, axis=1))] for c in chosen.values()])
+        h, w = frame_shape[:2]
+        x1 = int(np.ceil(inner[:, 0].min())) + ROI_ARUCO_INSET_PX
+        y1 = int(np.ceil(inner[:, 1].min())) + ROI_ARUCO_INSET_PX
+        x2 = int(np.floor(inner[:, 0].max())) - ROI_ARUCO_INSET_PX
+        y2 = int(np.floor(inner[:, 1].max())) - ROI_ARUCO_INSET_PX
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, x2), min(h, y2)
+        if x2 > x1 and y2 > y1:
+            roi = {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1}
+
+    return {"ids": sorted(chosen), "roi": roi, "corners": chosen}
+
+
+def _detect_aruco_roi(frame) -> dict:
+    return _roi_from_candidates(_find_roi_marker_candidates(frame), frame.shape)
+
+
+ARUCO_SCAN_WARMUP_FRAMES = 8     # 剛開鏡頭的前幾張曝光還沒穩，直接丟掉
+ARUCO_SCAN_MAX_FRAMES = 40       # 每台最多讀幾張；四個 ID 湊齊就提早結束
+ARUCO_SCAN_DARK_THRESHOLD = 15   # 平均亮度低於這個當作還在暖機的黑畫面
+
+
+def _scan_camera_for_aruco(camera_index: int, on_progress=None) -> dict:
+    """
+    連拍多張找角落標記並合併結果。
+    標記在畫面上只有 20px 左右時，單張常常漏認一兩個；鏡頭是固定的，多張合併就能湊齊。
+    """
+    report = {"frame": None, "candidates": {}, "opened": False,
+              "read": 0, "dark": 0, "used": 0, "brightness": None}
+
+    cap = _open_camera_capture(camera_index)
+    if not cap or not cap.isOpened():
+        # 剛插上的鏡頭有時第一次開不起來，等一下再試一次
+        if cap is not None:
+            cap.release()
+        time.sleep(0.8)
+        cap = _open_camera_capture(camera_index)
+        if not cap or not cap.isOpened():
+            if cap is not None:
+                cap.release()
+            return report
+    report["opened"] = True
+
+    try:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, LIVE_CAMERA_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, LIVE_CAMERA_HEIGHT)
+        merged = report["candidates"]
+        for _ in range(ARUCO_SCAN_MAX_FRAMES + ARUCO_SCAN_WARMUP_FRAMES):
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                time.sleep(0.05)
+                continue
+            report["read"] += 1
+            if report["read"] <= ARUCO_SCAN_WARMUP_FRAMES:
+                continue
+
+            brightness = float(frame.mean())
+            report["brightness"] = brightness
+            if brightness < ARUCO_SCAN_DARK_THRESHOLD:
+                report["dark"] += 1
+                continue
+
+            report["frame"] = frame
+            report["used"] += 1
+            for marker_id, group in _find_roi_marker_candidates(frame).items():
+                merged.setdefault(marker_id, []).extend(group)
+            if on_progress:
+                on_progress(report["used"], sorted(merged))
+            if len(merged) == len(ROI_ARUCO_IDS):
+                break
+            time.sleep(0.03)
+    finally:
+        cap.release()
+    return report
+
+
+# 設定頁預覽框用的 ROI 快照，只是暫存：離開設定頁就刪掉
+SETTING_SNAPSHOT_DIR = Path(tempfile.gettempdir()) / "pdms2_setting_snapshots"
+SETTING_SNAPSHOT_ROLES = ("top", "side")
+
+
+def _clear_setting_snapshots():
+    for role in SETTING_SNAPSHOT_ROLES:
+        try:
+            (SETTING_SNAPSHOT_DIR / f"{role}.jpg").unlink()
+        except FileNotFoundError:
+            pass
+        except Exception as exc:
+            write_to_console(f"[快照] 刪除 {role} 暫存圖失敗: {exc}", "WARN")
+
+
+def _save_setting_snapshot(role: str, frame, roi: Optional[dict] = None) -> bool:
+    """依角色裁切後存成暫存圖；roi 有給就用它，沒給就用目前已儲存的 ROI。"""
+    if frame is None:
+        return False
+    if roi:
+        h, w = frame.shape[:2]
+        x1, y1 = max(0, roi["x"]), max(0, roi["y"])
+        x2, y2 = min(w, roi["x"] + roi["w"]), min(h, roi["y"] + roi["h"])
+        cropped = frame[y1:y2, x1:x2] if x2 > x1 and y2 > y1 else frame
+    else:
+        cropped = crop_center(frame, role=role)
+    if cropped is None or cropped.size == 0:
+        return False
+    SETTING_SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    return bool(cv2.imwrite(str(SETTING_SNAPSHOT_DIR / f"{role}.jpg"), cropped,
+                            [cv2.IMWRITE_JPEG_QUALITY, 90]))
+
+
+@app.get("/camera-settings/snapshot/<role>")
+def get_setting_snapshot(role):
+    if role not in SETTING_SNAPSHOT_ROLES:
+        return jsonify({"success": False}), 404
+    path = SETTING_SNAPSHOT_DIR / f"{role}.jpg"
+    if not path.exists():
+        return jsonify({"success": False}), 404
+    response = send_from_directory(str(SETTING_SNAPSHOT_DIR), path.name)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/camera-settings/snapshot/clear")
+def clear_setting_snapshots():
+    _clear_setting_snapshots()
+    return jsonify({"success": True})
+
+
+def _annotate_aruco(frame, detection: dict) -> str:
+    """畫出偵測到的角落標記與 ROI，回傳縮小後的 JPEG base64 給設定頁顯示。"""
+    vis = frame.copy()
+    for marker_id, c in detection["corners"].items():
+        pts = c.astype(int).reshape(-1, 1, 2)
+        cv2.polylines(vis, [pts], True, (0, 200, 255), 3)
+        cx, cy = c.mean(axis=0).astype(int)
+        cv2.putText(vis, f"ID {marker_id}", (cx - 30, cy - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 200, 255), 2, cv2.LINE_AA)
+    roi = detection.get("roi")
+    if roi:
+        cv2.rectangle(vis, (roi["x"], roi["y"]),
+                      (roi["x"] + roi["w"], roi["y"] + roi["h"]), (0, 200, 0), 3)
+    scale = 640 / vis.shape[1]
+    if scale < 1:
+        vis = cv2.resize(vis, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", vis, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    return base64.b64encode(buf.tobytes()).decode("utf-8") if ok else ""
+
+
+# 自動設定是一支同步 API，要跑好幾秒；進度另外放在這裡讓設定頁輪詢
+_auto_detect_progress = {"running": False, "step": "", "detail": "", "percent": 0}
+_auto_detect_progress_lock = threading.Lock()
+
+
+def _set_auto_detect_progress(
+    step: str, detail: str = "", percent: int = 0, running: bool = True,
+    level: Optional[str] = None, log: bool = True,
+):
+    with _auto_detect_progress_lock:
+        _auto_detect_progress.update(
+            {"running": running, "step": step, "detail": detail, "percent": int(percent)}
+        )
+    if not log:
+        return
+    # 每一步也寫進 console.txt，失敗時才查得到卡在哪
+    level = level or ("ERROR" if step == "失敗" else "INFO")
+    write_to_console(f"[自動設定] {int(percent):>3}% {step}" + (f"：{detail}" if detail else ""), level)
+
+
+@app.get("/camera-settings/auto-detect/progress")
+def get_auto_detect_progress():
+    with _auto_detect_progress_lock:
+        return jsonify({"success": True, **_auto_detect_progress})
+
+
+@app.post("/camera-settings/auto-detect")
+def auto_detect_cameras():
+    """
+    逐台外接鏡頭找角落 ArUco：看到四個的是上方鏡頭並用它們算 ROI，其餘外接鏡頭當側面。
+    電腦自帶鏡頭不參與（不會被開啟）。apply=true 時直接寫入設定。
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        apply = bool(data.get("apply", True))
+
+        _set_auto_detect_progress("掃描鏡頭", "列出目前接上的外接鏡頭", 5)
+        devices = scan_camera_devices()
+        candidates = [d for d in devices if d.get("kind") == "external"]
+        if not candidates:
+            _set_auto_detect_progress("失敗", "沒有偵測到外接鏡頭", 100, running=False)
+            return jsonify({"success": False, "error": "沒有偵測到外接鏡頭，無法自動判定"}), 400
+
+        _set_auto_detect_progress("釋放鏡頭", "關閉目前的預覽，準備逐台檢查", 10)
+        release_camera()
+        time.sleep(0.3)
+        _clear_setting_snapshots()
+
+        # 每台鏡頭分「開啟」「辨識」兩段，平均分配 15%~70% 的進度
+        total = len(candidates)
+        span = 55 / total
+        results = []
+        frames = {}
+        for k, device in enumerate(candidates):
+            base = 15 + span * k
+            tag = f"（{k + 1}/{total}）"
+            label = f"{device['label']}（Index {device['index']}）"
+            _set_auto_detect_progress(f"開啟鏡頭{tag}", f"{label}：等待曝光穩定", base)
+
+            def on_progress(used, ids, base=base, tag=tag, label=label):
+                found = "、".join(str(i) for i in ids) or "尚未找到"
+                ratio = min(1.0, used / 10)
+                _set_auto_detect_progress(
+                    f"辨識 ArUco{tag}", f"{label}：第 {used} 張，已找到 ID {found}",
+                    base + span * (0.3 + 0.6 * ratio), log=False,
+                )
+
+            scan = _scan_camera_for_aruco(device["index"], on_progress)
+            frame = scan["frame"]
+            frames[device["index"]] = frame
+            stats = (f"硬體 ID {device.get('unique_id') or '未知'}，讀到 {scan['read']} 張、"
+                     f"過暗 {scan['dark']} 張、辨識 {scan['used']} 張，"
+                     f"亮度 {scan['brightness']:.0f}" if scan["brightness"] is not None else
+                     f"硬體 ID {device.get('unique_id') or '未知'}，讀到 {scan['read']} 張")
+
+            if frame is None:
+                reason = ("打不開鏡頭" if not scan["opened"]
+                          else "畫面一直是黑的" if scan["dark"] else "讀不到畫面")
+                results.append({**device, "ok": False, "error": reason, "ids": [], "roi": None})
+                _set_auto_detect_progress(
+                    f"開啟鏡頭{tag}", f"{label}：{reason}，略過（{stats}）", base + span, level="WARN",
+                )
+                continue
+
+            detection = _roi_from_candidates(scan["candidates"], frame.shape)
+            results.append({
+                **device,
+                "ok": True,
+                "ids": detection["ids"],
+                "roi": detection["roi"],
+                "image": _annotate_aruco(frame, detection),
+            })
+            found = "、".join(str(i) for i in detection["ids"]) or "無"
+            _set_auto_detect_progress(
+                f"辨識 ArUco{tag}", f"{label}：看到 ID {found}（{stats}）", base + span,
+            )
+
+        _set_auto_detect_progress("判定上方／側面", "看到最多角落標記的當上方", 75)
+        # 看到最多角落標記的就是上方；並列時取編號小的，結果才穩定
+        seen = [r for r in results if r["ids"]]
+        top = max(seen, key=lambda r: (len(r["ids"]), -r["index"])) if seen else None
+        side = next((r for r in results if r["ok"] and (top is None or r["index"] != top["index"])), None)
+
+        if top is None:
+            _set_auto_detect_progress("失敗", "兩台外接鏡頭都沒看到角落標記", 100, running=False)
+            return jsonify({
+                "success": False,
+                "error": "兩台外接鏡頭都沒看到角落 ArUco，請確認上方鏡頭能拍到 ID 16~19 四個標記",
+                "results": results,
+            })
+
+        warnings = []
+        if top["roi"] is None:
+            missing = [i for i in ROI_ARUCO_IDS if i not in top["ids"]]
+            warnings.append(f"上方鏡頭只看到 ID {top['ids']}，缺 ID {missing}，ROI 沒有更新")
+            _set_auto_detect_progress("設定 ROI", f"缺 ID {missing}，沿用原本的 ROI", 80, level="WARN")
+        else:
+            r = top["roi"]
+            _set_auto_detect_progress("設定 ROI", f"x={r['x']} y={r['y']} {r['w']}×{r['h']}", 80)
+        if side is None:
+            warnings.append("找不到第二台外接鏡頭當側面，側面設定沒有更新")
+            write_to_console("[自動設定] 找不到第二台外接鏡頭當側面，側面設定沒有更新", "WARN")
+
+        saved = None
+        if apply:
+            _set_auto_detect_progress("儲存設定", "寫入本機並同步遠端資料庫", 88)
+            saved = save_app_settings(
+                top_index=top["index"],
+                side_index=side["index"] if side else None,
+                roi=top["roi"],
+            )
+            remote = saved.get("remote_sync") or {}
+            if remote.get("synced") is False:
+                write_to_console(f"[自動設定] 遠端同步失敗：{remote.get('error') or '未知原因'}", "WARN")
+
+        _set_auto_detect_progress("產生預覽快照", "裁切上方與側面畫面", 95)
+        # 預覽框預設顯示的就是關卡實際會拿到的裁切畫面
+        snapshots = {
+            "top": _save_setting_snapshot("top", frames.get(top["index"]), top["roi"]),
+            "side": _save_setting_snapshot("side", frames.get(side["index"])) if side else False,
+        }
+        for role, ok in snapshots.items():
+            if not ok and (role == "top" or side):
+                write_to_console(f"[自動設定] {role} 預覽快照存檔失敗", "WARN")
+
+        summary = f"上方 Index {top['index']}，側面 " + (f"Index {side['index']}" if side else "未更新")
+        _set_auto_detect_progress("完成", summary, 100, running=False)
+        return jsonify({
+            "success": True,
+            "applied": apply,
+            "top": {"index": top["index"], "label": top["label"], "ids": top["ids"], "roi": top["roi"]},
+            "side": {"index": side["index"], "label": side["label"]} if side else None,
+            "results": results,
+            "warnings": warnings,
+            "snapshots": snapshots,
+            "remote_sync": saved.get("remote_sync") if saved else None,
+        })
+    except Exception as e:
+        _set_auto_detect_progress("失敗", str(e), 100, running=False)
+        write_to_console(f"[自動設定] 例外追蹤：\n{traceback.format_exc()}", "ERROR")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.post("/camera-settings/select-roi")
