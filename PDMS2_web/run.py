@@ -35,15 +35,22 @@ for d in [CH3_T4_DIR, CH2_T1_DIR]:
     if d.exists() and str(d) not in sys.path:
         sys.path.insert(0, str(d))
 
-try:
-    from paper_contour_model import detect_paper_contour_by_model  # type: ignore
-except Exception:
-    detect_paper_contour_by_model = None
+# 設定頁的兩個量測工具改成「第一次用到才載入」：
+# paper_contour_model 會連帶載入 ultralytics / PyTorch（約 2 秒），
+# 放在啟動時載入會拖慢每一次開啟網頁，但孩子闖關流程完全用不到它。
+_lazy_modules = {}
 
-try:
-    from px2cm import get_pixel_per_cm_from_image  # type: ignore
-except Exception:
-    get_pixel_per_cm_from_image = None
+
+def _lazy_import(module_name: str, attr: str):
+    """第一次呼叫時才匯入 module_name.attr；失敗回傳 None（與原本的 try/except 行為相同）。"""
+    key = (module_name, attr)
+    if key not in _lazy_modules:
+        try:
+            module = __import__(module_name, fromlist=[attr])
+            _lazy_modules[key] = getattr(module, attr)
+        except Exception:
+            _lazy_modules[key] = None
+    return _lazy_modules[key]
 
 DEFAULT_TOP_CAMERA_INDEX = 0
 DEFAULT_SIDE_CAMERA_INDEX = 1  # Ch5-t1 使用
@@ -1089,6 +1096,7 @@ def update_camera_settings():
 
 
 def _measure_standard_area_from_image(image):
+    detect_paper_contour_by_model = _lazy_import("paper_contour_model", "detect_paper_contour_by_model")
     if detect_paper_contour_by_model is None:
         raise RuntimeError("找不到紙張輪廓模型，無法量測標準面積")
 
@@ -1106,6 +1114,7 @@ def _measure_standard_area_from_image(image):
 @app.post("/camera-settings/measure-px2cm")
 def measure_px2cm_from_frame():
     try:
+        get_pixel_per_cm_from_image = _lazy_import("px2cm", "get_pixel_per_cm_from_image")
         if get_pixel_per_cm_from_image is None:
             return jsonify({"success": False, "error": "找不到比例尺量測邏輯 (px2cm.py)"})
 
@@ -1295,6 +1304,14 @@ def _handle_err(e):
 
 
 def _open_browser():
+    # 伺服器一可以連線就立刻開瀏覽器（最多等 10 秒），不再固定等 0.5 秒
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((HOST, PORT), timeout=0.2):
+                break
+        except OSError:
+            time.sleep(0.05)
     webbrowser.open(f"http://{HOST}:{PORT}/")
 
 
@@ -2768,7 +2785,7 @@ def clear_game_state():
 if __name__ == "__main__":
     try:
         write_to_console(f"準備啟動 Flask 應用程式，HOST={HOST}, PORT={PORT}", "INFO")
-        threading.Timer(0.5, _open_browser).start()
+        threading.Thread(target=_open_browser, daemon=True).start()
         write_to_console("已設定瀏覽器自動開啟", "INFO")
     except Exception as e:
         write_to_console(f"設定瀏覽器自動開啟時發生錯誤：{str(e)}", "ERROR")

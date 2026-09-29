@@ -249,7 +249,35 @@
             z-index: 1;
         }
         .preview-placeholder { padding: 40px 24px 24px; text-align: center; color: #D8D5CC; line-height: 1.7; }
-        .preview-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .preview-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+        /* 量測中：按鈕換成轉圈圈、暫停點擊 */
+        /* 量測中不套用「停用」的淺灰：維持墨色，讓人看得出它正在工作 */
+        .btn.is-busy,
+        .btn.is-busy:disabled { cursor: progress; color: var(--ink); border-color: var(--ink); background: var(--paper); }
+        .btn.is-busy::before {
+            -webkit-mask: none;
+            mask: none;
+            background: none;
+            border: 3px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: measure-spin .8s linear infinite;
+        }
+        @keyframes measure-spin { to { transform: rotate(360deg); } }
+        .measure-wait {
+            padding: 6px 12px;
+            border: 2px solid var(--ink);
+            background: var(--ch2-tint);
+            color: var(--ink);
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .measure-wait[hidden] { display: none; }
+        @media (prefers-reduced-motion: reduce) {
+            .btn.is-busy::before { animation: none; border-top-color: currentColor; opacity: .6; }
+        }
         .preview-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
 
         .summary {
@@ -396,6 +424,7 @@
                         <input id="px2cmInput" type="number" step="0.0001" min="0" aria-label="px2cm 比例尺" />
                         <div class="preview-actions">
                             <button id="measurePx2cmBtn" class="btn secondary fat" data-icon="camera" type="button">以目前上方預覽量測比例尺</button>
+                            <span class="measure-wait" id="measurePx2cmWait" role="status" hidden>第一次量測要先載入工具，約需 2–3 秒…</span>
                         </div>
                         <div class="preview-note">請先切到「上方」鏡頭並放入 A4 紙，確認預覽畫面正確後再按。</div>
                     </div>
@@ -406,6 +435,7 @@
                         <input id="standardAreaInput" type="number" step="1" min="1" aria-label="標準面積" />
                         <div class="preview-actions">
                             <button id="measureStandardAreaBtn" class="btn secondary fat" data-icon="camera" type="button">以目前上方預覽測量標準面積</button>
+                            <span class="measure-wait" id="measureStandardAreaWait" role="status" hidden>第一次量測要先載入工具，約需 2–3 秒…</span>
                         </div>
                         <div class="preview-note">請先切到「上方」鏡頭並確認預覽畫面是標準紙張，再按下測量。</div>
                     </div>
@@ -922,6 +952,27 @@
         px2cmInput.addEventListener("input", syncAndRender);
         standardAreaInput.addEventListener("input", syncAndRender);
 
+        // 量測按鈕的忙碌狀態：按下就轉圈並停用；超過 0.7 秒還沒好才顯示「第一次要載入工具」提示，
+        // 平常很快完成時不會閃一下。回傳 done()，完成或失敗時呼叫以恢復原狀。
+        function beginMeasureBusy(btn, waitEl) {
+            const label = btn.textContent;
+            btn.disabled = true;
+            btn.classList.add("is-busy");
+            btn.setAttribute("aria-busy", "true");
+            btn.textContent = "量測中…";
+            const timer = setTimeout(() => { if (waitEl) waitEl.hidden = false; }, 700);
+            return () => {
+                clearTimeout(timer);
+                if (waitEl) waitEl.hidden = true;
+                btn.textContent = label;
+                btn.classList.remove("is-busy");
+                btn.removeAttribute("aria-busy");
+                btn.disabled = false;
+            };
+        }
+        const measurePx2cmWait = document.getElementById("measurePx2cmWait");
+        const measureStandardAreaWait = document.getElementById("measureStandardAreaWait");
+
         measurePx2cmBtn.addEventListener("click", async () => {
             if (previewTarget !== PREVIEW_TOP) {
                 statusText.textContent = "請先切到上方鏡頭並開啟預覽，再進行 px2cm 量測。";
@@ -929,6 +980,7 @@
                 return;
             }
 
+            const done = beginMeasureBusy(measurePx2cmBtn, measurePx2cmWait);
             try {
                 statusText.textContent = "正在量測比例尺 (px2cm)...";
                 statusText.className = "status ok";
@@ -957,6 +1009,8 @@
             } catch (error) {
                 statusText.textContent = `比例尺量測失敗：${error.message}`;
                 statusText.className = "status err";
+            } finally {
+                done();
             }
         });
 
@@ -967,6 +1021,7 @@
                 return;
             }
 
+            const done = beginMeasureBusy(measureStandardAreaBtn, measureStandardAreaWait);
             try {
                 statusText.textContent = "正在量測標準面積...";
                 statusText.className = "status ok";
@@ -995,6 +1050,8 @@
             } catch (error) {
                 statusText.textContent = `標準面積量測失敗：${error.message}`;
                 statusText.className = "status err";
+            } finally {
+                done();
             }
         });
 
